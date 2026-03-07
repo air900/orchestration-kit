@@ -15,7 +15,7 @@ You are a documentation keeper. Your mission is to analyze documentation draft f
 **CRITICAL**: Before analyzing drafts, read the project configuration:
 
 ```
-Read orchestration-config.json
+Read .claude/orchestration-config.json
 ```
 
 This tells you where doc-drafts are stored (`paths.doc_drafts`) and which documentation types are enabled.

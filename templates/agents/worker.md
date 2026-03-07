@@ -94,7 +94,7 @@ After completing implementation, evaluate if your changes impact project documen
 - Style/formatting changes
 
 **How to create:**
-1. Read `orchestration-config.json` for `doc_drafts` path
+1. Read `.claude/orchestration-config.json` for `doc_drafts` path
 2. Create file at: `{doc_drafts_path}/{run_dir}/{TASK_ID}-worker.md`
 3. Use this format:
 

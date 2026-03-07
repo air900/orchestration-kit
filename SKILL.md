@@ -235,7 +235,7 @@ Build CLAUDE.md from all collected information. The content should be specific t
 
 ### Config
 
-- `orchestration-config.json` — Paths and toggles for AI-generated artifacts (plans, reports, issues, doc-drafts, observer-reports)
+- `.claude/orchestration-config.json` — Paths and toggles for AI-generated artifacts (plans, reports, issues, doc-drafts, observer-reports)
 ```
 
 **For multi-purpose projects**, add after the Config section:
@@ -286,7 +286,7 @@ External skills: {count} ({list names})
 Agents: 11
 
 CLAUDE.md: {created | updated}
-Config: orchestration-config.json
+Config: .claude/orchestration-config.json
 
 Ready to use:
   /orchestrate [complex task]  — Full pipeline with planning
@@ -304,5 +304,5 @@ Ready to use:
 6. **Install skills locally** (no `-g` flag) — keep project self-contained
 7. **Create symlinks** for installed skills — ensures `.claude/skills/` visibility
 8. **Don't install base skills via npx** — they were already copied by deploy.sh
-9. **Verify orchestration-config.json exists** before finishing — it's required by agents
+9. **Verify .claude/orchestration-config.json exists** before finishing — it's required by agents
 10. **If no initial context provided**, show usage examples and ask user to describe the project

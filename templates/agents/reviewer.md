@@ -116,7 +116,7 @@ For code quality issues that don't block the current task (tech debt, minor smel
 
 See: `.claude/skills/orchestrate/references/issue-tracking.md` for format and severity levels.
 
-Check `orchestration-config.json` → `documentation.paths.issues` and `documentation.enabled.issues` before creating files.
+Check `.claude/orchestration-config.json` → `documentation.paths.issues` and `documentation.enabled.issues` before creating files.
 
 ## Rules
 

@@ -19,7 +19,7 @@ Determine how the task was provided:
 |-------|------|----------|
 | Text prompt (e.g., "Add auth") | **Mode A: Temporary plan** | Create plan, output in chat or save to config path |
 | @file reference (e.g., `@TODO.md`) | **Mode B: User's task file** | Parse tasks from file, track status in-place (⏳→🔄→✅) |
-| Orchestration command | **Mode C: Config-aware plan** | Check `orchestration-config.json` for plan saving |
+| Orchestration command | **Mode C: Config-aware plan** | Check `.claude/orchestration-config.json` for plan saving |
 
 ### Mode B: @file Task Tracking
 
@@ -30,7 +30,7 @@ If the user provides a task file, parse it for task items and update status mark
 
 ### Mode C: Config-Aware Plan Saving
 
-Check if `orchestration-config.json` exists:
+Check if `.claude/orchestration-config.json` exists:
 - **If yes** and `enabled.plans` is true: Save plan to `paths.plans` directory
 - **If no** or `enabled.plans` is false: Output plan in chat only
 

@@ -160,11 +160,11 @@ fi
 
 # --- Copy orchestration config ---
 log_info "Setting up orchestration config..."
-if [ -f "$TARGET/orchestration-config.json" ]; then
-    log_warn "orchestration-config.json already exists, skipping"
+if [ -f "$TARGET/.claude/orchestration-config.json" ]; then
+    log_warn ".claude/orchestration-config.json already exists, skipping"
 else
-    cp "$TEMPLATES/orchestration-config.json" "$TARGET/orchestration-config.json"
-    log_ok "orchestration-config.json created"
+    cp "$TEMPLATES/orchestration-config.json" "$TARGET/.claude/orchestration-config.json"
+    log_ok ".claude/orchestration-config.json created"
 fi
 
 # --- Generate settings.json with hooks ---

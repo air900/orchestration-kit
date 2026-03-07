@@ -4,10 +4,10 @@ How orchestration agents should organize and create documentation artifacts.
 
 ## Configuration-Based Paths
 
-**Always read paths from `orchestration-config.json`** in the project root. Never hardcode paths.
+**Always read paths from `.claude/orchestration-config.json`**. Never hardcode paths.
 
 ```javascript
-config = readJSON("orchestration-config.json")
+config = readJSON(".claude/orchestration-config.json")
 paths = config.documentation.paths
 enabled = config.documentation.enabled
 
@@ -59,7 +59,7 @@ if (enabled.plans) {
 
 ## Enabled vs Disabled Types
 
-Some documentation types are disabled by default in `orchestration-config.json` to prevent AI agents from overwriting hand-written documentation. Check the `enabled` flags before writing.
+Some documentation types are disabled by default in `.claude/orchestration-config.json` to prevent AI agents from overwriting hand-written documentation. Check the `enabled` flags before writing.
 
 If a type is disabled but you need to create a file there, output the content in the chat response instead — let the user decide where to save it.
 

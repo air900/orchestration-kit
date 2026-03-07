@@ -58,11 +58,11 @@ After planner returns:
    - `description`: Full details + acceptance criteria from plan. **Include the "Required Reading" section from the plan** — agents need these doc paths.
    - `activeForm`: "Implementing {task name}"
 3. Set dependencies with `TaskUpdate(addBlockedBy)` based on the dependency graph
-4. If `orchestration-config.json` exists and `plans` is enabled, save plan to configured path
+4. If `.claude/orchestration-config.json` exists and `plans` is enabled, save plan to configured path
 5. Create doc-drafts run directory:
 ```
 RUN_DIR = "ORCH-{YYYY-MM-DD}-{feature-slug}"
-config = Read orchestration-config.json
+config = Read .claude/orchestration-config.json
 if config.documentation.enabled.doc_drafts:
     mkdir -p {config.documentation.paths.doc_drafts}/{RUN_DIR}
 ```
@@ -289,7 +289,7 @@ Task(documenter):
     TASKS COMPLETED: {list of all tasks with summaries}
     FILES CHANGED: {aggregated list}
     TEST RESULTS: {aggregated results}
-    CONFIG: Check orchestration-config.json for report path
+    CONFIG: Check .claude/orchestration-config.json for report path
 ```
 
 ### Phase 3.5: Documentation Keeper
@@ -297,7 +297,7 @@ Task(documenter):
 After documenter creates the completion report, check for documentation drafts:
 
 ```
-config = Read orchestration-config.json
+config = Read .claude/orchestration-config.json
 if config.documentation.enabled.doc_drafts:
     drafts = Glob("{config.documentation.paths.doc_drafts}/{RUN_DIR}/*.md")
 
@@ -309,7 +309,7 @@ if config.documentation.enabled.doc_drafts:
             DRAFTS_DIR: {config.documentation.paths.doc_drafts}/{RUN_DIR}
             DRAFT_FILES: {list of draft files found}
             PROJECT_DOCS: Check docs/ directory for target documents
-            CONFIG: Read orchestration-config.json for enabled doc types
+            CONFIG: Read .claude/orchestration-config.json for enabled doc types
 
         // Present doc-keeper recommendations to user
         // Show the structured recommendations table
@@ -329,7 +329,7 @@ else:
 Run the observer to analyze this orchestration run:
 
 ```
-config = Read orchestration-config.json
+config = Read .claude/orchestration-config.json
 Task(observer):
   prompt: |
     Analyze this orchestration run and identify improvements:
@@ -344,7 +344,7 @@ Task(observer):
       - Security retries: {sum of security_retries across all tasks}
     ISSUES_CREATED: {list of ISS-NNN files created during run, or "None"}
     DOC_KEEPER_RESULT: {summary — drafts analyzed, changes applied/rejected}
-    CONFIG: Check orchestration-config.json for observer_reports path
+    CONFIG: Check .claude/orchestration-config.json for observer_reports path
 ```
 
 Save the observer report if `enabled.observer_reports` is true.
@@ -387,7 +387,7 @@ Output to user:
 4. **Max 10 subtasks** — ask user before exceeding
 5. **Max 3 retries** per stage — escalate to user after, with metadata recording the blocker
 6. **Re-check unblocked after completion** — completing a task may unblock dependents in the DAG. Always re-query `TaskList()` after each task completion.
-7. **Config-aware** — check `orchestration-config.json` for documentation paths
+7. **Config-aware** — check `.claude/orchestration-config.json` for documentation paths
 8. **Doc drafts flow** — create RUN_DIR in Phase 1, pass DOC_DRAFTS_RUN_DIR and DOC_DRAFTS_PATH to all workers/debuggers, process in Phase 3.5
 9. **Observer is last** — always runs after doc-keeper, never modifies code or config files, only produces recommendations
 

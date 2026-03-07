@@ -16,7 +16,7 @@ You are an orchestration observer specializing in process improvement. Your miss
 **CRITICAL**: Read the orchestration configuration to find where to save your report:
 
 ```
-Read orchestration-config.json
+Read .claude/orchestration-config.json
 ```
 
 Check `paths.observer_reports` for the report output location. Check `enabled.observer_reports` — if disabled, output report in chat.

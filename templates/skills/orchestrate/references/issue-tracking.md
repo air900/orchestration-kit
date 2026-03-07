@@ -47,7 +47,7 @@ How to fix it.
 
 ```
 Format: ISS-NNN-description.md
-Location: Read from orchestration-config.json → documentation.paths.issues
+Location: Read from .claude/orchestration-config.json → documentation.paths.issues
 
 Examples:
 - ISS-001-token-refresh-race.md

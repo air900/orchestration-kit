@@ -125,7 +125,7 @@ For Medium/Low severity findings that don't block the current task, create an is
 
 See: `.claude/skills/orchestrate/references/issue-tracking.md` for format and severity levels.
 
-Check `orchestration-config.json` → `documentation.paths.issues` and `documentation.enabled.issues` before creating files.
+Check `.claude/orchestration-config.json` → `documentation.paths.issues` and `documentation.enabled.issues` before creating files.
 
 ## Rules
 

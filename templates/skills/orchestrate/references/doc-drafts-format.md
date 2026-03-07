@@ -85,7 +85,7 @@ One file per agent per task. If a debugger fixes a worker's task, both may creat
 
 ## Configuration
 
-Draft paths are controlled by `orchestration-config.json`:
+Draft paths are controlled by `.claude/orchestration-config.json`:
 
 ```json
 {

@@ -67,7 +67,7 @@ Task(documenter):
     TASK: {what was implemented}
     CHANGES: {summary from worker}
     TESTS: {summary from test-runner}
-    CONFIG: Check orchestration-config.json for report path
+    CONFIG: Check .claude/orchestration-config.json for report path
 ```
 
 ### Step 4: Summary

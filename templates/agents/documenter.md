@@ -16,7 +16,7 @@ You are a documentation specialist. You create concise completion reports after 
 **CRITICAL**: Before creating any documentation, read the project's documentation configuration:
 
 ```
-Read orchestration-config.json
+Read .claude/orchestration-config.json
 ```
 
 This tells you:

@@ -92,7 +92,7 @@ TaskUpdate(taskId: "2", metadata: {
 
 ## Configuration-Based Documentation
 
-If `orchestration-config.json` exists in the project root:
+If `.claude/orchestration-config.json` exists:
 
 ```json
 {

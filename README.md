@@ -92,18 +92,18 @@ Use when your repo has **a single purpose**: one app, one API, one library, one 
 **Structure after install:**
 ```
 my-app/
-├── src/                         # Your code (unchanged)
+├── src/                              # Your code (unchanged)
 ├── .claude/
-│   ├── agents/                  # 11 orchestration agents
-│   └── skills/                  # 7+ workflow skills
-├── docs/orchestration/          # AI-generated artifacts
-│   ├── plans/                   #   Task breakdown plans
-│   ├── reports/                 #   Completion reports
-│   ├── issues/                  #   Tech debt tracking (ISS-NNN)
-│   ├── doc-drafts/              #   Documentation change proposals
-│   └── observer-reports/        #   Process improvement insights
-├── orchestration-config.json    # Artifact paths & toggles
-└── CLAUDE.md                    # Project rules + orchestration section
+│   ├── agents/                       # 11 orchestration agents
+│   ├── skills/                       # 7+ workflow skills
+│   └── orchestration-config.json     # Artifact paths & toggles
+├── docs/orchestration/               # AI-generated artifacts
+│   ├── plans/                        #   Task breakdown plans
+│   ├── reports/                      #   Completion reports
+│   ├── issues/                       #   Tech debt tracking (ISS-NNN)
+│   ├── doc-drafts/                   #   Documentation change proposals
+│   └── observer-reports/             #   Process improvement insights
+└── CLAUDE.md                         # Project rules + orchestration section
 ```
 
 **Install:**
@@ -150,9 +150,9 @@ web-scripts/
 │       └── README.md
 ├── .claude/
 │   ├── agents/                       # Shared — all sub-projects use same agents
-│   └── skills/                       # Shared — same skills for everything
+│   ├── skills/                       # Shared — same skills for everything
+│   └── orchestration-config.json     # Shared config
 ├── docs/orchestration/               # Shared — artifacts from all sub-projects
-├── orchestration-config.json         # Shared config
 └── CLAUDE.md                         # Sub-project index + per-project sections
 ```
 
@@ -223,7 +223,7 @@ worker → test-runner → [debugger if needed] → documenter
 
 ## Configuration
 
-### orchestration-config.json
+### .claude/orchestration-config.json
 
 Controls where AI-generated artifacts are saved:
 
