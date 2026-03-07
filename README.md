@@ -65,34 +65,137 @@ This will:
 
 ## Project Types
 
-### Atomic (default)
+Choose the mode that matches your repo structure. If unsure — start with **atomic**, you can restructure later.
 
-Single-purpose project. One application, library, or service.
+### Atomic (default) — One product, one repo
 
+Use when your repo has **a single purpose**: one app, one API, one library, one service.
+
+**When to use atomic:**
+- A web app (Next.js, Django, Rails...)
+- A backend API service
+- A CLI tool
+- A library/SDK
+- A mobile app
+- Any repo where all code serves one product
+
+**Examples:**
+| Repo | What it builds |
+|------|---------------|
+| `hr-bot` | HR dashboard + employee bot |
+| `payment-api` | Payment processing service |
+| `my-cli` | Command-line utility |
+| `design-system` | Component library |
+
+**Structure after install:**
 ```
 my-app/
-├── .claude/agents/       # 11 agents
-├── .claude/skills/       # 7+ skills
-├── docs/orchestration/   # AI-generated artifacts
-├── orchestration-config.json
-└── CLAUDE.md             # With orchestration section
+├── src/                         # Your code (unchanged)
+├── .claude/
+│   ├── agents/                  # 11 orchestration agents
+│   └── skills/                  # 7+ workflow skills
+├── docs/orchestration/          # AI-generated artifacts
+│   ├── plans/                   #   Task breakdown plans
+│   ├── reports/                 #   Completion reports
+│   ├── issues/                  #   Tech debt tracking (ISS-NNN)
+│   ├── doc-drafts/              #   Documentation change proposals
+│   └── observer-reports/        #   Process improvement insights
+├── orchestration-config.json    # Artifact paths & toggles
+└── CLAUDE.md                    # Project rules + orchestration section
 ```
 
-### Multi-purpose
+**Install:**
+```bash
+cd /path/to/my-app
+curl -sSL https://raw.githubusercontent.com/air900/orchestration-kit/main/install.sh | bash
+```
 
-Multiple sub-projects in one repo, organized under `src/`.
+---
 
+### Multi-purpose — Multiple projects, one direction
+
+Use when your repo contains **several independent projects** that share a common theme or domain, but are not tightly coupled.
+
+**When to use multi:**
+- A collection of scripts (form scripts + validation scripts + migration scripts)
+- Multiple plugins for the same platform
+- A set of microservices in one repo
+- Tools + libraries + examples in one place
+- Any repo where you'd say "this has several things in it"
+
+**Key difference from monorepo:** sub-projects here are loosely related (same domain), not tightly integrated (shared build system). For true monorepos with shared dependencies, use atomic mode with a monorepo tool.
+
+**Examples:**
+| Repo | Sub-projects inside |
+|------|-------------------|
+| `web-scripts` | `src/forms/` — form handlers, `src/plugins/` — browser extensions, `src/tools/` — CLI utilities |
+| `ml-toolkit` | `src/preprocessing/` — data cleaning, `src/models/` — training scripts, `src/serving/` — inference API |
+| `wordpress-kit` | `src/themes/` — custom themes, `src/plugins/` — WP plugins, `src/blocks/` — Gutenberg blocks |
+| `automation` | `src/scrapers/` — data scrapers, `src/parsers/` — file parsers, `src/reporters/` — report generators |
+
+**Structure after install:**
 ```
 web-scripts/
-├── src/
-│   ├── forms-scripts/    # Sub-project 1
-│   ├── plugins/          # Sub-project 2
-│   └── tools/            # Sub-project 3
-├── .claude/agents/       # Shared agents
-├── .claude/skills/       # Shared skills
-├── docs/orchestration/   # Shared output
-├── orchestration-config.json
-└── CLAUDE.md             # With sub-project index
+├── src/                              # Sub-projects live here
+│   ├── forms/                        #   Sub-project 1
+│   │   ├── ...                       #     Its own code
+│   │   └── README.md                 #     Its own docs
+│   ├── plugins/                      #   Sub-project 2
+│   │   ├── ...
+│   │   └── README.md
+│   └── tools/                        #   Sub-project 3
+│       ├── ...
+│       └── README.md
+├── .claude/
+│   ├── agents/                       # Shared — all sub-projects use same agents
+│   └── skills/                       # Shared — same skills for everything
+├── docs/orchestration/               # Shared — artifacts from all sub-projects
+├── orchestration-config.json         # Shared config
+└── CLAUDE.md                         # Sub-project index + per-project sections
+```
+
+**What CLAUDE.md looks like for multi:**
+```markdown
+## Sub-Projects
+
+| Name | Path | Description |
+|------|------|-------------|
+| forms | src/forms/ | Form generation and validation scripts |
+| plugins | src/plugins/ | Browser extension plugins |
+| tools | src/tools/ | CLI utilities for data processing |
+
+### Sub-Project: forms
+**Path:** `src/forms/`
+**Tech stack:** TypeScript, Zod
+**Commands:** `npm run build:forms`, `npm test -- --project forms`
+
+### Sub-Project: plugins
+**Path:** `src/plugins/`
+**Tech stack:** TypeScript, WebExtension API
+**Commands:** `npm run build:plugins`
+```
+
+The planner agent reads these sections and **scopes tasks** to the correct sub-project automatically. When you say `/orchestrate add email validation to forms`, it knows to work in `src/forms/`.
+
+**Install:**
+```bash
+cd /path/to/web-scripts
+curl -sSL https://raw.githubusercontent.com/air900/orchestration-kit/main/install.sh | bash -s -- multi
+```
+
+---
+
+### Decision flowchart
+
+```
+Does your repo build ONE product?
+  ├── YES → atomic
+  └── NO
+       └── Does it contain several independent projects
+           sharing a common theme/domain?
+             ├── YES → multi
+             └── NO (tightly coupled monorepo with shared deps)
+                  └── atomic (use your monorepo tool for builds)
 ```
 
 ## Pipeline Overview
