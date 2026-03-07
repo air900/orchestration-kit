@@ -2,15 +2,15 @@
 # install.sh — One-liner orchestration deployment from GitHub
 #
 # Usage (run from your target project directory):
-#   curl -sSL https://raw.githubusercontent.com/USERNAME/orchestration-kit/main/install.sh | bash
-#   curl -sSL https://raw.githubusercontent.com/USERNAME/orchestration-kit/main/install.sh | bash -s -- multi
+#   curl -sSL https://raw.githubusercontent.com/air900/orchestration-kit/main/install.sh | bash
+#   curl -sSL https://raw.githubusercontent.com/air900/orchestration-kit/main/install.sh | bash -s -- multi
 #
 # Or with explicit repo:
-#   curl -sSL https://raw.githubusercontent.com/USERNAME/orchestration-kit/main/install.sh | REPO=USERNAME/orchestration-kit bash
+#   curl -sSL https://raw.githubusercontent.com/air900/orchestration-kit/main/install.sh | REPO=air900/orchestration-kit bash
 
 set -euo pipefail
 
-REPO="${REPO:-USERNAME/orchestration-kit}"
+REPO="${REPO:-air900/orchestration-kit}"
 PROJECT_TYPE="${1:-atomic}"
 TARGET="$(pwd)"
 TMP_DIR=$(mktemp -d)

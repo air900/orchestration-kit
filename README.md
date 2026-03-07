@@ -17,15 +17,15 @@ Portable development orchestration system for Claude Code. Deploy a complete mul
 cd /path/to/my-project
 
 # Atomic project (single-purpose)
-curl -sSL https://raw.githubusercontent.com/USERNAME/orchestration-kit/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/air900/orchestration-kit/main/install.sh | bash
 
 # Multi-purpose project (sub-projects in src/)
-curl -sSL https://raw.githubusercontent.com/USERNAME/orchestration-kit/main/install.sh | bash -s -- multi
+curl -sSL https://raw.githubusercontent.com/air900/orchestration-kit/main/install.sh | bash -s -- multi
 ```
 
 Or clone manually:
 ```bash
-git clone --depth 1 https://github.com/USERNAME/orchestration-kit.git /tmp/orch-kit
+git clone --depth 1 https://github.com/air900/orchestration-kit.git /tmp/orch-kit
 /tmp/orch-kit/deploy.sh /path/to/my-project
 rm -rf /tmp/orch-kit
 ```
