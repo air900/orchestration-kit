@@ -32,17 +32,19 @@ rm -rf /tmp/orch-kit
 
 ### 2. Interactive setup (in Claude Code)
 
-Open the project in Claude Code and run:
+Open the project in Claude Code and run `/deploy-orchestration` with your task description:
 
 ```
-/deploy-orchestration
+/deploy-orchestration develop REST API with FastAPI and PostgreSQL
+/deploy-orchestration build React dashboard with auth and charts
+/deploy-orchestration create WordPress plugin for SEO optimization
+/deploy-orchestration web-scripts: form validators, browser plugins, CLI tools
 ```
 
-This will:
-- Detect your project's tech stack
-- Search for and install relevant skills (React, Python, etc.)
-- Generate CLAUDE.md orchestration section
-- For multi-purpose projects: set up sub-project structure
+The task description tells the skill what tech stack to search skills for, whether it's atomic or multi-purpose, and what to write in CLAUDE.md. It will:
+- Discover and install relevant skills for your stack
+- Generate CLAUDE.md with project description and orchestration section
+- For multi-purpose projects: create `src/` sub-project structure
 
 ### 3. Start using
 

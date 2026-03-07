@@ -1,68 +1,93 @@
 ---
 name: deploy-orchestration
-description: Interactive orchestration setup — Phase 2 after deploy.sh. Discovers task-specific skills via find-skills, generates CLAUDE.md orchestration section, configures multi-project structure. Use when setting up orchestration in a new project.
+description: Interactive orchestration setup — Phase 2 after deploy.sh. Discovers task-specific skills via find-skills, generates CLAUDE.md orchestration section, configures multi-project structure. Use when setting up orchestration in a new project. User provides task description as argument.
 ---
 
 # Deploy Orchestration — Phase 2 (Interactive)
 
 **Prerequisite:** `deploy.sh` has already copied agents, skills, config, and hooks to this project.
 
-This skill handles the interactive parts that need Claude's intelligence:
-1. Detecting project context
-2. Discovering and installing task-specific skills
-3. Generating CLAUDE.md orchestration section
-4. Configuring multi-project structure (if applicable)
+**Usage:**
+```
+/deploy-orchestration [task description]
+```
+
+**Examples:**
+```
+/deploy-orchestration develop wordpress plugin for SEO optimization
+/deploy-orchestration build REST API for user management with FastAPI
+/deploy-orchestration create React dashboard with charts and auth
+/deploy-orchestration web-scripts: form validators, browser plugins, CLI tools
+```
+
+The task description tells the skill:
+- What tech stack to search skills for
+- Whether this is atomic or multi-purpose (if description lists multiple things → multi)
+- What to write in CLAUDE.md
 
 ## Workflow
 
+### Step 0: Parse User Input
+
+The user's task description after `/deploy-orchestration` is the primary input. Parse it to extract:
+
+```
+INPUT: "develop wordpress plugin for SEO optimization"
+  → project_type: atomic (single thing)
+  → keywords: [wordpress, plugin, seo, php]
+  → purpose: "WordPress plugin for SEO optimization"
+
+INPUT: "web-scripts: form validators, browser plugins, CLI tools"
+  → project_type: multi (lists multiple things)
+  → sub_projects: [{name: "form-validators", desc: "Form validation scripts"},
+                    {name: "browser-plugins", desc: "Browser extension plugins"},
+                    {name: "cli-tools", desc: "CLI utilities"}]
+  → keywords: [javascript, typescript, browser-extension, cli]
+```
+
+**Detection rules for multi-purpose:**
+- Contains comma-separated list of different things
+- Uses words like "and", "plus", "also", listing distinct projects
+- Explicitly mentions "scripts", "collection", "toolkit", "set of"
+
+If unclear, **ask the user** — don't guess.
+
 ### Step 1: Detect Project Context
 
-Read the project to understand what it does:
+Read existing project files to enrich context:
 
 ```
 1. Read package.json / pyproject.toml / go.mod / Cargo.toml (whichever exists)
 2. Read README.md if it exists
 3. Scan top-level directory structure
-4. Identify: project name, language, framework, purpose
+4. Combine with parsed user input
 ```
 
 Output to user:
 ```
-Detected project: {name}
-Language: {lang}
-Framework: {framework or "none detected"}
-Purpose: {brief description based on README/package.json}
+Setting up orchestration for: {purpose from user input}
+
+Project: {name from directory or package.json}
+Type: {atomic | multi-purpose}
+Language: {detected or inferred from task}
+{IF MULTI:}
+Sub-projects:
+  - {name}: {description}
+  - {name}: {description}
 ```
 
-### Step 2: Determine Project Type
+### Step 2: Discover Task-Specific Skills
 
-Ask the user if not already clear:
-
-```
-Is this project:
-  1. Atomic — single-purpose (one application/library/service)
-  2. Multi-purpose — multiple sub-projects in one repo (e.g., scripts + plugins + tools)
-```
-
-If **multi-purpose**, ask:
-```
-What sub-projects does this contain? Provide names and brief descriptions.
-Example: "forms-scripts: Form generation scripts, plugins: Browser extensions"
-```
-
-For each sub-project, create `src/{name}/` directory.
-
-### Step 3: Discover Task-Specific Skills
-
-Use `find-skills` to discover skills relevant to this project:
+Use `find-skills` to discover skills relevant to the task:
 
 ```bash
-# Extract keywords from project context
-# Example: if project uses React + TypeScript → search for react, typescript, nextjs
+# Extract keywords from task description + detected tech stack
+# Example: "wordpress plugin" → search for wordpress, php
+# Example: "React dashboard" → search for react, nextjs, charts
 
 npx skills find [keyword1]
 npx skills find [keyword2]
-# ... up to 3-4 searches based on detected tech stack
+# ... up to 3-4 searches
 ```
 
 Present discovered skills to user:
@@ -90,13 +115,31 @@ After installation, create symlinks so skills are visible in `.claude/skills/`:
 ln -sf ../../.agents/skills/{name} .claude/skills/{name}
 ```
 
-### Step 4: Generate CLAUDE.md Orchestration Section
+### Step 3: Set Up Multi-Purpose Structure (if applicable)
 
-Read the template from `.claude/skills/deploy-orchestration/` context (the template is below).
+For multi-purpose projects, create the sub-project directories:
+
+```bash
+mkdir -p src/{sub-project-1}
+mkdir -p src/{sub-project-2}
+# ...
+```
+
+### Step 4: Generate CLAUDE.md
 
 **For atomic projects**, generate:
 
 ```markdown
+# {Project Name}
+
+{Purpose from user's task description}
+
+## Commands
+
+```bash
+{detected or standard commands for the language}
+```
+
 ## Claude Automations
 
 ### Skills
@@ -163,7 +206,7 @@ Read the template from `.claude/skills/deploy-orchestration/` context (the templ
 
 **Path:** `src/{name}/`
 **Description:** {description}
-**Tech stack:** {detected or "TBD — update after initial setup"}
+**Tech stack:** {detected or inferred from task description}
 **Build/Run:** {detected commands or "TBD"}
 
 **Conventions:**
@@ -178,20 +221,7 @@ If CLAUDE.md exists:
 3. If no: append the generated section at the end
 
 If CLAUDE.md does not exist:
-1. Create a minimal CLAUDE.md with:
-   ```markdown
-   # {Project Name}
-
-   {Brief description from Step 1}
-
-   ## Commands
-
-   ```bash
-   {detected build/run/test commands}
-   ```
-
-   {Generated orchestration section}
-   ```
+1. Create it with the full generated content from Step 4
 
 ### Step 6: Output Summary
 
@@ -200,6 +230,7 @@ Orchestration setup complete!
 
 Project: {name}
 Type: {atomic|multi}
+Purpose: {from user's task description}
 Base skills: 7 (orchestrate, implement, code-review, arch-review, security-audit, refactor-code, 012-update-docs)
 External skills: {count} ({list names})
 Agents: 11
@@ -215,9 +246,11 @@ Ready to use:
 
 ## Key Rules
 
-1. **Always ask before modifying existing CLAUDE.md** — never silently overwrite
-2. **Install skills locally** (no `-g` flag) — keep project self-contained
-3. **Create symlinks** for installed skills — ensures `.claude/skills/` visibility
-4. **For multi-purpose projects**, each sub-project gets its own section in CLAUDE.md
-5. **Don't install base skills via npx** — they were already copied by deploy.sh
-6. **Verify orchestration-config.json exists** before finishing — it's required by agents
+1. **User's task description is the primary input** — don't ask questions that the description already answers
+2. **Always ask before modifying existing CLAUDE.md** — never silently overwrite
+3. **Install skills locally** (no `-g` flag) — keep project self-contained
+4. **Create symlinks** for installed skills — ensures `.claude/skills/` visibility
+5. **For multi-purpose projects**, each sub-project gets its own section in CLAUDE.md
+6. **Don't install base skills via npx** — they were already copied by deploy.sh
+7. **Verify orchestration-config.json exists** before finishing — it's required by agents
+8. **If task description is missing**, show usage examples and ask user to provide one
