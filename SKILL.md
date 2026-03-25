@@ -233,9 +233,18 @@ Build CLAUDE.md from all collected information. The content should be specific t
 - **PostToolUse:Edit**: {language}-specific type/lint check after edits
 - **PostToolUse:Write|MultiEdit**: Auto-format for {language} files
 
+**Maintenance:**
+- `/sync-skills` — Detect skills in `.claude/skills/` not listed here and offer to register them.
+
 ### Config
 
 - `.claude/orchestration-config.json` — Paths and toggles for AI-generated artifacts (plans, reports, issues, doc-drafts, observer-reports)
+
+### Skill Discovery
+
+On session start, scan `.claude/skills/` for skills not listed in the Skills section above.
+If new skills are found, notify the user and suggest running `/sync-skills` to update this file.
+
 ```
 
 **For multi-purpose projects**, add after the Config section:
@@ -281,7 +290,7 @@ Project: {name}
 Type: {atomic | multi-purpose}
 Purpose: {from conversation}
 Tech stack: {from answers}
-Base skills: 7 (orchestrate, implement, code-review, arch-review, security-audit, refactor-code, 012-update-docs)
+Base skills: 8 (orchestrate, implement, code-review, arch-review, security-audit, refactor-code, 012-update-docs, sync-skills)
 External skills: {count} ({list names})
 Agents: 11
 
