@@ -243,6 +243,7 @@ Build CLAUDE.md from all collected information. The content should be specific t
 ### Skill Discovery
 
 On session start, scan `.claude/skills/` for skills not listed in the Skills section above.
+Use `find -L .claude/skills -maxdepth 2 -name "SKILL.md" -type f` (NOT Glob — it doesn't follow symlinks).
 If new skills are found, notify the user and suggest running `/sync-skills` to update this file.
 
 ```

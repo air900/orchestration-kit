@@ -11,7 +11,13 @@ Detect skills present in `.claude/skills/` but missing from the `## Claude Autom
 
 ### Step 1: Collect Installed Skills
 
-List all directories in `.claude/skills/`. For each directory, read `SKILL.md` (or `skill.md`) and extract:
+**IMPORTANT:** Many skills are installed as symlinks (e.g., `find-skills` links to `../../.agents/skills/...`). The Glob tool does NOT follow symlinks. You MUST use Bash to discover skills:
+
+```bash
+find -L .claude/skills -maxdepth 2 -name "SKILL.md" -type f 2>/dev/null
+```
+
+The `-L` flag follows symlinks. For each found `SKILL.md`, read it and extract:
 - **name** from frontmatter field `name:`
 - **description** from frontmatter field `description:` (first sentence only)
 
