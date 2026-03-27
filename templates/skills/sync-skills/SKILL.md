@@ -35,18 +35,18 @@ Build a set of registered skill names.
 
 ### Step 3: Compare
 
+Internal skills (exclude from all comparisons — never report as new or stale):
+- orchestrate, implement, code-review, arch-review, security-audit, refactor-code, 012-update-docs, sync-skills, deploy-orchestration
+
 Find skills that are **installed but not registered**:
 ```
-new_skills = installed_skills - registered_skills
+new_skills = installed_skills - registered_skills - internal_skills
 ```
 
 Also find skills that are **registered but not installed** (stale references):
 ```
-stale_skills = registered_skills - installed_skills - base_orchestration_agents
+stale_skills = registered_skills - installed_skills - internal_skills
 ```
-
-Base orchestration skills (always present, never flag as stale):
-- orchestrate, implement, code-review, arch-review, security-audit, refactor-code, 012-update-docs, sync-skills, deploy-orchestration
 
 ### Step 4: Report
 
