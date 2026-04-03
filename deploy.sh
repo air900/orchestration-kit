@@ -142,21 +142,7 @@ mkdir -p "$TARGET/.claude/skills/deploy-orchestration"
 cp "$SCRIPT_DIR/SKILL.md" "$TARGET/.claude/skills/deploy-orchestration/SKILL.md"
 log_ok "Deploy-orchestration skill installed"
 
-# --- Install find-skills ---
-log_info "Installing find-skills skill..."
-if command -v npx &>/dev/null; then
-    (cd "$TARGET" && npx skills add https://github.com/vercel-labs/skills --skill find-skills -y 2>&1) || {
-        log_warn "find-skills installation failed. Install manually: npx skills add https://github.com/vercel-labs/skills --skill find-skills"
-    }
-    # Create symlink for Claude Code visibility
-    if [ -d "$TARGET/.agents/skills/find-skills" ] && [ ! -L "$TARGET/.claude/skills/find-skills" ]; then
-        ln -sf ../../.agents/skills/find-skills "$TARGET/.claude/skills/find-skills"
-    fi
-    log_ok "find-skills installed"
-else
-    log_warn "npx not found. Skipping find-skills installation."
-    log_warn "Install manually after setting up Node.js: npx skills add https://github.com/vercel-labs/skills --skill find-skills"
-fi
+# find-skills is now included in templates/skills/ and deployed with other skills above
 
 # --- Copy orchestration config ---
 log_info "Setting up orchestration config..."
