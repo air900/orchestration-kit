@@ -5,7 +5,7 @@ Portable development orchestration system for Claude Code. Deploy a complete mul
 ## What You Get
 
 - **11 specialized agents** — planner, worker, test-runner, debugger, reviewer, security-auditor, documenter, doc-keeper, observer, senior-reviewer, refactor
-- **7 workflow skills** — `/orchestrate`, `/implement`, `/code-review`, `/arch-review`, `/security-audit`, `/refactor-code`, `/012-update-docs`
+- **8 workflow skills** — `/orchestrate`, `/implement`, `/code-review`, `/arch-review`, `/security-audit`, `/refactor-code`, `/012-update-docs`, `/knowledge-harvest`
 - **Hooks** — SubagentStop pipeline transitions, PreToolUse safety guards, language-specific linting/formatting
 - **Config-driven documentation** — plans, reports, issues, doc-drafts, observer reports
 
