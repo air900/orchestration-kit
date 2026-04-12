@@ -67,28 +67,69 @@ if [ ! -d "$TARGET/.git" ]; then
     log_warn "Target is not a git repository. Orchestration works best with git."
 fi
 
-# --- Check plugin prerequisites ---
-MISSING_PLUGINS=""
+# --- Check & install plugin prerequisites ---
 if command -v claude &>/dev/null; then
-    if ! claude plugin list 2>/dev/null | grep -q "superpowers"; then
-        MISSING_PLUGINS="${MISSING_PLUGINS}\n  claude plugin install superpowers   (REQUIRED — dev methodology)"
-    fi
-    if ! claude plugin list 2>/dev/null | grep -q "beads"; then
-        MISSING_PLUGINS="${MISSING_PLUGINS}\n  claude plugin marketplace add steveyegge/beads"
-        MISSING_PLUGINS="${MISSING_PLUGINS}\n  claude plugin install beads          (RECOMMENDED — task tracking)"
-    fi
-fi
+    PLUGIN_LIST=$(claude plugin list 2>/dev/null || echo "")
 
-if [ -n "$MISSING_PLUGINS" ]; then
-    log_warn "Missing Claude Code plugins:${MISSING_PLUGINS}"
+    # Superpowers (required)
+    if ! echo "$PLUGIN_LIST" | grep -q "superpowers"; then
+        log_warn "Superpowers plugin not found (required for dev methodology)"
+        if ask_yes "Install superpowers?"; then
+            log_info "Installing superpowers..."
+            claude plugin install superpowers 2>&1 && log_ok "Superpowers installed" || log_warn "Failed — install manually: claude plugin install superpowers"
+        fi
+    else
+        log_ok "Superpowers plugin found"
+    fi
+
+    # Beads (recommended)
+    if ! echo "$PLUGIN_LIST" | grep -q "beads"; then
+        log_warn "Beads plugin not found (recommended for task tracking)"
+        if ask_yes "Install beads?"; then
+            log_info "Adding beads marketplace..."
+            claude plugin marketplace add steveyegge/beads 2>&1 || true
+            log_info "Installing beads plugin..."
+            claude plugin install beads 2>&1 && log_ok "Beads plugin installed" || log_warn "Failed — install manually: claude plugin marketplace add steveyegge/beads && claude plugin install beads"
+        fi
+    else
+        log_ok "Beads plugin found"
+    fi
+else
+    log_warn "claude CLI not found — install plugins manually after setup:"
+    echo "  claude plugin install superpowers"
+    echo "  claude plugin marketplace add steveyegge/beads && claude plugin install beads"
     echo ""
 fi
 
-# --- Check bd CLI ---
+# --- Check & install bd CLI ---
 HAS_BD=false
 if command -v bd &>/dev/null; then
     HAS_BD=true
+    log_ok "bd CLI found"
+else
+    log_warn "bd CLI not found (needed for Beads task tracking)"
+    if command -v npm &>/dev/null; then
+        if ask_yes "Install bd globally via npm?"; then
+            log_info "Installing @beads/bd..."
+            npm install -g @beads/bd 2>&1 && { HAS_BD=true; log_ok "bd CLI installed"; } || log_warn "Failed — install manually: npm install -g @beads/bd"
+        fi
+    else
+        log_info "Install manually: npm install -g @beads/bd"
+    fi
 fi
+
+# Helper: prompt user or auto-accept if no TTY (pipe mode)
+ask_yes() {
+    local prompt="$1"
+    if [ -t 0 ]; then
+        read -r -p "  $prompt [Y/n] " ans < /dev/tty
+    elif [ -e /dev/tty ]; then
+        read -r -p "  $prompt [Y/n] " ans < /dev/tty
+    else
+        ans="y"  # auto-accept in non-interactive (CI, Docker)
+    fi
+    [[ "${ans:-y}" =~ ^[Yy]$ ]]
+}
 
 log_info "Deploying orchestration to: $TARGET"
 log_info "Project type: $PROJECT_TYPE"
