@@ -1,17 +1,40 @@
 # Orchestration Kit
 
-Portable development orchestration system for Claude Code. Deploy a complete multi-agent pipeline to any project.
+Lightweight development orchestration for Claude Code. Deploys specialist agents, quality skills, and language hooks to any project — designed to work **alongside Superpowers** (methodology) and **Beads** (task tracking).
 
 ## What You Get
 
-- **11 specialized agents** — planner, worker, test-runner, debugger, reviewer, security-auditor, documenter, doc-keeper, observer, senior-reviewer, refactor
-- **8 workflow skills** — `/orchestrate`, `/implement`, `/code-review`, `/arch-review`, `/security-audit`, `/refactor-code`, `/012-update-docs`, `/knowledge-harvest`
-- **Hooks** — SubagentStop pipeline transitions, PreToolUse safety guards, language-specific linting/formatting
-- **Config-driven documentation** — plans, reports, issues, doc-drafts, observer reports
+- **7 specialist agents** — planner, security-auditor, senior-reviewer, refactor, documenter, doc-keeper, observer
+- **7 skills** — `/arch-review`, `/security-audit`, `/refactor-code`, `/012-update-docs`, `/find-skills`, `/sync-skills`, `/knowledge-harvest`
+- **Language hooks** — auto-lint/format after every edit (TypeScript, Python, Go, Rust, JavaScript)
+- **Safety guard** — PreToolUse hook blocking `rm -rf`, `git push --force`, `git reset --hard`
+- **Config-driven artifacts** — plans, reports, issues, doc-drafts, observer reports
+
+## Architecture
+
+```
+Superpowers (plugin)         — HOW: brainstorm → plan → TDD → review → verify
+Beads (plugin, recommended)  — WHAT: git-backed task tracking, dependencies, session persistence
+Orchestration Kit (this)     — WHO: specialist agents + quality skills + language hooks + doc workflow
+```
+
+Superpowers handles the core dev loop. Orchestration Kit provides **deep specialized analysis** that Superpowers doesn't cover: OWASP security audits, architecture health checks, documentation lifecycle, process improvement.
 
 ## Quick Start
 
-### 1. Install (one command from your project directory)
+### 1. Prerequisites
+
+Install Superpowers (required):
+```
+/plugin install superpowers
+```
+
+Install Beads (recommended):
+```
+/plugin install beads
+```
+
+### 2. Deploy orchestration to your project
 
 ```bash
 cd /path/to/my-project
@@ -30,28 +53,25 @@ git clone --depth 1 https://github.com/air900/orchestration-kit.git /tmp/orch-ki
 rm -rf /tmp/orch-kit
 ```
 
-### 2. Interactive setup (in Claude Code)
-
-Open the project in Claude Code and run `/deploy-orchestration` with your task description:
+### 3. Interactive setup (in Claude Code)
 
 ```
 /deploy-orchestration develop REST API with FastAPI and PostgreSQL
 /deploy-orchestration build React dashboard with auth and charts
 /deploy-orchestration create WordPress plugin for SEO optimization
-/deploy-orchestration web-scripts: form validators, browser plugins, CLI tools
 ```
 
-The task description tells the skill what tech stack to search skills for, whether it's atomic or multi-purpose, and what to write in CLAUDE.md. It will:
-- Discover and install relevant skills for your stack
-- Generate CLAUDE.md with project description and orchestration section
-- For multi-purpose projects: create `src/` sub-project structure
+This discovers relevant skills for your stack and generates CLAUDE.md.
 
-### 3. Start using
+### 4. Start working
+
+Superpowers drives development. Use specialist skills when needed:
 
 ```
-/orchestrate Add user authentication with JWT tokens
-/implement Create a utility function for date formatting
-/code-review
+/arch-review            — Architecture health check
+/security-audit         — OWASP vulnerability scan
+/refactor-code          — Guided refactoring
+/012-update-docs        — Verify docs still match code
 ```
 
 ## Supported Languages
@@ -65,37 +85,41 @@ The task description tells the skill what tech stack to search skills for, wheth
 | Rust | `Cargo.toml` | cargo check + rustfmt |
 | Generic | (fallback) | No language hooks |
 
-## Project Types
+## Specialist Agents
 
-Choose the mode that matches your repo structure. If unsure — start with **atomic**, you can restructure later.
+These agents are called **on-demand**, not as a pipeline. Use them when you need deep specialized analysis:
+
+| Agent | Model | Purpose | When to Use |
+|-------|-------|---------|-------------|
+| `planner` | opus | Break complex tasks into subtask DAGs | Before large features with multiple parts |
+| `security-auditor` | sonnet | OWASP Top 10 vulnerability scan | After auth, API, or data-handling changes |
+| `senior-reviewer` | sonnet | Architecture review with health scores | Before merging significant refactors |
+| `refactor` | sonnet | Code restructuring without behavior change | When code smells accumulate |
+| `documenter` | haiku | Completion reports, doc updates | After significant work sessions |
+| `doc-keeper` | sonnet | Process doc-drafts, recommend doc changes | After documenter creates drafts |
+| `observer` | sonnet | Analyze sessions, identify process improvements | End of major work cycles |
+
+### Post-work documentation cycle
+
+After significant work, run this sequence:
+1. **documenter** — generates completion report and doc-drafts
+2. **doc-keeper** — processes doc-drafts, presents recommendations for approval
+3. **observer** — analyzes the session, saves improvement insights
+
+## Project Types
 
 ### Atomic (default) — One product, one repo
 
-Use when your repo has **a single purpose**: one app, one API, one library, one service.
-
-**When to use atomic:**
-- A web app (Next.js, Django, Rails...)
-- A backend API service
-- A CLI tool
-- A library/SDK
-- A mobile app
-- Any repo where all code serves one product
-
-**Examples:**
-| Repo | What it builds |
-|------|---------------|
-| `hr-bot` | HR dashboard + employee bot |
-| `payment-api` | Payment processing service |
-| `my-cli` | Command-line utility |
-| `design-system` | Component library |
+Use when your repo has **a single purpose**: one app, API, library, service.
 
 **Structure after install:**
 ```
 my-app/
 ├── src/                              # Your code (unchanged)
 ├── .claude/
-│   ├── agents/                       # 11 orchestration agents
-│   ├── skills/                       # 7+ workflow skills
+│   ├── agents/                       # 7 specialist agents
+│   ├── skills/                       # 7+ quality & utility skills
+│   ├── references/                   # Shared reference docs
 │   └── orchestration-config.json     # Artifact paths & toggles
 ├── docs/orchestration/               # AI-generated artifacts
 │   ├── plans/                        #   Task breakdown plans
@@ -103,89 +127,18 @@ my-app/
 │   ├── issues/                       #   Tech debt tracking (ISS-NNN)
 │   ├── doc-drafts/                   #   Documentation change proposals
 │   └── observer-reports/             #   Process improvement insights
-└── CLAUDE.md                         # Project rules + orchestration section
+└── CLAUDE.md                         # Project rules + automations
 ```
-
-**Install:**
-```bash
-cd /path/to/my-app
-curl -sSL https://raw.githubusercontent.com/air900/orchestration-kit/main/install.sh | bash
-```
-
----
 
 ### Multi-purpose — Multiple projects, one direction
 
-Use when your repo contains **several independent projects** that share a common theme or domain, but are not tightly coupled.
+Use when your repo contains **several independent projects** sharing a common theme.
 
-**When to use multi:**
-- A collection of scripts (form scripts + validation scripts + migration scripts)
-- Multiple plugins for the same platform
-- A set of microservices in one repo
-- Tools + libraries + examples in one place
-- Any repo where you'd say "this has several things in it"
-
-**Key difference from monorepo:** sub-projects here are loosely related (same domain), not tightly integrated (shared build system). For true monorepos with shared dependencies, use atomic mode with a monorepo tool.
-
-**Examples:**
-| Repo | Sub-projects inside |
-|------|-------------------|
-| `web-scripts` | `src/forms/` — form handlers, `src/plugins/` — browser extensions, `src/tools/` — CLI utilities |
-| `ml-toolkit` | `src/preprocessing/` — data cleaning, `src/models/` — training scripts, `src/serving/` — inference API |
-| `wordpress-kit` | `src/themes/` — custom themes, `src/plugins/` — WP plugins, `src/blocks/` — Gutenberg blocks |
-| `automation` | `src/scrapers/` — data scrapers, `src/parsers/` — file parsers, `src/reporters/` — report generators |
-
-**Structure after install:**
-```
-web-scripts/
-├── src/                              # Sub-projects live here
-│   ├── forms/                        #   Sub-project 1
-│   │   ├── ...                       #     Its own code
-│   │   └── README.md                 #     Its own docs
-│   ├── plugins/                      #   Sub-project 2
-│   │   ├── ...
-│   │   └── README.md
-│   └── tools/                        #   Sub-project 3
-│       ├── ...
-│       └── README.md
-├── .claude/
-│   ├── agents/                       # Shared — all sub-projects use same agents
-│   ├── skills/                       # Shared — same skills for everything
-│   └── orchestration-config.json     # Shared config
-├── docs/orchestration/               # Shared — artifacts from all sub-projects
-└── CLAUDE.md                         # Sub-project index + per-project sections
-```
-
-**What CLAUDE.md looks like for multi:**
-```markdown
-## Sub-Projects
-
-| Name | Path | Description |
-|------|------|-------------|
-| forms | src/forms/ | Form generation and validation scripts |
-| plugins | src/plugins/ | Browser extension plugins |
-| tools | src/tools/ | CLI utilities for data processing |
-
-### Sub-Project: forms
-**Path:** `src/forms/`
-**Tech stack:** TypeScript, Zod
-**Commands:** `npm run build:forms`, `npm test -- --project forms`
-
-### Sub-Project: plugins
-**Path:** `src/plugins/`
-**Tech stack:** TypeScript, WebExtension API
-**Commands:** `npm run build:plugins`
-```
-
-The planner agent reads these sections and **scopes tasks** to the correct sub-project automatically. When you say `/orchestrate add email validation to forms`, it knows to work in `src/forms/`.
-
-**Install:**
 ```bash
-cd /path/to/web-scripts
 curl -sSL https://raw.githubusercontent.com/air900/orchestration-kit/main/install.sh | bash -s -- multi
 ```
 
----
+CLAUDE.md will include a sub-project index with per-project sections (path, tech stack, commands, conventions).
 
 ### Decision flowchart
 
@@ -193,32 +146,10 @@ curl -sSL https://raw.githubusercontent.com/air900/orchestration-kit/main/instal
 Does your repo build ONE product?
   ├── YES → atomic
   └── NO
-       └── Does it contain several independent projects
-           sharing a common theme/domain?
+       └── Several independent projects, common theme?
              ├── YES → multi
-             └── NO (tightly coupled monorepo with shared deps)
+             └── NO (tightly coupled monorepo)
                   └── atomic (use your monorepo tool for builds)
-```
-
-## Pipeline Overview
-
-### `/orchestrate` — Full Development Cycle
-
-```
-Phase 1: Planning    — planner breaks task into subtasks with DAG
-Phase 2: Task Loop   — for each unblocked task:
-                        worker → test-runner → [security-auditor] → [reviewer]
-                        debugger handles failures (max 3 retries per stage)
-Phase 3: Docs        — documenter creates completion report
-Phase 3.5: Doc Keeper — processes doc-drafts, recommends updates
-Phase 3.75: Observer  — analyzes run, recommends improvements
-Phase 4: Summary     — final output to user
-```
-
-### `/implement` — Simple Workflow
-
-```
-worker → test-runner → [debugger if needed] → documenter
 ```
 
 ## Configuration
@@ -248,33 +179,34 @@ Controls where AI-generated artifacts are saved:
 }
 ```
 
-Set `enabled: false` to get output in chat instead of files. Set path to `null` to disable completely.
+Set `enabled: false` to get output in chat instead of files.
 
 ## Customization
 
-### Adding project-specific agent behavior
+### Adding project-specific behavior
 
-Agents read CLAUDE.md for project conventions. Add your coding standards, design system, and patterns there — agents will follow them automatically.
+Agents read CLAUDE.md for project conventions. Add your coding standards, design system, and patterns there — agents follow them automatically.
 
 ### Adding skills
-
-Use find-skills to discover and install additional skills:
 
 ```bash
 npx skills find [keyword]
 npx skills add owner/repo@skill-name -y
-```
-
-Then add a symlink for Claude Code visibility:
-```bash
 ln -sf ../../.agents/skills/skill-name .claude/skills/skill-name
 ```
 
-### Cross-session task persistence
+### Task tracking with Beads
 
-Set the environment variable before starting Claude Code:
+If Beads is installed, use it for persistent task management:
+
 ```bash
-CLAUDE_CODE_TASK_LIST_ID=my-feature claude
+bd create -t epic "JWT authorization"    # Create epic
+bd create "Token table schema"           # Create subtask
+bd dep add middleware tokens             # Set dependency
+bd ready                                 # Show unblocked tasks
+bd prime                                 # Restore context on session start
 ```
 
-Tasks will persist to `~/.claude/tasks/my-feature/` and survive session restarts.
+## License
+
+Apache 2.0

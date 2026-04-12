@@ -136,6 +136,15 @@ for skill_dir in "$TEMPLATES/skills/"*/; do
 done
 log_ok "Copied $SKILLS_COPIED skills"
 
+# --- Copy shared references ---
+log_info "Copying shared references..."
+if [ -d "$TEMPLATES/references" ]; then
+    mkdir -p "$TARGET/.claude/references"
+    cp "$TEMPLATES/references/"*.md "$TARGET/.claude/references/"
+    REFS_COPIED=$(ls -1 "$TEMPLATES/references/"*.md 2>/dev/null | wc -l)
+    log_ok "Copied $REFS_COPIED reference docs"
+fi
+
 # --- Copy deploy-orchestration skill for Phase 2 ---
 log_info "Installing deploy-orchestration skill..."
 mkdir -p "$TARGET/.claude/skills/deploy-orchestration"
@@ -161,7 +170,7 @@ generate_settings() {
     local lang="$2"
     local target_path="$target"
 
-    # Start with base hooks (SubagentStop + PreToolUse)
+    # Start with base hooks (PreToolUse safety guard)
     local base_hooks
     base_hooks=$(cat "$TEMPLATES/settings-hooks.json")
 
@@ -260,8 +269,11 @@ fi
 echo ""
 echo "       This discovers relevant skills and generates CLAUDE.md."
 echo ""
-echo "  After setup, use:"
-echo "    /orchestrate [task] — Full development cycle"
-echo "    /implement [task]  — Simple implementation"
+echo "  After setup, Superpowers handles the dev loop."
+echo "  Specialist agents are available on-demand:"
+echo "    /arch-review     — Architecture health check"
+echo "    /security-audit  — OWASP vulnerability scan"
+echo "    /refactor-code   — Guided refactoring"
+echo "    /012-update-docs — Verify docs match code"
 echo ""
 echo -e "${GREEN}================================================================${NC}"

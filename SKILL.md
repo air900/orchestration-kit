@@ -1,6 +1,6 @@
 ---
 name: deploy-orchestration
-description: Interactive orchestration setup — Phase 2 after deploy.sh. User provides initial task context, then skill asks clarifying questions, discovers skills via find-skills, and generates CLAUDE.md. Use when setting up orchestration in a new project.
+description: Interactive orchestration setup — Phase 2 after deploy.sh. User provides task context, skill asks clarifying questions, discovers skills via find-skills, and generates CLAUDE.md with Superpowers integration. Use when setting up orchestration in a new project.
 ---
 
 # Deploy Orchestration — Phase 2 (Interactive)
@@ -149,7 +149,7 @@ ln -sf ../../.agents/skills/{name} .claude/skills/{name}
 If no relevant skills found:
 ```
 No additional skills found for [keywords]. The 7 base skills cover
-code quality, security, and orchestration — you're good to start.
+quality, security, documentation, and skill management — Superpowers handles the dev loop.
 ```
 
 ### Step 4: Set Up Multi-Purpose Structure (if applicable)
@@ -191,54 +191,61 @@ Build CLAUDE.md from all collected information. The content should be specific t
 
 ## Claude Automations
 
+### Development Methodology
+
+**Superpowers** handles the core development loop: brainstorm → plan → TDD → code review → verification.
+All implementation, testing, debugging, and code review are driven by Superpowers skills. Do NOT use custom agents for these — use Superpowers directly.
+
+**Beads** (recommended) provides git-backed task tracking. If installed:
+- `bd create -t feature "task"` to create tasks
+- `bd ready` to see unblocked tasks
+- `bd prime` restores project context on session start
+
 ### Skills
 
-**Workflow:**
-- `/orchestrate` — Full development cycle (Plan > Code > Test > Review > Fix > Document). For complex multi-step features.
-- `/implement` — Simple workflow (Code > Test > Document). For single components or endpoints.
-- `/012-update-docs` — Post-task documentation verification.
+**Quality & Review:**
+- `/arch-review` — Architecture review for design patterns, SOLID, dependencies
+- `/security-audit` — Security vulnerability audit (OWASP Top 10)
+- `/refactor-code` — Guided code refactoring without behavior change
+- `/012-update-docs` — Post-task documentation verification (did code changes break docs?)
 
-**Quality:**
-- `/code-review` — Manual code review for quality, bugs, security, best practices.
-- `/arch-review` — Architecture review for design patterns, SOLID, dependencies.
-- `/security-audit` — Security vulnerability audit (OWASP Top 10).
-- `/refactor-code` — Guided code refactoring without behavior change.
+**Utility:**
+- `/find-skills` — Discover and install new skills from registry
+- `/sync-skills` — Detect unregistered skills in `.claude/skills/`
+- `/knowledge-harvest` — Extract insights from sessions to knowledge base
 
 {FOR EACH INSTALLED EXTERNAL SKILL:}
 **External:**
 - `/{skill-name}` — {skill description}
 
-### Agents
+### Specialist Agents (on-demand)
 
-**Pipeline** (used by `/orchestrate` and `/implement`):
-- `planner` — Break task into subtasks with dependencies
-- `worker` — Implement code for each subtask
-- `test-runner` — Run lint + tests + verify
-- `debugger` — Fix issues from test/review/security reports
-- `reviewer` — Code quality review
-- `security-auditor` — Security vulnerability scanning
-- `documenter` — Create completion report
-- `doc-keeper` — Analyze doc drafts, recommend and apply doc updates
-- `observer` — Analyze orchestration run, identify improvements
+These agents are NOT a pipeline. Call them when you need deep specialized analysis:
 
-**Quality** (used by standalone quality skills):
-- `senior-reviewer` — Architecture review with health scores (used by `/arch-review`)
-- `refactor` — Code refactoring specialist (used by `/refactor-code`)
+- `planner` — Break complex tasks into subtasks with dependency graphs
+- `security-auditor` — OWASP Top 10 vulnerability scanning (read-only)
+- `senior-reviewer` — Architecture review with health scores (read-only)
+- `refactor` — Code refactoring specialist (modifies code)
+- `documenter` — Create completion reports, update project docs
+- `doc-keeper` — Process doc-drafts: analyze, cross-reference, recommend doc updates
+- `observer` — Analyze completed work sessions, identify process improvements
+
+**After significant work**, run this sequence:
+1. `documenter` — generates completion report and doc-drafts
+2. `doc-keeper` — processes doc-drafts, presents recommendations for approval
+3. `observer` — analyzes the session, saves improvement insights
 
 ### Hooks
 
-- **SubagentStop**: Pipeline transition hints for all 9 agents
 - **PreToolUse**: Safety guard blocking `rm -rf`, `git push --force`, `git reset --hard`
 {IF LANGUAGE HOOKS:}
 - **PostToolUse:Edit**: {language}-specific type/lint check after edits
 - **PostToolUse:Write|MultiEdit**: Auto-format for {language} files
 
-**Maintenance:**
-- `/sync-skills` — Detect skills in `.claude/skills/` not listed here and offer to register them.
-
 ### Config
 
 - `.claude/orchestration-config.json` — Paths and toggles for AI-generated artifacts (plans, reports, issues, doc-drafts, observer-reports)
+- `.claude/references/` — Shared reference docs (code quality standards, doc-drafts format, issue tracking, documentation structure)
 
 ### Skill Discovery
 
@@ -291,17 +298,22 @@ Project: {name}
 Type: {atomic | multi-purpose}
 Purpose: {from conversation}
 Tech stack: {from answers}
-Base skills: 8 (orchestrate, implement, code-review, arch-review, security-audit, refactor-code, 012-update-docs, sync-skills)
+Skills: 7 (arch-review, security-audit, refactor-code, 012-update-docs, find-skills, sync-skills, knowledge-harvest)
 External skills: {count} ({list names})
-Agents: 11
+Specialist agents: 7 (planner, security-auditor, senior-reviewer, refactor, documenter, doc-keeper, observer)
 
 CLAUDE.md: {created | updated}
 Config: .claude/orchestration-config.json
 
-Ready to use:
-  /orchestrate [complex task]  — Full pipeline with planning
-  /implement [simple task]     — Quick implementation
-  /code-review                 — Review recent changes
+Development approach:
+  Superpowers handles the dev loop (brainstorm → plan → TDD → review → verify)
+  Specialist agents available on-demand for deep analysis
+  
+Quality checks:
+  /arch-review      — Architecture health
+  /security-audit   — OWASP vulnerability scan
+  /refactor-code    — Guided refactoring
+  /012-update-docs  — Verify docs match code
 ```
 
 ## Key Rules

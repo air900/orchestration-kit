@@ -123,7 +123,7 @@ This contains: OWASP Top 10 quick reference, authentication/authorization checkl
 
 For Medium/Low severity findings that don't block the current task, create an issue file to track as tech debt.
 
-See: `.claude/skills/orchestrate/references/issue-tracking.md` for format and severity levels.
+See: `.claude/references/issue-tracking.md` for format and severity levels.
 
 Check `.claude/orchestration-config.json` → `documentation.paths.issues` and `documentation.enabled.issues` before creating files.
 

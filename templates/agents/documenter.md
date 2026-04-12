@@ -26,7 +26,7 @@ This tells you:
 
 Also read the documentation structure reference for naming and organization:
 ```
-Read .claude/skills/orchestrate/references/documentation-structure.md
+Read .claude/references/documentation-structure.md
 ```
 
 ## Detect Change Type

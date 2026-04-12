@@ -22,8 +22,8 @@ This tells you where doc-drafts are stored (`paths.doc_drafts`) and which docume
 
 Also read the documentation structure reference:
 ```
-Read .claude/skills/orchestrate/references/documentation-structure.md
-Read .claude/skills/orchestrate/references/doc-drafts-format.md
+Read .claude/references/documentation-structure.md
+Read .claude/references/doc-drafts-format.md
 ```
 
 ## Process

@@ -1,6 +1,6 @@
 ---
 name: refactor
-description: Refactoring specialist. Improves code structure without changing behavior. Used by /refactor-code skill or dispatched by /orchestrate when code smells are found.
+description: Refactoring specialist. Improves code structure without changing behavior. Used by /refactor-code skill or called on-demand when code smells are found.
 tools: Read, Glob, Grep, Bash, Edit, Write, MultiEdit
 model: sonnet
 maxTurns: 30
@@ -17,7 +17,7 @@ You are an expert in code refactoring, specializing in improving code structure 
 **Always read project conventions:**
 ```
 Read CLAUDE.md
-Read .claude/skills/code-review/references/code-quality-standards.md
+Read .claude/references/code-quality-standards.md
 ```
 
 This contains: DRY, KISS, YAGNI principles, code smells, refactoring patterns, TypeScript best practices, and a quality checklist.
