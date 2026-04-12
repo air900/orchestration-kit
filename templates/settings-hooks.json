@@ -12,6 +12,45 @@
             "command": "echo 'Destructive command detected. Verify this is intentional.' >&2; exit 2"
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "test -f .workflow-active || (echo 'BLOCKED: Run /workflow-gate before making code changes. No edits without brainstorm + plan.' >&2; exit 2)"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "rm -f .workflow-active"
+          },
+          {
+            "type": "command",
+            "command": "bd prime 2>/dev/null || true"
+          },
+          {
+            "type": "command",
+            "command": "echo 'WORKFLOW: Edits BLOCKED. Run /workflow-gate to unlock and start the dev flow.'"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bd prime 2>/dev/null || true"
+          }
+        ]
       }
     ]
   }
