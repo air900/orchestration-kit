@@ -40,10 +40,18 @@ Take the user's description as starting context. Then scan the project:
 4. Note what deploy.sh already set up (check .claude/agents/, .claude/skills/, settings.json)
 ```
 
+Also check Beads status:
+```
+5. Check if .beads/ exists (bd init already run by deploy.sh)
+6. If not — check if bd command is available, offer to run bd init
+7. If bd not available — note in summary, recommend installing
+```
+
 Combine user input + detected info. Output a brief summary:
 ```
 Got it — "{user's description}".
 Detected: {language/framework if found, or "fresh project, no code yet"}
+Beads: {initialized | not installed — run: npm install -g @beads/bd && bd init}
 ```
 
 ### Step 2: Ask Clarifying Questions
@@ -196,10 +204,16 @@ Build CLAUDE.md from all collected information. The content should be specific t
 **Superpowers** handles the core development loop: brainstorm → plan → TDD → code review → verification.
 All implementation, testing, debugging, and code review are driven by Superpowers skills. Do NOT use custom agents for these — use Superpowers directly.
 
-**Beads** (recommended) provides git-backed task tracking. If installed:
-- `bd create -t feature "task"` to create tasks
-- `bd ready` to see unblocked tasks
-- `bd prime` restores project context on session start
+**Beads** provides git-backed task tracking that survives context compaction:
+- `bd create -t feature "task"` — create tasks
+- `bd create -t epic "big feature"` — create epics (containers for subtasks)
+- `bd dep add <child> <parent>` — set dependencies
+- `bd ready` — show unblocked tasks (readiness frontier)
+- `bd claim <id>` — atomically claim task + set in_progress
+- `bd close <id> --reason "done"` — close with reason
+- `bd prime` — restores full project context on session start (auto-runs via hook)
+
+**Workflow:** epic → subtasks with deps → `bd ready` → claim → work → close → next ready task.
 
 ### Skills
 
@@ -246,6 +260,20 @@ These agents are NOT a pipeline. Call them when you need deep specialized analys
 
 - `.claude/orchestration-config.json` — Paths and toggles for AI-generated artifacts (plans, reports, issues, doc-drafts, observer-reports)
 - `.claude/references/` — Shared reference docs (code quality standards, doc-drafts format, issue tracking, documentation structure)
+
+### Template Catalog (on-demand specialists)
+
+When a task needs expertise not covered by installed skills or agents, pull a specialist from the template catalog (413+ agents across 26 categories):
+
+```bash
+npx claude-code-templates@latest --agent <category/name> --yes
+```
+
+Examples: `security/security-auditor`, `api-graphql/api-architect`, `devops/kubernetes-specialist`.
+
+List all available: `npx claude-code-templates@latest --agent list`
+
+Agents are installed locally. Delete after use if not needed long-term.
 
 ### Skill Discovery
 
@@ -306,8 +334,9 @@ CLAUDE.md: {created | updated}
 Config: .claude/orchestration-config.json
 
 Development approach:
-  Superpowers handles the dev loop (brainstorm → plan → TDD → review → verify)
-  Specialist agents available on-demand for deep analysis
+  Superpowers  — dev loop (brainstorm → plan → TDD → review → verify)
+  Beads        — task tracking (bd ready → claim → work → close)
+  Templates    — on-demand specialists (npx claude-code-templates@latest --agent ...)
   
 Quality checks:
   /arch-review      — Architecture health

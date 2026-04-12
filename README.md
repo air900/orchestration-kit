@@ -24,14 +24,15 @@ Superpowers handles the core dev loop. Orchestration Kit provides **deep special
 
 ### 1. Prerequisites
 
-Install Superpowers (required):
-```
-/plugin install superpowers
-```
+Install plugins (once, used by all projects):
+```bash
+# Required — development methodology
+claude plugin install superpowers
 
-Install Beads (recommended):
-```
-/plugin install beads
+# Recommended — persistent task tracking
+claude plugin marketplace add steveyegge/beads
+claude plugin install beads
+npm install -g @beads/bd
 ```
 
 ### 2. Deploy orchestration to your project
@@ -197,15 +198,54 @@ ln -sf ../../.agents/skills/skill-name .claude/skills/skill-name
 
 ### Task tracking with Beads
 
-If Beads is installed, use it for persistent task management:
+Beads is a Dolt-backed issue tracker that survives context compaction. Install once:
 
 ```bash
-bd create -t epic "JWT authorization"    # Create epic
-bd create "Token table schema"           # Create subtask
-bd dep add middleware tokens             # Set dependency
-bd ready                                 # Show unblocked tasks
-bd prime                                 # Restore context on session start
+# Plugin (hooks + commands in Claude Code)
+claude plugin marketplace add steveyegge/beads
+claude plugin install beads
+
+# CLI
+npm install -g @beads/bd
+
+# Initialize in project (deploy.sh does this automatically if bd is available)
+cd your-project && bd init
 ```
+
+Workflow:
+
+```bash
+bd create -t epic "JWT authorization"    # Create epic (container)
+bd create "Token table schema"           # Create subtask
+bd create "Verification middleware"      # Create subtask
+bd dep add middleware tokens             # middleware needs tokens first
+bd ready                                 # Show unblocked tasks (readiness frontier)
+bd claim <id>                            # Atomically claim + set in_progress
+# ... work ...
+bd close <id> --reason "Implemented"     # Close → dependents become ready
+bd ready                                 # Next unblocked tasks appear
+```
+
+Beads hooks auto-run `bd prime` at session start and before compaction — no manual context recovery needed.
+
+### Template Catalog (on-demand specialists)
+
+413+ specialized agents from [davila7/claude-code-templates](https://github.com/davila7/claude-code-templates), organized in 26 categories. Pull a specialist when you need expertise not covered by installed agents:
+
+```bash
+# Install a specific agent
+npx claude-code-templates@latest --agent security/security-auditor --yes
+
+# Browse all available
+npx claude-code-templates@latest --agent list
+
+# Examples
+npx claude-code-templates@latest --agent devops/kubernetes-specialist --yes
+npx claude-code-templates@latest --agent api-graphql/graphql-architect --yes
+npx claude-code-templates@latest --agent ai-specialists/prompt-engineer --yes
+```
+
+Agents are installed locally to the project. Delete after use if not needed long-term. Always fresh version from GitHub — no local staleness.
 
 ## License
 

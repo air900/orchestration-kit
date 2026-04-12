@@ -67,6 +67,29 @@ if [ ! -d "$TARGET/.git" ]; then
     log_warn "Target is not a git repository. Orchestration works best with git."
 fi
 
+# --- Check plugin prerequisites ---
+MISSING_PLUGINS=""
+if command -v claude &>/dev/null; then
+    if ! claude plugin list 2>/dev/null | grep -q "superpowers"; then
+        MISSING_PLUGINS="${MISSING_PLUGINS}\n  claude plugin install superpowers   (REQUIRED — dev methodology)"
+    fi
+    if ! claude plugin list 2>/dev/null | grep -q "beads"; then
+        MISSING_PLUGINS="${MISSING_PLUGINS}\n  claude plugin marketplace add steveyegge/beads"
+        MISSING_PLUGINS="${MISSING_PLUGINS}\n  claude plugin install beads          (RECOMMENDED — task tracking)"
+    fi
+fi
+
+if [ -n "$MISSING_PLUGINS" ]; then
+    log_warn "Missing Claude Code plugins:${MISSING_PLUGINS}"
+    echo ""
+fi
+
+# --- Check bd CLI ---
+HAS_BD=false
+if command -v bd &>/dev/null; then
+    HAS_BD=true
+fi
+
 log_info "Deploying orchestration to: $TARGET"
 log_info "Project type: $PROJECT_TYPE"
 
@@ -234,6 +257,18 @@ fi
 
 rm -f "$NEW_SETTINGS_FILE"
 
+# --- Initialize Beads (if bd is available) ---
+if [ "$HAS_BD" = true ] && [ -d "$TARGET/.git" ]; then
+    if [ ! -d "$TARGET/.beads" ]; then
+        log_info "Initializing Beads issue tracker..."
+        (cd "$TARGET" && bd init 2>/dev/null) && log_ok "Beads initialized (.beads/)" || log_warn "Beads init failed — you can run 'bd init' manually"
+    else
+        log_info "Beads already initialized, skipping"
+    fi
+elif [ "$HAS_BD" = false ]; then
+    log_info "bd CLI not found. Install: npm install -g @beads/bd"
+fi
+
 # --- Multi-project structure ---
 if [ "$PROJECT_TYPE" = "multi" ]; then
     log_info "Setting up multi-project structure..."
@@ -270,10 +305,15 @@ echo ""
 echo "       This discovers relevant skills and generates CLAUDE.md."
 echo ""
 echo "  After setup, Superpowers handles the dev loop."
-echo "  Specialist agents are available on-demand:"
+echo "  Beads tracks tasks across sessions (bd ready, bd create)."
+echo ""
+echo "  Specialist skills:"
 echo "    /arch-review     — Architecture health check"
 echo "    /security-audit  — OWASP vulnerability scan"
 echo "    /refactor-code   — Guided refactoring"
 echo "    /012-update-docs — Verify docs match code"
+echo ""
+echo "  On-demand agents from template catalog:"
+echo "    npx claude-code-templates@latest --agent <category/name> --yes"
 echo ""
 echo -e "${GREEN}================================================================${NC}"
