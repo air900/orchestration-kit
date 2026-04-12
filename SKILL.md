@@ -201,16 +201,18 @@ Build CLAUDE.md from all collected information. The content should be specific t
 
 ### Development Methodology
 
-**Template Bridge** (plugin) управляет полным flow разработки:
+**Edit/Write ЗАБЛОКИРОВАНЫ** пока не вызван `/workflow-gate`. Это hook-enforcement, не рекомендация.
+
+`/workflow-gate` → создаёт маркер `.workflow-active` → запускает полный flow:
 1. Beads: создание задачи → 2. Brainstorm → 3. Plan → 4. TDD → 5. Review → 6. Verify → 7. Close
 
-Workflow запускается автоматически при получении задачи. Ручные команды не нужны — просто опиши что сделать.
+**Как работать:** `/workflow-gate <описание задачи>`
 
-При необходимости ручного управления:
+Ручные команды (если нужно):
 - `/beads:create` — создать задачу
 - `/beads:ready` — что разблокировано
 - `/beads:close` — закрыть задачу
-- `/brainstorm` — запустить brainstorm вручную
+- `/brainstorm` — brainstorm вручную
 - `/browse-templates` — каталог 413+ specialist agents
 
 **Workflow:** epic → subtasks with deps → `bd ready` → claim → work → close → next ready task.

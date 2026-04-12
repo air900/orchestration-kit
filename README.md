@@ -68,15 +68,15 @@ This discovers relevant skills for your stack and generates CLAUDE.md.
 
 #### Полный flow разработки
 
-**Точка входа — `/unified-workflow`** перед задачей. Это запускает полный flow:
+**Точка входа — `/workflow-gate`** перед задачей. Это запускает полный flow:
 
 ```
-/unified-workflow <описание задачи>
+/workflow-gate <описание задачи>
 ```
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ 1. /unified-workflow <задача>                                │
+│ 1. /workflow-gate <задача>                                │
 │    Запускает Template Bridge — связывает Beads + Superpowers │
 ├─────────────────────────────────────────────────────────────┤
 │ 2. BEADS (автоматически)                                    │
@@ -100,8 +100,8 @@ This discovers relevant skills for your stack and generates CLAUDE.md.
 └─────────────────────────────────────────────────────────────┘
 ```
 
-> **Важно:** `/unified-workflow` нужно вызвать явно — Claude Code не поддерживает
-> автоматический запуск скиллов. Без него Claude пропустит brainstorm/plan и сразу начнёт кодить.
+> **Enforcement:** PreToolUse hook **блокирует** Edit/Write/MultiEdit без маркера `.workflow-active`.
+> `/workflow-gate` создаёт маркер и запускает flow. Без него Claude физически не может редактировать файлы.
 
 #### Кто что делает
 
@@ -118,7 +118,7 @@ This discovers relevant skills for your stack and generates CLAUDE.md.
 
 **Быстрый фикс** (5 минут, одна сессия):
 ```
-ТЫ: /unified-workflow Кнопка не работает на мобильных, исправь
+ТЫ: /workflow-gate Кнопка не работает на мобильных, исправь
 → beads: создаёт задачу
 → superpowers: brainstorm → fix → verify
 → beads: закрывает задачу
@@ -127,7 +127,7 @@ This discovers relevant skills for your stack and generates CLAUDE.md.
 
 **Задача посерьёзнее** (1 сессия):
 ```
-ТЫ: /unified-workflow Карточки накладываются в дереве, нужен зазор между семьями
+ТЫ: /workflow-gate Карточки накладываются в дереве, нужен зазор между семьями
 → beads: создаёт bug P1
 → superpowers: brainstorm → plan → TDD → fix → verify
 → beads: закрывает с reason
@@ -136,7 +136,7 @@ This discovers relevant skills for your stack and generates CLAUDE.md.
 **Эпик** (несколько сессий, зависимости):
 ```
 СЕССИЯ 1:
-  /unified-workflow Рефакторинг рендеринга дерева
+  /workflow-gate Рефакторинг рендеринга дерева
   → beads: создаёт epic + 3 подзадачи с зависимостями
   → superpowers: brainstorm → plan
   → bd ready → "Layout алгоритм"
@@ -145,13 +145,13 @@ This discovers relevant skills for your stack and generates CLAUDE.md.
   [ сессия закончилась ]
 
 СЕССИЯ 2 (bd prime авто-восстанавливает контекст):
-  /unified-workflow
+  /workflow-gate
   → bd ready → "Координаты связей"
   → superpowers: работает...
   → bd close
 
 СЕССИЯ 3:
-  /unified-workflow
+  /workflow-gate
   → bd ready → "Адаптив мобильные"
   → superpowers: работает...
   → bd close → epic закрыт
