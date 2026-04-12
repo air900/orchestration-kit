@@ -67,6 +67,17 @@ if [ ! -d "$TARGET/.git" ]; then
     log_warn "Target is not a git repository. Orchestration works best with git."
 fi
 
+# Helper: prompt user or auto-accept if no TTY (pipe mode)
+ask_yes() {
+    local prompt="$1"
+    if [ -e /dev/tty ]; then
+        read -r -p "  $prompt [Y/n] " ans < /dev/tty
+    else
+        ans="y"  # auto-accept in non-interactive (CI, Docker)
+    fi
+    [[ "${ans:-y}" =~ ^[Yy]$ ]]
+}
+
 # --- Check & install plugin prerequisites ---
 if command -v claude &>/dev/null; then
     PLUGIN_LIST=$(claude plugin list 2>/dev/null || echo "")
@@ -117,19 +128,6 @@ else
         log_info "Install manually: npm install -g @beads/bd"
     fi
 fi
-
-# Helper: prompt user or auto-accept if no TTY (pipe mode)
-ask_yes() {
-    local prompt="$1"
-    if [ -t 0 ]; then
-        read -r -p "  $prompt [Y/n] " ans < /dev/tty
-    elif [ -e /dev/tty ]; then
-        read -r -p "  $prompt [Y/n] " ans < /dev/tty
-    else
-        ans="y"  # auto-accept in non-interactive (CI, Docker)
-    fi
-    [[ "${ans:-y}" =~ ^[Yy]$ ]]
-}
 
 log_info "Deploying orchestration to: $TARGET"
 log_info "Project type: $PROJECT_TYPE"
