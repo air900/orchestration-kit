@@ -199,34 +199,19 @@ Build CLAUDE.md from all collected information. The content should be specific t
 
 ## Claude Automations
 
-### Development Methodology — MANDATORY
+### Development Methodology
 
-**ПРАВИЛО: Перед любой реализацией ОБЯЗАТЕЛЬНО выполни шаги 1-2. Нарушение = переделка.**
+**Template Bridge** (plugin) управляет полным flow разработки:
+1. Beads: создание задачи → 2. Brainstorm → 3. Plan → 4. TDD → 5. Review → 6. Verify → 7. Close
 
-**Шаг 1. Brainstorm** (ОБЯЗАТЕЛЬНО перед кодом)
-Используй `/brainstorm` или `superpowers:brainstorming`. Исследуй задачу: что менять, какие файлы затронуты, какие подходы, какие риски. НЕ ПИШИ КОД пока brainstorm не завершён.
+Workflow запускается автоматически при получении задачи. Ручные команды не нужны — просто опиши что сделать.
 
-**Шаг 2. Plan** (ОБЯЗАТЕЛЬНО для задач > 1 файла)
-Используй `/write-plan`. Разбей на шаги. Получи подтверждение пользователя.
-
-**Шаг 3. TDD** (ОБЯЗАТЕЛЬНО)
-RED → GREEN → REFACTOR на каждом шаге плана. Не пиши production-код без падающего теста.
-
-**Шаг 4. Verification** (ОБЯЗАТЕЛЬНО перед "готово")
-Запусти проверку свежей командой. Прочитай полный вывод. Только после этого заявляй что сделано.
-
-**Шаг 5. Close**
-Если задача в Beads — `/beads:close` с reason. Коммит.
-
----
-
-**Beads** — git-backed task tracking (переживает compaction):
-- `/beads:create` — создать задачу (интерактивно)
-- `/beads:epic` — создать эпик (контейнер подзадач)
-- `/beads:dep` — зависимости между задачами
-- `/beads:ready` — что разблокировано прямо сейчас
-- `/beads:close` — закрыть с reason
-- `bd prime` — restores full project context on session start (auto-runs via hook)
+При необходимости ручного управления:
+- `/beads:create` — создать задачу
+- `/beads:ready` — что разблокировано
+- `/beads:close` — закрыть задачу
+- `/brainstorm` — запустить brainstorm вручную
+- `/browse-templates` — каталог 413+ specialist agents
 
 **Workflow:** epic → subtasks with deps → `bd ready` → claim → work → close → next ready task.
 

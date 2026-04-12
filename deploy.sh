@@ -105,10 +105,24 @@ if command -v claude &>/dev/null; then
     else
         log_ok "Beads plugin found"
     fi
+
+    # Template Bridge (recommended — connects Superpowers + Beads)
+    if ! echo "$PLUGIN_LIST" | grep -q "template-bridge"; then
+        log_warn "Template Bridge plugin not found (connects Superpowers + Beads into unified flow)"
+        if ask_yes "Install template-bridge?"; then
+            log_info "Adding template-bridge marketplace..."
+            claude plugin marketplace add maslennikov-ig/template-bridge 2>&1 || true
+            log_info "Installing template-bridge plugin..."
+            claude plugin install template-bridge 2>&1 && log_ok "Template Bridge installed" || log_warn "Failed — install manually: claude plugin marketplace add maslennikov-ig/template-bridge && claude plugin install template-bridge"
+        fi
+    else
+        log_ok "Template Bridge plugin found"
+    fi
 else
     log_warn "claude CLI not found — install plugins manually after setup:"
     echo "  claude plugin install superpowers"
     echo "  claude plugin marketplace add steveyegge/beads && claude plugin install beads"
+    echo "  claude plugin marketplace add maslennikov-ig/template-bridge && claude plugin install template-bridge"
     echo ""
 fi
 
