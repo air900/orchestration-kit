@@ -66,13 +66,92 @@ This discovers relevant skills for your stack and generates CLAUDE.md.
 
 ### 4. Start working
 
-Superpowers drives development. Use specialist skills when needed:
+#### Полный flow разработки
 
 ```
-/arch-review            — Architecture health check
-/security-audit         — OWASP vulnerability scan
-/refactor-code          — Guided refactoring
-/012-update-docs        — Verify docs still match code
+┌─────────────────────────────────────────────────────────────┐
+│ 1. ЗАДАЧА                                                   │
+│    Простая: просто скажи Claude что сделать                  │
+│    Сложная: /beads:create или /beads:epic                   │
+├─────────────────────────────────────────────────────────────┤
+│ 2. SUPERPOWERS (автоматически)                              │
+│    brainstorm → план → TDD → реализация → verification      │
+├─────────────────────────────────────────────────────────────┤
+│ 3. SPECIALIST AGENTS (по необходимости)                     │
+│    /arch-review      — архитектура                          │
+│    /security-audit   — OWASP уязвимости                     │
+│    /refactor-code    — рефакторинг                          │
+│    /012-update-docs  — проверка документации                 │
+├─────────────────────────────────────────────────────────────┤
+│ 4. TEMPLATE CATALOG (если нужен редкий специалист)           │
+│    npx claude-code-templates@latest --agent <name> --yes    │
+├─────────────────────────────────────────────────────────────┤
+│ 5. ЗАКРЫТИЕ                                                 │
+│    Простая: коммит и готово                                  │
+│    С Beads: /beads:close → следующая задача через /beads:ready│
+│    Эпик: documenter → doc-keeper → observer                 │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### Кто что делает
+
+| Компонент | Роль | Когда работает |
+|-----------|------|----------------|
+| **Superpowers** | Dev loop: brainstorm, plan, TDD, review, verify | Всегда — основной движок |
+| **Beads** | Задачи, зависимости, история, межсессионный контекст | Когда нужна persistence |
+| **Specialist agents** | Глубокий анализ: архитектура, безопасность, рефакторинг | По запросу |
+| **Template Catalog** | 413+ on-demand специалистов (K8s, Rust, GraphQL...) | Когда нет нужного скилла |
+| **Language hooks** | Auto-lint/format после каждого Edit/Write | Всегда, фоново |
+| **Doc workflow** | documenter → doc-keeper → observer | После крупных задач |
+
+#### Примеры на реальных задачах
+
+**Быстрый фикс** (5 минут, одна сессия):
+```
+ТЫ: "Кнопка не работает на мобильных, исправь"
+SUPERPOWERS: brainstorm → fix → verify → коммит
+```
+
+**Задача со слежением** (1 сессия, нужна история):
+```
+ТЫ: /beads:create → bug, "Карточки накладываются в дереве", P1
+SUPERPOWERS: brainstorm → plan → TDD → fix → verify
+ТЫ: /beads:close → "Исправлен spacing алгоритм"
+```
+
+**Эпик** (несколько сессий, зависимости):
+```
+СЕССИЯ 1:
+  /beads:epic → "Рефакторинг рендеринга дерева"
+  /beads:create → "Layout алгоритм"
+  /beads:create → "Координаты связей"
+  /beads:create → "Адаптив мобильные"
+  /beads:dep → layout → связи → мобильные
+
+  /beads:ready → "Layout алгоритм"
+  SUPERPOWERS: работает...
+  /beads:close
+
+СЕССИЯ 2 (контекст восстановлен через bd prime):
+  /beads:ready → "Координаты связей"
+  SUPERPOWERS: работает...
+  /beads:close
+
+СЕССИЯ 3:
+  /beads:ready → "Адаптив мобильные"
+  SUPERPOWERS: работает...
+  /beads:close → epic автоматически закрыт
+  documenter → doc-keeper → observer (финализация)
+```
+
+**Нужен редкий специалист:**
+```
+ТЫ: "Нужно оптимизировать GraphQL запросы"
+CLAUDE: "Для GraphQL есть api-graphql/graphql-performance-optimizer — установить?"
+ТЫ: "Да"
+→ npx claude-code-templates@latest --agent api-graphql/graphql-performance-optimizer --yes
+→ Работает с установленным агентом
+→ Удаляет после задачи
 ```
 
 ## Supported Languages
