@@ -357,3 +357,4 @@ Quality checks:
 8. **Don't install base skills via npx** — they were already copied by deploy.sh
 9. **Verify .claude/orchestration-config.json exists** before finishing — it's required by agents
 10. **If no initial context provided**, show usage examples and ask user to describe the project
+11. **Do NOT call ExitPlanMode** — this is a setup skill, not a plan. Output the summary and stop
