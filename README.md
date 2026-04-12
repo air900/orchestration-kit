@@ -68,30 +68,40 @@ This discovers relevant skills for your stack and generates CLAUDE.md.
 
 #### Полный flow разработки
 
+**Точка входа — `/unified-workflow`** перед задачей. Это запускает полный flow:
+
+```
+/unified-workflow <описание задачи>
+```
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ 1. ЗАДАЧА                                                   │
-│    Простая: просто скажи Claude что сделать                  │
-│    Сложная: /beads:create или /beads:epic                   │
+│ 1. /unified-workflow <задача>                                │
+│    Запускает Template Bridge — связывает Beads + Superpowers │
 ├─────────────────────────────────────────────────────────────┤
-│ 2. SUPERPOWERS (автоматически)                              │
+│ 2. BEADS (автоматически)                                    │
+│    Создаёт задачу в трекере                                  │
+├─────────────────────────────────────────────────────────────┤
+│ 3. SUPERPOWERS (автоматически)                              │
 │    brainstorm → план → TDD → реализация → verification      │
 ├─────────────────────────────────────────────────────────────┤
-│ 3. SPECIALIST AGENTS (по необходимости)                     │
+│ 4. SPECIALIST AGENTS (по необходимости)                     │
 │    /arch-review      — архитектура                          │
 │    /security-audit   — OWASP уязвимости                     │
 │    /refactor-code    — рефакторинг                          │
 │    /012-update-docs  — проверка документации                 │
 ├─────────────────────────────────────────────────────────────┤
-│ 4. TEMPLATE CATALOG (если нужен редкий специалист)           │
+│ 5. TEMPLATE CATALOG (если нужен редкий специалист)           │
 │    npx claude-code-templates@latest --agent <name> --yes    │
 ├─────────────────────────────────────────────────────────────┤
-│ 5. ЗАКРЫТИЕ                                                 │
-│    Простая: коммит и готово                                  │
-│    С Beads: /beads:close → следующая задача через /beads:ready│
+│ 6. ЗАКРЫТИЕ (автоматически)                                 │
+│    Beads: bd close → следующая задача через bd ready         │
 │    Эпик: documenter → doc-keeper → observer                 │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+> **Важно:** `/unified-workflow` нужно вызвать явно — Claude Code не поддерживает
+> автоматический запуск скиллов. Без него Claude пропустит brainstorm/plan и сразу начнёт кодить.
 
 #### Кто что делает
 
@@ -108,40 +118,44 @@ This discovers relevant skills for your stack and generates CLAUDE.md.
 
 **Быстрый фикс** (5 минут, одна сессия):
 ```
-ТЫ: "Кнопка не работает на мобильных, исправь"
-SUPERPOWERS: brainstorm → fix → verify → коммит
+ТЫ: /unified-workflow Кнопка не работает на мобильных, исправь
+→ beads: создаёт задачу
+→ superpowers: brainstorm → fix → verify
+→ beads: закрывает задачу
+→ коммит
 ```
 
-**Задача со слежением** (1 сессия, нужна история):
+**Задача посерьёзнее** (1 сессия):
 ```
-ТЫ: /beads:create → bug, "Карточки накладываются в дереве", P1
-SUPERPOWERS: brainstorm → plan → TDD → fix → verify
-ТЫ: /beads:close → "Исправлен spacing алгоритм"
+ТЫ: /unified-workflow Карточки накладываются в дереве, нужен зазор между семьями
+→ beads: создаёт bug P1
+→ superpowers: brainstorm → plan → TDD → fix → verify
+→ beads: закрывает с reason
 ```
 
 **Эпик** (несколько сессий, зависимости):
 ```
 СЕССИЯ 1:
-  /beads:epic → "Рефакторинг рендеринга дерева"
-  /beads:create → "Layout алгоритм"
-  /beads:create → "Координаты связей"
-  /beads:create → "Адаптив мобильные"
-  /beads:dep → layout → связи → мобильные
+  /unified-workflow Рефакторинг рендеринга дерева
+  → beads: создаёт epic + 3 подзадачи с зависимостями
+  → superpowers: brainstorm → plan
+  → bd ready → "Layout алгоритм"
+  → superpowers: TDD → fix → verify
+  → bd close
+  [ сессия закончилась ]
 
-  /beads:ready → "Layout алгоритм"
-  SUPERPOWERS: работает...
-  /beads:close
-
-СЕССИЯ 2 (контекст восстановлен через bd prime):
-  /beads:ready → "Координаты связей"
-  SUPERPOWERS: работает...
-  /beads:close
+СЕССИЯ 2 (bd prime авто-восстанавливает контекст):
+  /unified-workflow
+  → bd ready → "Координаты связей"
+  → superpowers: работает...
+  → bd close
 
 СЕССИЯ 3:
-  /beads:ready → "Адаптив мобильные"
-  SUPERPOWERS: работает...
-  /beads:close → epic автоматически закрыт
-  documenter → doc-keeper → observer (финализация)
+  /unified-workflow
+  → bd ready → "Адаптив мобильные"
+  → superpowers: работает...
+  → bd close → epic закрыт
+  → documenter → doc-keeper → observer
 ```
 
 **Нужен редкий специалист:**
