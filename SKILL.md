@@ -199,18 +199,33 @@ Build CLAUDE.md from all collected information. The content should be specific t
 
 ## Claude Automations
 
-### Development Methodology
+### Development Methodology — MANDATORY
 
-**Superpowers** handles the core development loop: brainstorm → plan → TDD → code review → verification.
-All implementation, testing, debugging, and code review are driven by Superpowers skills. Do NOT use custom agents for these — use Superpowers directly.
+**ПРАВИЛО: Перед любой реализацией ОБЯЗАТЕЛЬНО выполни шаги 1-2. Нарушение = переделка.**
 
-**Beads** provides git-backed task tracking that survives context compaction:
-- `bd create -t feature "task"` — create tasks
-- `bd create -t epic "big feature"` — create epics (containers for subtasks)
-- `bd dep add <child> <parent>` — set dependencies
-- `bd ready` — show unblocked tasks (readiness frontier)
-- `bd claim <id>` — atomically claim task + set in_progress
-- `bd close <id> --reason "done"` — close with reason
+**Шаг 1. Brainstorm** (ОБЯЗАТЕЛЬНО перед кодом)
+Используй `/brainstorm` или `superpowers:brainstorming`. Исследуй задачу: что менять, какие файлы затронуты, какие подходы, какие риски. НЕ ПИШИ КОД пока brainstorm не завершён.
+
+**Шаг 2. Plan** (ОБЯЗАТЕЛЬНО для задач > 1 файла)
+Используй `/write-plan`. Разбей на шаги. Получи подтверждение пользователя.
+
+**Шаг 3. TDD** (ОБЯЗАТЕЛЬНО)
+RED → GREEN → REFACTOR на каждом шаге плана. Не пиши production-код без падающего теста.
+
+**Шаг 4. Verification** (ОБЯЗАТЕЛЬНО перед "готово")
+Запусти проверку свежей командой. Прочитай полный вывод. Только после этого заявляй что сделано.
+
+**Шаг 5. Close**
+Если задача в Beads — `/beads:close` с reason. Коммит.
+
+---
+
+**Beads** — git-backed task tracking (переживает compaction):
+- `/beads:create` — создать задачу (интерактивно)
+- `/beads:epic` — создать эпик (контейнер подзадач)
+- `/beads:dep` — зависимости между задачами
+- `/beads:ready` — что разблокировано прямо сейчас
+- `/beads:close` — закрыть с reason
 - `bd prime` — restores full project context on session start (auto-runs via hook)
 
 **Workflow:** epic → subtasks with deps → `bd ready` → claim → work → close → next ready task.
