@@ -82,7 +82,16 @@ cd PROJECT && bd init
 
 **Сохранить** всё выше секции Claude Automations (описание проекта, tech stack, conventions).
 
-### 7. НЕ ТРОГАТЬ
+### 7. Активировать Template Bridge
+
+**Глобально (один раз на сервере):**
+- Установить плагин: `claude plugin marketplace add maslennikov-ig/template-bridge && claude plugin install template-bridge`
+- Добавить хуки в `~/.claude/settings.json` (SessionStart + PreCompact из `settings.example.json` плагина)
+- Добавить workflow правила в `~/.claude/CLAUDE.md` (из CLAUDE.md плагина)
+
+**В проекте:** Template Bridge активируется автоматически через глобальные хуки.
+
+### 8. НЕ ТРОГАТЬ
 
 - `docs/orchestration/` — вся история (doc-drafts, reports, plans, issues, observer-reports)
 - `.claude/orchestration-config.json` — пути артефактов
