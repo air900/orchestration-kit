@@ -89,7 +89,7 @@ cd PROJECT && bd init
 - Добавить хуки в `~/.claude/settings.json` (SessionStart + PreCompact из `settings.example.json` плагина)
 - Добавить workflow правила в `~/.claude/CLAUDE.md` (из CLAUDE.md плагина)
 
-**В проекте:** Template Bridge активируется автоматически через глобальные хуки.
+**Использование:** перед задачей вызвать `/unified-workflow` — это запускает полный flow (beads → brainstorm → plan → TDD → verify → close). Хуки обеспечивают `bd prime` при старте сессии.
 
 ### 8. НЕ ТРОГАТЬ
 
