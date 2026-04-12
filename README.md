@@ -212,21 +212,108 @@ npm install -g @beads/bd
 cd your-project && bd init
 ```
 
-Workflow:
+#### When to use Beads
 
-```bash
-bd create -t epic "JWT authorization"    # Create epic (container)
-bd create "Token table schema"           # Create subtask
-bd create "Verification middleware"      # Create subtask
-bd dep add middleware tokens             # middleware needs tokens first
-bd ready                                 # Show unblocked tasks (readiness frontier)
-bd claim <id>                            # Atomically claim + set in_progress
-# ... work ...
-bd close <id> --reason "Implemented"     # Close → dependents become ready
-bd ready                                 # Next unblocked tasks appear
+| Ситуация | Beads нужен? |
+|----------|-------------|
+| Быстрый фикс в одну сессию | Нет — просто скажи Claude что сделать |
+| Задача на несколько сессий | Да — контекст восстановится через `bd prime` |
+| Эпик из 5+ подзадач с зависимостями | Да — `bd ready` покажет что разблокировано |
+| Нужна история: что делал, когда, почему | Да — всё в Dolt-базе, переживает compaction |
+| Работа в нескольких терминалах | Да — exclusive locks, нет конфликтов |
+
+#### Slash-команды (не нужно запоминать CLI)
+
+Beads plugin даёт slash-команды в Claude Code:
+
+```
+/beads:create    — создать задачу (интерактивно спросит тип, описание, приоритет)
+/beads:ready     — показать разблокированные задачи
+/beads:close     — закрыть задачу
+/beads:epic      — создать/управлять эпиком
+/beads:dep       — управление зависимостями
+/beads:list      — все задачи
+/beads:show      — детали задачи
+/beads:stats     — статистика проекта
+/beads:blocked   — что заблокировано и почему
+/beads:workflow   — показать workflow-гайд
 ```
 
-Beads hooks auto-run `bd prime` at session start and before compaction — no manual context recovery needed.
+Или просто скажи на естественном языке — Claude вызовет нужную команду:
+```
+"Создай баг: карточки накладываются друг на друга, приоритет высокий"
+"Что сейчас можно делать?"
+"Закрой задачу — исправлено"
+```
+
+#### Flow 1: Быстрый баг-фикс (одна сессия)
+
+Beads опционален. Superpowers делает всю работу:
+
+```
+ТЫ: "Карточки накладываются друг на друга в дереве, исправь"
+ │
+ ▼
+SUPERPOWERS: brainstorm → план → TDD → fix → verify
+ │
+ ▼
+ГОТОВО (коммит)
+```
+
+#### Flow 2: Баг-фикс с историей
+
+```
+ТЫ: /beads:create → тип: bug, "Карточки накладываются", приоритет 1
+ │
+ ▼
+ТЫ: "Возьми задачу web-scripts-a3f2, исправь"
+ │
+ ▼
+SUPERPOWERS: brainstorm → план → TDD → fix → verify
+ │
+ ▼
+ТЫ: /beads:close → "Исправлен алгоритм spacing"
+```
+
+Зачем: через месяц `bd list --status closed` покажет что и когда чинил.
+
+#### Flow 3: Эпик на несколько сессий
+
+```
+СЕССИЯ 1:
+  /beads:epic → "Рефакторинг рендеринга дерева"
+  /beads:create → "Исправить layout алгоритм"
+  /beads:create → "Пересчёт координат связей"
+  /beads:create → "Адаптив под мобильные"
+  /beads:dep → связи блокируют layout (layout → связи → мобильные)
+
+  /beads:ready → "layout алгоритм" (единственная разблокированная)
+  Claude исправляет layout...
+  /beads:close → "layout готов"
+  [ контекст сжался / сессия закончилась ]
+
+СЕССИЯ 2:
+  bd prime (авто — hook при старте)
+  → Claude видит: "Epic: рефакторинг дерева. Закрыто: layout. Ready: связи."
+
+  /beads:ready → "Пересчёт координат связей"
+  Claude работает...
+  /beads:close → "связи пересчитаны"
+
+СЕССИЯ 3:
+  /beads:ready → "Адаптив под мобильные"
+  ...
+```
+
+Beads hooks авто-запускают `bd prime` при старте сессии и перед compaction — контекст восстанавливается без ручных действий.
+
+#### Три источника истории проекта
+
+| Источник | Что хранит | Пример |
+|----------|-----------|--------|
+| **Git** | Изменения в коде | `git log --oneline` — что менялось в файлах |
+| **LightRAG** | Решения и причины | "Выбрали D3 вместо Canvas потому что нужна интерактивность" |
+| **Beads** | Задачи и их lifecycle | "Эпик: рефакторинг дерева. 3 подзадачи, 2 закрыты, 1 в работе" |
 
 ### Template Catalog (on-demand specialists)
 
