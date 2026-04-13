@@ -54,9 +54,26 @@ Beads — операционная память проекта. Каждая iss
 3. **Как воспроизвести** — входные данные, URL, параметры (например: `pid=7 tmode=5`)
 4. **Что уже найдено** — выводы анализа, root cause, отвергнутые подходы
 5. **Связь с контекстом** — почему появилась задача, что вскрыло проблему
+6. **Ресурсы** — ссылки на всё, что нужно следующей сессии:
+   - Файлы документации/спеки (`docs/line-spec-v4.md §4.5`)
+   - Скриншоты/изображения (`assets/screenshots/overlap-pid7.png`)
+   - Конфиги, тестовые данные (`test-data/pid7-tmode5.json`)
+   - Внешние ссылки (GitHub issues, статьи, ТЗ)
 
 **Плохо:** `"Fix bond-drop crossing"`
-**Хорошо:** `"Bond-drop (grey bio line) crosses ⊔ former connector crossbar. Root cause: _dropOff() in tree.js:1850 doesn't check ⊔ connectors when computing horizontal shift. Visible on pid=7 tmode=5, pair 35+34. Found during GENP=140 testing — was hidden at GENP=100."`
+**Хорошо:**
+```
+Bond-drop (grey bio line) crosses ⊔ former connector crossbar.
+Root cause: _dropOff() in tree.js:1850 doesn't check ⊔ connectors
+when computing horizontal shift. Visible on pid=7 tmode=5, pair 35+34.
+Found during GENP=140 testing — was hidden at GENP=100.
+
+Resources:
+- Code: src/plugins/drevo-zhizni-web/assets/js/tree.js:1840-1870
+- Spec: docs/line-spec-v4.md §4.5 (bond-drop rules)
+- Screenshot: assets/drevo-zhizni-web/images/overlap-pid7-tmode5.png
+- Related: web-scripts-grw (dynamic gap — parent task)
+```
 
 **При обнаружении нового факта** — сразу `bd update <id> --notes "..."`. Не копить до конца сессии.
 
