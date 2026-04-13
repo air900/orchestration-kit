@@ -43,8 +43,27 @@ rm -f .workflow-active
 
 This re-arms the gate for the next task.
 
+## Beads Issue Quality Standard
+
+Beads — операционная память проекта. Каждая issue должна содержать достаточно контекста, чтобы **другая сессия без доступа к текущему разговору** могла продолжить работу.
+
+**При создании issue (bd create) ОБЯЗАТЕЛЬНО включи в description:**
+
+1. **Что сломано/нужно** — конкретное поведение, не абстракция
+2. **Где в коде** — файл, функция, строки (например: `tree.js:2420, функция compact()`)
+3. **Как воспроизвести** — входные данные, URL, параметры (например: `pid=7 tmode=5`)
+4. **Что уже найдено** — выводы анализа, root cause, отвергнутые подходы
+5. **Связь с контекстом** — почему появилась задача, что вскрыло проблему
+
+**Плохо:** `"Fix bond-drop crossing"`
+**Хорошо:** `"Bond-drop (grey bio line) crosses ⊔ former connector crossbar. Root cause: _dropOff() in tree.js:1850 doesn't check ⊔ connectors when computing horizontal shift. Visible on pid=7 tmode=5, pair 35+34. Found during GENP=140 testing — was hidden at GENP=100."`
+
+**При обнаружении нового факта** — сразу `bd update <id> --notes "..."`. Не копить до конца сессии.
+
 ## Rules
 
 - NEVER skip Step 1 — edits will fail without the marker
 - NEVER create `.workflow-active` outside of this skill — the gate exists to enforce workflow
 - If the marker already exists (resumed session), proceed to Step 2
+- ALWAYS write rich descriptions when creating beads issues — they are the project's operational memory
+- ALWAYS update notes immediately when discovering new facts — don't batch until session end
