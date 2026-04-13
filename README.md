@@ -291,118 +291,58 @@ ln -sf ../../.agents/skills/skill-name .claude/skills/skill-name
 
 ### Task tracking with Beads
 
-Beads is a Dolt-backed issue tracker that survives context compaction. Install once:
+Beads — Dolt-backed операционная память проекта. Задачи, зависимости, заметки переживают context compaction и восстанавливаются автоматически.
+
+#### Установка (один раз)
 
 ```bash
-# Plugin (hooks + commands in Claude Code)
-claude plugin marketplace add steveyegge/beads
-claude plugin install beads
-
-# CLI
+claude plugin marketplace add steveyegge/beads && claude plugin install beads
 npm install -g @beads/bd
-
-# Initialize in project (deploy.sh does this automatically if bd is available)
-cd your-project && bd init
+cd your-project && bd init    # deploy.sh делает это автоматически
 ```
 
-#### When to use Beads
+#### Когда использовать
 
-| Ситуация | Beads нужен? |
-|----------|-------------|
-| Быстрый фикс в одну сессию | Нет — просто скажи Claude что сделать |
-| Задача на несколько сессий | Да — контекст восстановится через `bd prime` |
-| Эпик из 5+ подзадач с зависимостями | Да — `bd ready` покажет что разблокировано |
-| Нужна история: что делал, когда, почему | Да — всё в Dolt-базе, переживает compaction |
-| Работа в нескольких терминалах | Да — exclusive locks, нет конфликтов |
+| Ситуация | Beads? |
+|----------|--------|
+| Быстрый фикс в одну сессию | Нет — `/workflow-gate <задача>` достаточно |
+| Задача на несколько сессий | Да — `bd prime` восстановит контекст |
+| Эпик из 5+ подзадач | Да — `bd ready` покажет readiness frontier |
+| Нужна история проекта | Да — всё в Dolt-базе |
+| Работа в нескольких терминалах | Да — atomic claim, нет гонок |
 
-#### Slash-команды (не нужно запоминать CLI)
-
-Beads plugin даёт slash-команды в Claude Code:
+#### Lifecycle задачи
 
 ```
-/beads:create    — создать задачу (интерактивно спросит тип, описание, приоритет)
-/beads:ready     — показать разблокированные задачи
-/beads:close     — закрыть задачу
-/beads:epic      — создать/управлять эпиком
-/beads:dep       — управление зависимостями
-/beads:list      — все задачи
-/beads:show      — детали задачи
-/beads:stats     — статистика проекта
-/beads:blocked   — что заблокировано и почему
-/beads:workflow   — показать workflow-гайд
+Создание                    Работа                      Закрытие
+─────────                   ──────                      ────────
+bd create                   bd update --claim           bd close --reason "..." --claim-next
+  --type bug                bd update --notes "..."       ├── суть решения
+  --priority 1              bd remember "pattern: ..."    ├── root cause
+  --description "6 пунктов" bd dep add (discovered-from)  └── prevention
+  --json
 ```
 
-Или просто скажи на естественном языке — Claude вызовет нужную команду:
-```
-"Создай баг: карточки накладываются друг на друга, приоритет высокий"
-"Что сейчас можно делать?"
-"Закрой задачу — исправлено"
-```
+#### Quality Standards (подробно в workflow-gate skill)
 
-#### Flow 1: Быстрый баг-фикс (одна сессия)
+**Создание** — 6 обязательных пунктов в description:
+что сломано → где в коде → как воспроизвести → что найдено → контекст → ресурсы
 
-Beads опционален. Superpowers делает всю работу:
+**Во время работы:**
+- `bd update --notes` сразу при находке (не в конце сессии)
+- `bd remember` для конвенций и паттернов (персистентно между сессиями)
+- `bd dep add --type discovered-from` для побочных находок
+- Issue ID в коммитах: `git commit -m "Fix spacing (web-scripts-a3f2)"`
 
-```
-ТЫ: "Карточки накладываются друг на друга в дереве, исправь"
- │
- ▼
-SUPERPOWERS: brainstorm → план → TDD → fix → verify
- │
- ▼
-ГОТОВО (коммит)
-```
+**Закрытие** — 3 обязательных пункта в reason:
+суть решения → root cause → prevention
 
-#### Flow 2: Баг-фикс с историей
+**Конец сессии** ("land the plane"):
+обновить notes → оформить находки → `bd remember` → `git push` → `rm .workflow-active`
 
-```
-ТЫ: /beads:create → тип: bug, "Карточки накладываются", приоритет 1
- │
- ▼
-ТЫ: "Возьми задачу web-scripts-a3f2, исправь"
- │
- ▼
-SUPERPOWERS: brainstorm → план → TDD → fix → verify
- │
- ▼
-ТЫ: /beads:close → "Исправлен алгоритм spacing"
-```
+#### Epics
 
-Зачем: через месяц `bd list --status closed` покажет что и когда чинил.
-
-#### Flow 3: Эпик на несколько сессий
-
-```
-СЕССИЯ 1:
-  /beads:epic → "Рефакторинг рендеринга дерева"
-  /beads:create → "Исправить layout алгоритм"
-  /beads:create → "Пересчёт координат связей"
-  /beads:create → "Адаптив под мобильные"
-  /beads:dep → связи блокируют layout (layout → связи → мобильные)
-
-  /beads:ready → "layout алгоритм" (единственная разблокированная)
-  Claude исправляет layout...
-  /beads:close → "layout готов"
-  [ контекст сжался / сессия закончилась ]
-
-СЕССИЯ 2:
-  bd prime (авто — hook при старте)
-  → Claude видит: "Epic: рефакторинг дерева. Закрыто: layout. Ready: связи."
-
-  /beads:ready → "Пересчёт координат связей"
-  Claude работает...
-  /beads:close → "связи пересчитаны"
-
-СЕССИЯ 3:
-  /beads:ready → "Адаптив под мобильные"
-  ...
-```
-
-Beads hooks авто-запускают `bd prime` при старте сессии и перед compaction — контекст восстанавливается без ручных действий.
-
-#### Epics: контейнеры для больших задач
-
-Epic — не задача, а **группа связанных подзадач**. Сам не содержит работы — объединяет и отслеживает прогресс.
+Epic — контейнер подзадач с зависимостями. Думай как constraint graph, не как ordered list:
 
 ```
 Epic: "JWT авторизация"
@@ -411,34 +351,40 @@ Epic: "JWT авторизация"
   └── Задача: "Refresh token логика"          ⬜ blocked (ждёт middleware)
 ```
 
-**Когда epic, а когда задача:**
+| Ситуация | Epic или задача? |
+|----------|-----------------|
+| Фикс одного бага | Задача |
+| Рефакторинг системы | Epic → подзадачи |
+| Новая фича из 3+ частей | Epic → подзадачи |
 
-| Ситуация | Что создавать |
-|----------|--------------|
-| "Исправь баг с наложением карточек" | Задача |
-| "Переделай весь рендеринг дерева" | Epic → 3-5 подзадач |
-| "Добавь JWT авторизацию" | Epic → таблицы, middleware, refresh, тесты |
-| "Обнови зависимости" | Задача |
+#### Зависимости — 4 типа
 
-**Управление:**
+| Тип | Влияет на `bd ready`? | Когда |
+|-----|----------------------|-------|
+| **blocks** | Да — блокирует | Задача B невозможна без A |
+| **parent-child** | Нет | Иерархия epic → subtask |
+| **related** | Нет | Связанные задачи |
+| **discovered-from** | Нет | Провенанс: "нашёл во время работы над X" |
 
+#### Maintenance (регулярно)
+
+```bash
+bd doctor --fix           # Ежедневно — диагностика и авто-фикс
+bd compact --days 30      # Еженедельно — сжатие старых closed issues
+bd upgrade                # Каждые 1-2 недели — обновление bd CLI
+bd stats                  # По необходимости — общее состояние
 ```
-/beads:epic              — создать epic
-/beads:create            — создать подзадачу (привязать к epic)
-/beads:dep               — связать зависимости между подзадачами
-/beads:show <epic-id>    — статус epic + все подзадачи
-/beads:ready             — какие подзадачи разблокированы прямо сейчас
-```
 
-Epic закрывается когда все подзадачи закрыты. `bd ready` автоматически учитывает граф зависимостей — показывает только то, что можно делать прямо сейчас.
+Не допускать > 200 активных issues. При приближении — `bd compact`.
 
-#### Три источника истории проекта
+#### Три источника памяти проекта
 
 | Источник | Что хранит | Пример |
 |----------|-----------|--------|
-| **Git** | Изменения в коде | `git log --oneline` — что менялось в файлах |
-| **LightRAG** | Решения и причины | "Выбрали D3 вместо Canvas потому что нужна интерактивность" |
-| **Beads** | Задачи и их lifecycle | "Эпик: рефакторинг дерева. 3 подзадачи, 2 закрыты, 1 в работе" |
+| **Git** | Изменения в коде | `git log` — что менялось |
+| **LightRAG** | Решения и причины | "Выбрали D3 потому что нужна интерактивность" |
+| **Beads** | Задачи, прогресс, контекст | "Epic: рефакторинг. 3 задачи, 2 closed, 1 ready" |
+| **bd remember** | Конвенции и паттерны | "test-pattern: baseline pid=5 tmode=2" |
 
 ### Template Catalog (on-demand specialists)
 
