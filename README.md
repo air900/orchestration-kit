@@ -12,13 +12,35 @@ Lightweight development orchestration for Claude Code. Deploys specialist agents
 
 ## Architecture
 
+Orchestration Kit follows the **D1 4-layer model** — each layer has a single clear responsibility, glued together by a thin project-local layer on top.
+
 ```
-Superpowers (plugin)         — HOW: brainstorm → plan → TDD → review → verify
-Beads (plugin, recommended)  — WHAT: git-backed task tracking, dependencies, session persistence
-Orchestration Kit (this)     — WHO: specialist agents + quality skills + language hooks + doc workflow
+┌─────────────────────────────────────────────────────────────┐
+│ L1 — BEADS (operational memory, vertical)                   │
+│   Plugin: steveyegge/beads                                  │
+│   Our overlay: 6-point issue desc, 4-point close reason     │
+├─────────────────────────────────────────────────────────────┤
+│ L2 — TEMPLATE BRIDGE (workflow orchestrator, horizontal)    │
+│   Plugin: maslennikov-ig/template-bridge                    │
+│   Skill: unified-workflow (9-step flow)                     │
+│   Bonus: template-catalog + /browse-templates               │
+├─────────────────────────────────────────────────────────────┤
+│ L3 — SUPERPOWERS (dev-loop skills, used as-is)              │
+│   Plugin: obra/superpowers                                  │
+│   Skills: brainstorming, writing-plans,                     │
+│           test-driven-development,                          │
+│           verification-before-completion (Iron Law),        │
+│           finishing-a-development-branch,                   │
+│           using-superpowers (SessionStart 1% rule)          │
+├─────────────────────────────────────────────────────────────┤
+│ L4 — ORCHESTRATION-KIT (thin glue, project-local)           │
+│   • .claude/commands/workflow-gate.md — NEW slash command   │
+│   • .claude/skills/workflow-gate/ — Beads-discipline ref    │
+│   • .claude/settings.json — simplified hooks                │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-Superpowers handles the core dev loop. Orchestration Kit provides **deep specialized analysis** that Superpowers doesn't cover: OWASP security audits, architecture health checks, documentation lifecycle, process improvement.
+Superpowers handles the core dev loop. Template Bridge's `unified-workflow` skill orchestrates it end-to-end. Beads keeps persistent memory across sessions. Orchestration Kit adds the `/workflow-gate` entry point plus **deep specialized analysis** that Superpowers doesn't cover: OWASP security audits, architecture health checks, documentation lifecycle, process improvement.
 
 ## Quick Start
 
@@ -26,10 +48,14 @@ Superpowers handles the core dev loop. Orchestration Kit provides **deep special
 
 Install plugins (once, used by all projects):
 ```bash
-# Required — development methodology
+# Required — development methodology (dev-loop skills)
 claude plugin install superpowers
 
-# Recommended — persistent task tracking
+# Required — workflow orchestrator (unified-workflow skill + template-catalog)
+claude plugin marketplace add maslennikov-ig/template-bridge
+claude plugin install template-bridge
+
+# Recommended — persistent task tracking (operational memory)
 claude plugin marketplace add steveyegge/beads
 claude plugin install beads
 npm install -g @beads/bd
@@ -75,40 +101,43 @@ This discovers relevant skills for your stack and generates CLAUDE.md.
 ```
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│ 1. /workflow-gate <задача>                                │
-│    Запускает Template Bridge — связывает Beads + Superpowers │
-├─────────────────────────────────────────────────────────────┤
-│ 2. BEADS (автоматически)                                    │
-│    Создаёт задачу в трекере                                  │
-├─────────────────────────────────────────────────────────────┤
-│ 3. SUPERPOWERS (автоматически)                              │
-│    brainstorm → план → TDD → реализация → verification      │
-├─────────────────────────────────────────────────────────────┤
-│ 4. SPECIALIST AGENTS (по необходимости)                     │
-│    /arch-review      — архитектура                          │
-│    /security-audit   — OWASP уязвимости                     │
-│    /refactor-code    — рефакторинг                          │
-│    /012-update-docs  — проверка документации                 │
-├─────────────────────────────────────────────────────────────┤
-│ 5. TEMPLATE CATALOG (если нужен редкий специалист)           │
-│    npx claude-code-templates@latest --agent <name> --yes    │
-├─────────────────────────────────────────────────────────────┤
-│ 6. ЗАКРЫТИЕ (автоматически)                                 │
-│    Beads: bd close → следующая задача через bd ready         │
-│    Эпик: documenter → doc-keeper → observer                 │
-└─────────────────────────────────────────────────────────────┘
+User: /workflow-gate fix LINE-CARD-CROSSING P1
+  │
+  ▼ Claude Code resolves the slash command.
+  ▼ commands/workflow-gate.md injects task text + quality overlays.
+  │
+  ▼ template-bridge:unified-workflow runs:
+     1. bd create      (6-point description — our overlay)
+     2. superpowers:brainstorming
+     3. superpowers:writing-plans
+     4. sub-tasks (bd create + dep add)
+     5. superpowers:using-git-worktrees (if non-trivial)
+     6. TDD via superpowers:test-driven-development
+     7. superpowers:verification-before-completion (Iron Law)
+     8. superpowers:finishing-a-development-branch
+     9. bd close       (4-point reason incl Verification — our overlay)
 ```
 
-> **Enforcement:** PreToolUse hook **блокирует** Edit/Write/MultiEdit без маркера `.workflow-active`.
-> `/workflow-gate` создаёт маркер и запускает flow. Без него Claude физически не может редактировать файлы.
+After the core flow you can plug in specialist agents on demand:
+
+```
+/arch-review      — architecture health
+/security-audit   — OWASP Top 10
+/refactor-code    — structural refactor
+/012-update-docs  — docs sweep
+```
+
+And for end-of-epic documentation: `documenter` → `doc-keeper` → `observer`.
+
+> **Enforcement:** The Iron Law lives in `superpowers:verification-before-completion` — no claim of "done" without evidence. `/workflow-gate` is the disciplined entry point that routes you through `unified-workflow`; there is no file-marker or Edit/Write block anymore.
 
 #### Кто что делает
 
 | Компонент | Роль | Когда работает |
 |-----------|------|----------------|
+| **Template Bridge** (`unified-workflow`) | Оркестратор: склеивает Beads + Superpowers в 9 шагов | Всегда — точка входа через `/workflow-gate` |
 | **Superpowers** | Dev loop: brainstorm, plan, TDD, review, verify | Всегда — основной движок |
-| **Beads** | Задачи, зависимости, история, межсессионный контекст | Когда нужна persistence |
+| **Beads** | Задачи, зависимости, история, межсессионный контекст | Всегда — operational memory |
 | **Specialist agents** | Глубокий анализ: архитектура, безопасность, рефакторинг | По запросу |
 | **Template Catalog** | 413+ on-demand специалистов (K8s, Rust, GraphQL...) | Когда нет нужного скилла |
 | **Language hooks** | Auto-lint/format после каждого Edit/Write | Всегда, фоново |
@@ -334,11 +363,11 @@ bd create                   bd update --claim           bd close --reason "..." 
 - `bd dep add --type discovered-from` для побочных находок
 - Issue ID в коммитах: `git commit -m "Fix spacing (web-scripts-a3f2)"`
 
-**Закрытие** — 3 обязательных пункта в reason:
-суть решения → root cause → prevention
+**Закрытие** — 4 обязательных пункта в reason:
+суть решения → root cause → prevention → verification evidence (test output, screenshots, before/after)
 
 **Конец сессии** ("land the plane"):
-обновить notes → оформить находки → `bd remember` → `git push` → `rm .workflow-active`
+обновить notes → оформить находки → `bd remember` → `git push` → `bd close` с 4-point reason
 
 #### Epics
 
