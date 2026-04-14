@@ -136,19 +136,30 @@ bd close <id> --reason "..." --claim-next
 
 Атомарно закрывает текущую + берёт следующую из ready queue. Предотвращает гонки в multi-agent.
 
-### Reason — 3 обязательных пункта
+### Reason — 4 обязательных пункта
 
 1. **Суть решения** — что конкретно сделано (1-2 предложения)
 2. **Root cause** — почему ошибка возникла
 3. **Prevention** — что сделать чтобы не повторилось (тест, правило, проверка)
+4. **Verification** — конкретные артефакты из `superpowers:verification-before-completion`:
+   - Команда теста + снимок её output'а (свежий, запущенный в этой сессии)
+   - Пути к screenshot'ам (для UI-изменений — обязательны)
+   - Before/after evidence для багфиксов
+   - «Tested — works» БЕЗ артефактов — невалидный reason. Переписать.
 
-**Плохо:** `--reason "Fixed"`
+**Плохо:** `--reason "Fixed"` — нет ни одного пункта
+**Плохо:** `--reason "Fix + tested"` — нет root cause, prevention, конкретного evidence
 **Хорошо:**
 ```
---reason "Добавлен expandRowGaps() post-pass после allocateCombSlots().
-Root cause: GENP фиксированный — не учитывал количество гребней в промежутке.
-Prevention: expandRowGaps() динамически раздвигает ряды — при новых коннекторах
-проверять что их высота учтена в дефиците."
+--reason "1. Добавлен expandRowGaps() post-pass после allocateCombSlots().
+2. Root cause: GENP фиксированный — не учитывал количество гребней в промежутке.
+3. Prevention: expandRowGaps() динамически раздвигает ряды — при новых коннекторах
+   проверять что их высота учтена в дефиците.
+4. Verification:
+   - node tests/channel-integrity-full.js → COMB-COLLISION: 0 (было 30)
+   - Playwright pid=5,7,213 tmode=5 at 1920x1080:
+     assets/screenshots/2026-04-14-after-comb-*.png (visual OK)
+   - Full sweep 261 pids: no regression in LINE-CARD-CROSSING/CARD-OVERLAP."
 ```
 
 ---
