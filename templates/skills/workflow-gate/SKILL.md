@@ -24,32 +24,42 @@ Those were removed in the D1 redesign (see spec
 
 ## Phase 2: Issue Creation — Quality Standard
 
-Beads — операционная память проекта. Каждая issue должна содержать достаточно контекста, чтобы **другая сессия без доступа к текущему разговору** могла продолжить работу.
+Beads is the project's operational memory. Every issue must carry enough
+context that **another session, with no access to the current conversation,**
+can continue the work.
 
-### Обязательные поля при `bd create`
+### Required fields for `bd create`
 
-Всегда указывай `--type` и `--priority` (без них — интерактивный промпт, агент зависнет):
+Always pass `--type` and `--priority` (without them `bd` opens an interactive
+prompt and the agent hangs):
 
 ```bash
 bd create --title "Title" --type bug --priority 1 --description "..." --json
 ```
 
-### Description — 6 обязательных пунктов
+### Description — 6 required points — WRITE IN ENGLISH
 
-1. **Что сломано/нужно** — конкретное поведение, не абстракция
-2. **Где в коде** — файл, функция, строки (`tree.js:2420, compact()`)
-3. **Как воспроизвести** — входные данные, URL, параметры (`pid=7 tmode=5`)
-4. **Что уже найдено** — root cause, отвергнутые подходы
-5. **Связь с контекстом** — почему задача появилась, что вскрыло проблему
-6. **Ресурсы** — всё что нужно следующей сессии:
-   - Файлы кода с номерами строк (`src/tree.js:1840-1870`)
-   - Спеки/документация (`docs/line-spec.md §4.5`)
-   - Скриншоты (`assets/screenshots/overlap-pid7.png`)
-   - Тестовые данные, конфиги
-   - Внешние ссылки (GitHub issues, статьи, ТЗ)
+**Language rule:** Beads issue descriptions, titles, notes, and close reasons
+MUST be written in English. Rationale: English uses ~half the tokens of
+Russian for the same information, which matters because Beads is read back
+into every session (`bd prime`/`bd show`) and consumes context budget. The
+agent communicates with the user in Russian (or whatever language the user
+uses), but writes Beads artefacts in English.
 
-**Плохо:** `"Fix bond-drop crossing"`
-**Хорошо:**
+1. **What's broken / what's needed** — concrete behaviour, not abstraction
+2. **Where in code** — file, function, line range (`tree.js:2420, compact()`)
+3. **How to reproduce** — inputs, URL, parameters (`pid=7 tmode=5`)
+4. **What's already known** — root cause candidates, approaches rejected
+5. **Context link** — why this task emerged, what surfaced the problem
+6. **Resources** — everything the next session will need:
+   - Code files with line numbers (`src/tree.js:1840-1870`)
+   - Specs / docs (`docs/line-spec.md §4.5`)
+   - Screenshots (`assets/screenshots/overlap-pid7.png`)
+   - Test data, configs
+   - External links (GitHub issues, articles, specs)
+
+**Bad:** `"Fix bond-drop crossing"`
+**Good:**
 ```
 Bond-drop (grey bio line) crosses ⊔ former connector crossbar.
 Root cause: _dropOff() in tree.js:1850 doesn't check ⊔ connectors.
@@ -63,16 +73,16 @@ Resources:
 - Related: web-scripts-grw (dynamic gap — parent task)
 ```
 
-### Побочные находки — discovered-from
+### Side findings — `discovered-from`
 
-Нашёл баг во время работы над другой задачей? Сразу:
+Found a bug while working on a different task? Immediately:
 
 ```bash
 bd create --title "Found bug X" --type bug --priority 2 --description "..." --json
 bd dep add <new-id> <current-id> --type discovered-from
 ```
 
-Это создаёт цепочку провенанса — как был обнаружен баг.
+This creates a provenance chain — how the bug was discovered.
 
 ---
 
@@ -89,22 +99,22 @@ bd recall         # Persistent memory: conventions, patterns, past decisions
 bd ready --json   # Structured list of claimable work
 ```
 
-If resuming work from a previous session — check what's in progress via
+If resuming work from a previous session, check what's in progress via
 `bd show <id>` before starting anything new.
 
 ---
 
-### Notes — обновляй СРАЗУ
+### Notes — update IMMEDIATELY
 
-При обнаружении нового факта — не копить до конца:
+When you discover a new fact, don't batch until the end:
 
 ```bash
 bd update <id> --notes "FINDING: compact() at line 2420 ignores spouse gap. Tested on pid=5,7,213."
 ```
 
-### Remember — персистентная память
+### Remember — persistent memory
 
-Нашёл паттерн или конвенцию, которая пригодится в будущих сессиях:
+Found a pattern or convention that will be useful in future sessions:
 
 ```bash
 bd remember "test-pattern: All tree layout tests use pid=5 tmode=2 as baseline"
@@ -112,51 +122,52 @@ bd remember "convention: DREVO_VERSION bumped on every visual change"
 bd remember "gotcha: _formerSlot and gOffset go in opposite directions — never mix"
 ```
 
-`bd recall` восстановит эти записи в следующей сессии.
+`bd recall` restores these entries in the next session.
 
-### Коммиты — с issue ID
+### Commits — include issue ID
 
-Всегда включай ID задачи в коммит:
+Always include the task ID in the commit message:
 
 ```
 git commit -m "Fix spacing for 4+ children (web-scripts-a3f2)"
 ```
 
-Это позволяет `bd doctor` находить orphaned issues.
+This lets `bd doctor` find orphaned issues.
 
 ---
 
 ## Phase 4: Closing — Quality Standard
 
-### `--claim-next` вместо простого close
+### `--claim-next` instead of plain close
 
 ```bash
 bd close <id> --reason "..." --claim-next
 ```
 
-Атомарно закрывает текущую + берёт следующую из ready queue. Предотвращает гонки в multi-agent.
+Atomically closes the current issue AND claims the next one from the ready
+queue. Prevents races in multi-agent setups.
 
-### Reason — 4 обязательных пункта
+### Reason — 4 required points
 
-1. **Суть решения** — что конкретно сделано (1-2 предложения)
-2. **Root cause** — почему ошибка возникла
-3. **Prevention** — что сделать чтобы не повторилось (тест, правило, проверка)
-4. **Verification** — конкретные артефакты из `superpowers:verification-before-completion`:
-   - Команда теста + снимок её output'а (свежий, запущенный в этой сессии)
-   - Пути к screenshot'ам (для UI-изменений — обязательны)
-   - Before/after evidence для багфиксов
-   - «Tested — works» БЕЗ артефактов — невалидный reason. Переписать.
+1. **Solution** — what was concretely done (1-2 sentences)
+2. **Root cause** — why the defect existed
+3. **Prevention** — what will stop it from recurring (test, rule, check)
+4. **Verification** — concrete artefacts from `superpowers:verification-before-completion`:
+   - Test command + snapshot of its output (fresh, run in this session)
+   - Screenshot paths (mandatory for UI changes)
+   - Before/after evidence for bug fixes
+   - "Tested — works" WITHOUT artefacts is an invalid reason. Rewrite.
 
-**Плохо:** `--reason "Fixed"` — нет ни одного пункта
-**Плохо:** `--reason "Fix + tested"` — нет root cause, prevention, конкретного evidence
-**Хорошо:**
+**Bad:** `--reason "Fixed"` — no points
+**Bad:** `--reason "Fix + tested"` — no root cause, prevention, or concrete evidence
+**Good:**
 ```
---reason "1. Добавлен expandRowGaps() post-pass после allocateCombSlots().
-2. Root cause: GENP фиксированный — не учитывал количество гребней в промежутке.
-3. Prevention: expandRowGaps() динамически раздвигает ряды — при новых коннекторах
-   проверять что их высота учтена в дефиците.
+--reason "1. Added expandRowGaps() post-pass after allocateCombSlots().
+2. Root cause: GENP was fixed and didn't account for the number of combs in the gap.
+3. Prevention: expandRowGaps() now dynamically widens rows — for any new connector,
+   confirm its height is accounted for in the deficit calculation.
 4. Verification:
-   - node tests/channel-integrity-full.js → COMB-COLLISION: 0 (было 30)
+   - node tests/channel-integrity-full.js → COMB-COLLISION: 0 (was 30)
    - Playwright pid=5,7,213 tmode=5 at 1920x1080:
      assets/screenshots/2026-04-14-after-comb-*.png (visual OK)
    - Full sweep 261 pids: no regression in LINE-CARD-CROSSING/CARD-OVERLAP."
@@ -166,47 +177,49 @@ bd close <id> --reason "..." --claim-next
 
 ## Phase 5: Session End — "Land the Plane"
 
-Сессия НЕ завершена пока не выполнены ВСЕ пункты:
+The session is NOT complete until ALL of these are done:
 
-1. **Открытые задачи** — обновить notes с текущим статусом:
+1. **Open tasks** — update notes with current status:
    ```bash
    bd update <id> --notes "PROGRESS: steps 1-3 done. NEXT: step 4 (refactor drawBond). BLOCKED BY: nothing."
    ```
 
-2. **Побочные находки** — оформить как issues с `discovered-from`
+2. **Side findings** — file them as issues with `discovered-from`
 
-3. **Память** — сохранить конвенции и инсайты:
+3. **Memory** — persist conventions and insights:
    ```bash
    bd remember "key-learning: description"
    ```
 
-4. **Git** — чистое состояние:
+4. **Git** — clean state:
    ```bash
    git pull --rebase && git push
    ```
 
 ---
 
-## Phase 6: Maintenance (периодически)
+## Phase 6: Maintenance (periodic)
 
 ```bash
-bd doctor --fix           # Диагностика и авто-фикс (запускать ежедневно)
-bd compact --days 30      # Сжатие старых closed issues (LLM-суммаризация)
-bd upgrade                # Обновление bd CLI (каждые 1-2 недели)
-bd stats                  # Общее состояние проекта
+bd doctor --fix           # Diagnose + auto-fix (run daily)
+bd compact --days 30      # Compress old closed issues (LLM summarisation)
+bd upgrade                # Update bd CLI (every 1-2 weeks)
+bd stats                  # Overall project health
 ```
 
-Не допускать > 200 активных issues. При приближении — `bd compact` или `bd cleanup --days N`.
+Don't let active issues exceed 200. When approaching the limit, run
+`bd compact` or `bd cleanup --days N`.
 
 ---
 
 ## Rules
 
 - NEVER use `bd create` without `--type`, `--priority`, `--description`
-- NEVER use `bd edit` — it opens interactive editor, agent зависнет. Use `bd update --description`
-- ALWAYS use `--json` flag for programmatic output
+- NEVER use `bd edit` — it opens an interactive editor and the agent hangs. Use `bd update --description`
+- ALWAYS use `--json` for programmatic output
 - ALWAYS write rich descriptions — they are the project's memory
+- ALWAYS write Beads artefacts (descriptions, notes, reasons, remember) in English — token efficiency
 - ALWAYS update notes immediately — don't batch
-- ALWAYS include issue ID in commit messages
+- ALWAYS include the issue ID in commit messages
 - ALWAYS use `--claim-next` when closing if more work exists
 - ALWAYS "land the plane" before session end — notes, git push
