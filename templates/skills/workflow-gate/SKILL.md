@@ -78,6 +78,22 @@ bd dep add <new-id> <current-id> --type discovered-from
 
 ## Phase 3: During Work
 
+### 3.0 Session start — load Beads context
+
+**Note:** SessionStart hook already runs `bd prime` automatically. Below is
+for manual re-loading mid-session or after switching projects.
+
+```bash
+bd prime          # Workflow context: open issues, priorities, blockers
+bd recall         # Persistent memory: conventions, patterns, past decisions
+bd ready --json   # Structured list of claimable work
+```
+
+If resuming work from a previous session — check what's in progress via
+`bd show <id>` before starting anything new.
+
+---
+
 ### Notes — обновляй СРАЗУ
 
 При обнаружении нового факта — не копить до конца:
