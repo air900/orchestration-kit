@@ -1,43 +1,24 @@
 ---
 name: workflow-gate
 description: >
-  Entry point for all development work. Creates .workflow-active marker (unlocks Edit/Write),
-  then invokes template-bridge:unified-workflow. Use BEFORE any task — edits are blocked without this.
-  TRIGGER: Always use this instead of unified-workflow directly.
+  Beads-discipline reference for all development work: issue quality standards,
+  notes/remember/commits policy, 4-point close reason with verification evidence.
+  Dev-loop orchestration lives in slash-command /workflow-gate, which delegates
+  to template-bridge:unified-workflow.
+  TRIGGER: Consult this skill whenever creating/closing Beads issues or
+  uncertain about project conventions.
 ---
 
 # Workflow Gate
 
-**This skill is the ONLY way to unlock code editing in this session.**
+**Role:** Reference for Beads-discipline in this project.
+**Orchestration:** handled by slash-command `/workflow-gate` (delegates to
+`template-bridge:unified-workflow`). This skill does NOT orchestrate; it
+documents the quality standards that apply to any workflow.
 
-A PreToolUse hook blocks Edit/Write/MultiEdit until `.workflow-active` exists.
-This skill creates that marker and launches the full development workflow.
-
----
-
-## Phase 1: Session Start
-
-### 1.1 Activate gate
-
-```bash
-touch .workflow-active
-```
-
-Run IMMEDIATELY. Without it, all edits are blocked.
-
-### 1.2 Load context
-
-```bash
-bd prime          # Workflow context: open issues, priorities, blockers
-bd recall         # Persistent memory: conventions, patterns, past decisions
-bd ready --json   # Structured list of claimable work
-```
-
-If resuming work from a previous session — check what's in progress before starting anything new.
-
-### 1.3 Launch unified workflow
-
-Invoke `template-bridge:unified-workflow` skill for the full flow.
+**There is no marker file, no unlock mechanism, no Edit/Write hook block.**
+Those were removed in the D1 redesign (see spec
+`docs/superpowers/specs/2026-04-14-workflow-gate-d1-design.md`).
 
 ---
 
