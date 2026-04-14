@@ -199,23 +199,31 @@ Build CLAUDE.md from all collected information. The content should be specific t
 
 ## Claude Automations
 
-### Development Methodology
+### Development Methodology (D1)
 
-`/workflow-gate` — slash command, запускающий Beads-дисциплину для каждой задачи. Нет маркеров-файлов; enforcement встроен в сам workflow и в PreToolUse hook для деструктивных Bash-операций.
+**Entry point:** `/workflow-gate <task>` — slash command. Delegates to `template-bridge:unified-workflow` and layers our Beads quality overlay on top.
 
-`/workflow-gate <описание задачи>` → полный flow:
-1. Beads: создание задачи → 2. Brainstorm → 3. Plan → 4. TDD → 5. Review → 6. Verify → 7. Close (с 4-пунктным close reason)
+Flow (9 steps from unified-workflow):
+1. `bd create` (6-point description — see `workflow-gate` skill § Phase 2)
+2. Skill `superpowers:brainstorming`
+3. Skill `superpowers:writing-plans`
+4. Sub-tasks (`bd create` + `bd dep add`)
+5. `superpowers:using-git-worktrees` (if non-trivial)
+6. TDD via `superpowers:test-driven-development`
+7. `superpowers:verification-before-completion` — **Iron Law:** no fresh test output → no "tested" claim
+8. `superpowers:finishing-a-development-branch`
+9. `bd close` (4-point reason incl Verification — `workflow-gate` skill § Phase 4)
 
-**Как работать:** `/workflow-gate <описание задачи>`
+**Beads artefacts (descriptions, notes, reasons, remember) are written in English** for token efficiency. User-facing communication stays in the user's language.
 
-Ручные команды (если нужно):
-- `/beads:create` — создать задачу
-- `/beads:ready` — что разблокировано
-- `/beads:close` — закрыть задачу
-- `/brainstorm` — brainstorm вручную
-- `/browse-templates` — каталог 413+ specialist agents
+Manual commands:
+- `/beads:create`, `/beads:ready`, `/beads:close` — direct Beads operations
+- Skill `superpowers:brainstorming` — brainstorm without full `/workflow-gate`
+- `/browse-templates` — 413+ on-demand specialist agents (Template Bridge)
 
-**Workflow:** epic → subtasks with deps → `bd ready` → claim → work → close → next ready task.
+**DO NOT use:** `/superpowers:brainstorm` (no `ing`) — deprecated, just prints a notice. Always invoke the skill `superpowers:brainstorming`.
+
+**Workflow summary:** epic → sub-tasks with deps → `bd ready` → claim → work → verify → close → next ready task.
 
 ### Skills
 
