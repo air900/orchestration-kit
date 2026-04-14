@@ -201,10 +201,10 @@ Build CLAUDE.md from all collected information. The content should be specific t
 
 ### Development Methodology
 
-**Edit/Write ЗАБЛОКИРОВАНЫ** пока не вызван `/workflow-gate`. Это hook-enforcement, не рекомендация.
+`/workflow-gate` — slash command, запускающий Beads-дисциплину для каждой задачи. Нет маркеров-файлов; enforcement встроен в сам workflow и в PreToolUse hook для деструктивных Bash-операций.
 
-`/workflow-gate` → создаёт маркер `.workflow-active` → запускает полный flow:
-1. Beads: создание задачи → 2. Brainstorm → 3. Plan → 4. TDD → 5. Review → 6. Verify → 7. Close
+`/workflow-gate <описание задачи>` → полный flow:
+1. Beads: создание задачи → 2. Brainstorm → 3. Plan → 4. TDD → 5. Review → 6. Verify → 7. Close (с 4-пунктным close reason)
 
 **Как работать:** `/workflow-gate <описание задачи>`
 
