@@ -158,11 +158,6 @@ Prevention: expandRowGaps() динамически раздвигает ряды
    git pull --rebase && git push
    ```
 
-5. **Маркер** — снять:
-   ```bash
-   rm -f .workflow-active
-   ```
-
 ---
 
 ## Phase 6: Maintenance (периодически)
@@ -180,8 +175,6 @@ bd stats                  # Общее состояние проекта
 
 ## Rules
 
-- NEVER skip Phase 1 — edits blocked without marker
-- NEVER create `.workflow-active` outside this skill
 - NEVER use `bd create` without `--type`, `--priority`, `--description`
 - NEVER use `bd edit` — it opens interactive editor, agent зависнет. Use `bd update --description`
 - ALWAYS use `--json` flag for programmatic output
@@ -189,4 +182,4 @@ bd stats                  # Общее состояние проекта
 - ALWAYS update notes immediately — don't batch
 - ALWAYS include issue ID in commit messages
 - ALWAYS use `--claim-next` when closing if more work exists
-- ALWAYS "land the plane" before session end — notes, git push, remove marker
+- ALWAYS "land the plane" before session end — notes, git push
