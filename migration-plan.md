@@ -3,6 +3,33 @@
 > Шаблон для обновления проектов с Orchestration Kit v1 (11 агентов, pipeline) на v2 (7 агентов, Superpowers + Beads).
 > Первый прогон: web-scripts, 2026-04-12.
 
+## D1 Changes (2026-04-14)
+
+For any existing project that has the old workflow-gate setup:
+
+1. **Create** `.claude/commands/workflow-gate.md` — copy from
+   `orchestration-kit/templates/commands/workflow-gate.md`.
+2. **Shrink** `.claude/skills/workflow-gate/SKILL.md` — copy from updated
+   `orchestration-kit/templates/skills/workflow-gate/SKILL.md` (Phases
+   2, 3, 3.0, 4, 5, 6 only; no Phase 1 marker content).
+3. **Replace** `.claude/settings.json` hooks section — copy from
+   `orchestration-kit/templates/settings-hooks.json` (destructive Bash
+   matcher + `bd prime` only).
+4. **Delete** any existing `.workflow-active` marker file in the project
+   root: `rm -f .workflow-active`.
+5. **Update** project `CLAUDE.md` — remove any paragraph describing
+   "Edit/Write заблокированы" or the marker lifecycle. Reference the
+   slash command `/workflow-gate` as the entry point and the
+   `workflow-gate` skill as the Beads-discipline reference.
+6. **Verify** Template Bridge plugin is enabled in the user's global
+   settings. If not, the agent falls back to `superpowers:brainstorming`
+   directly (graceful degradation per design § 3.5).
+
+Reference: `docs/superpowers/specs/2026-04-14-workflow-gate-d1-design.md`
+and `docs/superpowers/plans/2026-04-14-workflow-gate-d1.md`.
+
+---
+
 ## Новая архитектура
 
 ```
