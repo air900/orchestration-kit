@@ -221,6 +221,38 @@ if [ -d "$TEMPLATES/references" ]; then
     log_ok "Copied $REFS_COPIED reference docs"
 fi
 
+# --- Copy hook scripts ---
+log_info "Installing hook scripts..."
+if [ -d "$TEMPLATES/hooks" ]; then
+    mkdir -p "$TARGET/.claude/hooks"
+    HOOKS_COPIED=0
+    for hook_file in "$TEMPLATES/hooks/"*.sh; do
+        [ -e "$hook_file" ] || continue
+        hook_name=$(basename "$hook_file")
+        dest="$TARGET/.claude/hooks/$hook_name"
+        cp "$hook_file" "$dest"
+        chmod +x "$dest"
+        HOOKS_COPIED=$((HOOKS_COPIED + 1))
+    done
+    log_ok "Installed $HOOKS_COPIED hook scripts"
+fi
+
+# --- Ensure .claude/.gitignore excludes runtime artefacts ---
+CLAUDE_GITIGNORE="$TARGET/.claude/.gitignore"
+if [ -f "$TEMPLATES/claude-gitignore" ]; then
+    if [ -f "$CLAUDE_GITIGNORE" ]; then
+        if ! grep -qxF "command-log.txt" "$CLAUDE_GITIGNORE"; then
+            echo "command-log.txt" >> "$CLAUDE_GITIGNORE"
+            log_ok "Appended command-log.txt to existing .claude/.gitignore"
+        else
+            log_info ".claude/.gitignore already ignores command-log.txt"
+        fi
+    else
+        cp "$TEMPLATES/claude-gitignore" "$CLAUDE_GITIGNORE"
+        log_ok "Created .claude/.gitignore"
+    fi
+fi
+
 # --- Copy deploy-orchestration skill for Phase 2 ---
 log_info "Installing deploy-orchestration skill..."
 mkdir -p "$TARGET/.claude/skills/deploy-orchestration"

@@ -1,0 +1,2 @@
+# Deployed by orchestration-kit to .claude/hooks/ of target project.
+# The sibling .claude/.gitignore handles command-log.txt exclusion.
