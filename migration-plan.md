@@ -158,8 +158,10 @@ ls docs/orchestration/doc-drafts/ | wc -l
 | Проект | Статус | Дата | Примечания |
 |--------|--------|------|------------|
 | web-scripts | ✅ Готово | 2026-04-12 | 10 external skills, 39 doc-drafts |
-| hr-bot | ⬜ Pending | — | |
-| seo-audit | ⬜ Pending | — | |
-| frm-client-automatization | ⬜ Pending | — | |
-| check-parameters-sql-server | ⬜ Pending | — | |
-| mtproxy-telegram | ⬜ Pending | — | |
+| mtproxy-telegram | ✅ Готово | 2026-04-16 | 2 custom symlinks preserved (docker-expert, bash-defensive-patterns). Deploy.sh `cp -r` nested-dir bug discovered + fixed (commit 6735bf2) |
+| check-parameters-sql-server-for-1c | ✅ Готово | 2026-04-16 | 2 custom symlinks preserved (postgresql-optimization, powershell-windows) |
+| frm-client-automatization | ✅ Готово | 2026-04-16 | 2 custom symlinks preserved (proposal-writer, commercial-proposal-writer). Russian skill descriptions retained |
+| vpn-manager-openwrt-x-ui | ✅ Готово | 2026-04-16 | Non-standard start: project had tech-lead-orchestrator fleet (47 agents, no skills). Wiped wholesale, installed kit v2 fresh per user directive. CLAUDE.md appended (no pre-existing Automations section) |
+| hr-bot-project | ✅ Готово | 2026-04-16 | Customised migration per user: all 11 old agents removed (none needed), 6 kit-overlap skills removed, 4 skills kept (vercel-react-best-practices, shadcn-ui, find-skills, security-audit). `.claude/commands/` and `.claude/rules/` preserved intact |
+| text4site-create-modified | ✅ Готово | 2026-04-16 | 11 custom skills preserved (6 dirs avers*/afr* content pipelines + 5 symlinks). Russian descriptions retained. Pre-migration WIP snapshot commit for `.agents/skills/find-skills/` changes |
+| seo-audit | ✅ Готово | 2026-04-16 | **24 custom symlinks preserved** (SEO auditing 10 + marketing strategy 7 + keyword/competitive 2 + copywriting 3 + utility 2). Strict pre/post diff verification at 3 checkpoints — zero drift |
