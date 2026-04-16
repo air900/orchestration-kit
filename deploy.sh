@@ -204,8 +204,15 @@ SKILLS_COPIED=0
 for skill_dir in "$TEMPLATES/skills/"*/; do
     skill_name=$(basename "$skill_dir")
     dest="$TARGET/.claude/skills/$skill_name"
-    if [ -d "$dest" ]; then
+    if [ -e "$dest" ] || [ -L "$dest" ]; then
+        # Remove existing dest (dir, file, or symlink) before copy.
+        # cp -r src/ dest creates dest/src/ when dest pre-exists, causing
+        # nested-dir artefacts. Safe here: loop only iterates kit skill
+        # names from templates/, so custom skills (not in that list) are
+        # never targeted. Kit skills are by definition owned by the kit,
+        # so overwriting them — including symlinks — is intentional.
         log_warn "Skill already exists, overwriting: $skill_name"
+        rm -rf "$dest"
     fi
     cp -r "$skill_dir" "$dest"
     SKILLS_COPIED=$((SKILLS_COPIED + 1))
