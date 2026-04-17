@@ -228,6 +228,27 @@ if [ -d "$TEMPLATES/references" ]; then
     log_ok "Copied $REFS_COPIED reference docs"
 fi
 
+# --- Copy slash commands ---
+# Kit-owned slash commands (e.g., /workflow-gate, /workflow-gate-check).
+# Only kit-template names are copied — any pre-existing command files in the
+# target project with other names are left untouched.
+log_info "Copying slash commands..."
+if [ -d "$TEMPLATES/commands" ]; then
+    mkdir -p "$TARGET/.claude/commands"
+    CMDS_COPIED=0
+    for cmd_file in "$TEMPLATES/commands/"*.md; do
+        [ -e "$cmd_file" ] || continue
+        cmd_name=$(basename "$cmd_file")
+        dest="$TARGET/.claude/commands/$cmd_name"
+        if [ -f "$dest" ]; then
+            log_warn "Command already exists, overwriting: $cmd_name"
+        fi
+        cp "$cmd_file" "$dest"
+        CMDS_COPIED=$((CMDS_COPIED + 1))
+    done
+    log_ok "Copied $CMDS_COPIED slash commands"
+fi
+
 # --- Copy hook scripts ---
 log_info "Installing hook scripts..."
 if [ -d "$TEMPLATES/hooks" ]; then
