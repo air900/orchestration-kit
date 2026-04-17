@@ -2,3 +2,7 @@
 *.bak
 .DS_Store
 .workflow-active
+
+# Python bytecode
+__pycache__/
+*.pyc
