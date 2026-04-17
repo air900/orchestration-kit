@@ -80,60 +80,53 @@ git clone --depth 1 https://github.com/air900/orchestration-kit.git /tmp/orch-ki
 rm -rf /tmp/orch-kit
 ```
 
-After the initial install, the project gets `.claude/scripts/deploy.sh` — a project-local copy that self-bootstraps templates from GitHub on every run. You no longer need the kit cloned locally to refresh content.
+After the initial install, the project gets two self-service scripts at `.claude/scripts/`:
+- `orch.sh` — unified entry point for all post-install refresh operations
+- `deploy.sh` — backend used by `orch.sh --update-skills` (also self-bootstraps templates from GitHub on every run)
 
-### 2b. Three-layer update model (post-install)
+You no longer need the kit cloned locally to refresh content.
 
-Each layer is independent and project-autonomous — no orchestration-kit checkout required at runtime.
+### 2b. Post-install updates — unified `orch.sh` command
 
-```
-┌─── Layer 0 ──────────────────────────────────────────────────────────┐
-│  Refresh ONLY the local .claude/scripts/deploy.sh from the repo.     │
-│  Use when deploy.sh itself has changed (new flag, bug fix).          │
-│                                                                      │
-│  curl -sSL https://raw.githubusercontent.com/air900/orchestration-kit/main/install.sh | bash -s -- --update-deploy │
-└──────────────────────────────────────────────────────────────────────┘
+Two flags on one command:
 
-┌─── Layer 1 ──────────────────────────────────────────────────────────┐
-│  Refresh kit content (agents/skills/commands/hooks/refs) via the     │
-│  project-local deploy.sh. Self-bootstraps templates from GitHub into │
-│  /tmp, applies them, cleans up, auto-commits + pushes.               │
-│                                                                      │
-│  .claude/scripts/deploy.sh . --update-skills                         │
-└──────────────────────────────────────────────────────────────────────┘
-
-┌─── Layer 2 ──────────────────────────────────────────────────────────┐
-│  Refresh user-installed external skills (installed via                │
-│  `npx skills add`, tracked in skills-lock.json). Interactive          │
-│  selection + GitHub stats (stars, pushed_at) + auto-commit + push.   │
-│                                                                      │
-│  python3 .claude/skills/update-external-skills/scripts/update.py     │
-└──────────────────────────────────────────────────────────────────────┘
+```bash
+.claude/scripts/orch.sh --update-skills           # refresh kit-shipped content
+.claude/scripts/orch.sh --update-external-skills  # refresh skills.sh installs
 ```
 
-**Layer 0 (`install.sh --update-deploy`)**
+Both modes:
+- Self-contained (no orchestration-kit checkout at runtime)
+- Auto-commit + auto-push with explicit path staging (never `git add -A`)
+- Commit message references kit SHA for traceability
 
-One curl, single file (`deploy.sh`, ~15 KB). Run from project root. Places the latest `deploy.sh` at `<project>/.claude/scripts/deploy.sh`. No templates downloaded — those are fetched by deploy.sh on its next run.
+**`orch.sh --update-skills`**
 
-**Layer 1 (`deploy.sh --update-skills`)**
-
-Runs from the project (`.claude/scripts/deploy.sh` is the installed copy). On invocation:
-
-- Detects that no local `templates/` is alongside the script.
-- `git clone --depth 1` of the kit into a tmp dir (or tarball fallback if git is missing).
-- Re-copies all kit-shipped content: `.claude/agents/`, `.claude/skills/` (with `references/`), `.claude/commands/`, `.claude/hooks/`, `.claude/references/`, and merges `.claude/settings.json` hooks.
-- For **skill directories**, nukes and re-copies (so if a skill previously had 5 reference files and now has 3, the old 2 are removed cleanly).
-- For **single files** (agents, commands, hooks, shared refs), overwrites same-name files only. Custom files with non-kit names are left untouched.
-- **Auto-commits** changes in the target project with a message including the kit commit SHA for traceability, and **auto-pushes** to the tracked remote. Uses explicit path staging (never `git add -A`), so unrelated uncommitted work stays uncommitted.
+Delegates to `deploy.sh --update-skills`. On invocation:
+- Detects no local `templates/` alongside; `git clone --depth 1` of the kit into /tmp (or tarball fallback if git is missing).
+- Re-copies all kit-shipped content: `.claude/agents/`, `.claude/skills/` (with `references/`), `.claude/commands/`, `.claude/hooks/`, `.claude/references/`; merges `.claude/settings.json` hooks.
+- For **skill directories**: `rm -rf` + `cp -r` (handles 5→3 references case cleanly).
+- For **single files** (agents, commands, hooks, shared refs): overwrite same-name only. Custom-named files in the same directories are left untouched.
 - Cleans up the tmp kit clone on exit.
 
-Requires `.claude/` to already exist — if not, the script exits with an instruction to run the full install first.
+**`orch.sh --update-external-skills`**
 
-Environment overrides: `ORCHESTRATION_KIT_REPO` (default `air900/orchestration-kit`) and `ORCHESTRATION_KIT_REF` (default `main`) — for forks or version pinning.
+Delegates to `python3 .claude/skills/update-external-skills/scripts/update.py`. See the skill's own [SKILL.md](templates/skills/update-external-skills/SKILL.md). Short version: reads `skills-lock.json`, fetches GitHub metadata, shows a numbered selection table (`0` = all, `1,3,5` = specific, `1-5` = range), runs `npx skills update <selected>`, reports what actually updated.
 
-**Layer 2 (`update-external-skills`)**
+### 2c. Refreshing `orch.sh` + `deploy.sh` themselves from the repo
 
-See the skill's own [SKILL.md](templates/skills/update-external-skills/SKILL.md). Short version: reads `skills-lock.json`, fetches GitHub metadata, shows a numbered selection table (`0` = all, `1,3,5` = specific, `1-5` = range), runs `npx skills update <selected>`, reports what actually updated, auto-commits + pushes.
+If `orch.sh` or `deploy.sh` have changed upstream (new flag, bug fix), pull the latest versions with one curl:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/air900/orchestration-kit/main/install.sh | bash -s -- --update-deploy
+```
+
+What this does:
+- Downloads the latest `orch.sh` and `deploy.sh` (~25 KB total, no full kit clone)
+- Places them at `<project>/.claude/scripts/orch.sh` and `.../deploy.sh`
+- Auto-commits + pushes (same traceability semantics as the other flags)
+
+Environment overrides (work for all three operations): `ORCHESTRATION_KIT_REPO` (default `air900/orchestration-kit`), `ORCHESTRATION_KIT_REF` (default `main`).
 
 ### What these layers do NOT touch
 
@@ -147,11 +140,9 @@ See the skill's own [SKILL.md](templates/skills/update-external-skills/SKILL.md)
 
 ### Batch update across multiple projects
 
-From any one project that has the kit:
-
 ```bash
 for p in project-a project-b project-c; do
-  (cd "/root/projects/$p" && .claude/scripts/deploy.sh . --update-skills)
+  (cd "/root/projects/$p" && .claude/scripts/orch.sh --update-skills)
 done
 ```
 

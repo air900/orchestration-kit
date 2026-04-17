@@ -26,29 +26,33 @@ log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 log_ok()   { echo -e "${GREEN}[OK]${NC} $1"; }
 log_err()  { echo -e "${RED}[ERROR]${NC} $1"; }
 
-# --- Mode: --update-deploy (light refresh of local deploy.sh only) ---
+# --- Mode: --update-deploy (light refresh of local orch.sh + deploy.sh) ---
 if [ "${1:-}" = "--update-deploy" ]; then
-    log_info "Refreshing local .claude/scripts/deploy.sh from ${REPO}@${REF}..."
+    log_info "Refreshing local .claude/scripts/{orch,deploy}.sh from ${REPO}@${REF}..."
     mkdir -p "$TARGET/.claude/scripts"
-    curl -sSLf "https://raw.githubusercontent.com/${REPO}/${REF}/deploy.sh" \
-        -o "$TARGET/.claude/scripts/deploy.sh" || {
-        log_err "Failed to download deploy.sh from ${REPO}@${REF}"
-        exit 1
-    }
-    chmod +x "$TARGET/.claude/scripts/deploy.sh"
-    log_ok "deploy.sh updated at $TARGET/.claude/scripts/deploy.sh"
 
-    # Auto commit + push if in a git repo and file actually changed
+    # Fetch both the unified orch.sh entry point AND the deploy.sh backend.
+    for file in orch.sh deploy.sh; do
+        curl -sSLf "https://raw.githubusercontent.com/${REPO}/${REF}/${file}" \
+            -o "$TARGET/.claude/scripts/${file}" || {
+            log_err "Failed to download ${file} from ${REPO}@${REF}"
+            exit 1
+        }
+        chmod +x "$TARGET/.claude/scripts/${file}"
+    done
+    log_ok "Updated .claude/scripts/orch.sh and .claude/scripts/deploy.sh"
+
+    # Auto commit + push if in a git repo and files actually changed
     if [ -d "$TARGET/.git" ]; then
         (
             cd "$TARGET" || exit 1
-            git add .claude/scripts/deploy.sh 2>/dev/null || true
+            git add .claude/scripts/orch.sh .claude/scripts/deploy.sh 2>/dev/null || true
             if git diff --cached --quiet; then
-                log_info "No change in deploy.sh — skipping commit."
+                log_info "No change in scripts — skipping commit."
                 exit 10
             fi
             REMOTE_SHA=$(git ls-remote "https://github.com/${REPO}.git" "${REF}" 2>/dev/null | awk '{print $1}' | cut -c1-7 || echo "unknown")
-            git commit --quiet -m "chore(orchestration): update .claude/scripts/deploy.sh from kit ${REMOTE_SHA}
+            git commit --quiet -m "chore(orchestration): update .claude/scripts/{orch,deploy}.sh from kit ${REMOTE_SHA}
 
 Refreshed via: curl -sSL .../install.sh | bash -s -- --update-deploy
 Source: ${REPO}@${REF}
@@ -65,7 +69,7 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>" || exit 12
         log_info "Not a git repo — skipping auto commit/push."
     fi
 
-    log_info "Next: run '.claude/scripts/deploy.sh . --update-skills' to refresh kit content."
+    log_info "Next: run '.claude/scripts/orch.sh --update-skills' or '--update-external-skills'."
     exit 0
 fi
 
