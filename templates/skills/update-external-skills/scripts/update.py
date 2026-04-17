@@ -453,14 +453,40 @@ def prompt_selection(records: list[SkillRecord]) -> tuple[str, list[SkillRecord]
 # --- Update + report --------------------------------------------------------
 
 def run_npx_update(selected: list[SkillRecord], root: Path) -> int:
-    """Invoke `npx skills update` for the chosen skills (or all)."""
+    """Install/update the chosen skills.
+
+    Do NOT use `npx skills update <names>` — for project-level lock entries
+    it internally calls `npx skills add <source>` WITHOUT skill-path restriction
+    (confirmed in vercel-labs/skills src/update-source.ts → buildLocalUpdateSource),
+    so it re-installs the ENTIRE source repo. With multi-skill repos like
+    coreyhaines31/marketingskills (50+ skills), this causes an explosion.
+
+    Correct behaviour: group selections by source repo, then invoke
+    `npx skills add <source> -s <name1> -s <name2> ... -p -y` per group.
+    The `-s` flag on `add` restricts installation to named skills only.
+    """
     if not selected:
         return 0
-    names_arg = [s.name for s in selected]
-    cmd = ["npx", "--yes", "skills", "update", *names_arg, "-p", "-y"]
-    info(f"Running: {' '.join(cmd)}")
-    result = subprocess.run(cmd, cwd=root)
-    return result.returncode
+
+    from collections import defaultdict
+    by_source: dict[str, list[str]] = defaultdict(list)
+    for rec in selected:
+        by_source[rec.source].append(rec.name)
+
+    info(f"Updating {len(selected)} skill(s) across {len(by_source)} source repo(s):")
+    overall_rc = 0
+    for source, names in sorted(by_source.items()):
+        info(f"  source {source}: {', '.join(names)}")
+        cmd = ["npx", "--yes", "skills", "add", source]
+        for n in names:
+            cmd += ["-s", n]
+        cmd += ["-p", "-y"]
+        info(f"  → {' '.join(cmd)}")
+        result = subprocess.run(cmd, cwd=root)
+        if result.returncode != 0:
+            err(f"  exit {result.returncode} for source {source}")
+            overall_rc = result.returncode or 1
+    return overall_rc
 
 
 def run_npx_remove(selected: list[SkillRecord], root: Path) -> int:
