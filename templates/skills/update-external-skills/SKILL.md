@@ -94,6 +94,12 @@ No token → the script falls back gracefully; metadata columns show `no-meta` f
 - Update kit-shipped skills (agents/, kit skills, slash commands) — use `deploy.sh --update-skills` (or its equivalent) at the orchestration-kit level.
 - Touch `.claude/settings.local.json`, `.claude/orchestration-config.json`, `.beads/`, `docs/orchestration/`, or `CLAUDE.md`.
 
+## Presentation of script output
+
+The script prints a fixed-width table with columns: `#`, `Skill`, `Repo`, `Stars`, `Remote pushed`, `Status`. **Show this table VERBATIM to the user** — don't reformat it into a markdown table, don't drop the `Stars` or `Status` columns. Those columns ARE the statistics the user is asking for when they invoke this skill. Compacting the table defeats the purpose of running it.
+
+If the table appears wide in the terminal/UI, let it wrap naturally. Do not squeeze it into a narrower layout at the cost of dropping columns.
+
 ## Failure modes
 
 | Symptom | Cause | Fix |

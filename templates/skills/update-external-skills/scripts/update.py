@@ -226,9 +226,47 @@ def fmt_stars(n: Optional[int]) -> str:
 
 # --- Interactive selection --------------------------------------------------
 
+def print_stats_summary(rows: list[SkillRecord]) -> None:
+    """Aggregate numbers first, so stats are visible even if the table is
+    reformatted by a wrapping layer."""
+    total = len(rows)
+    unique_repos: dict[str, RepoMeta] = {}
+    for rec in rows:
+        if rec.repo_meta and rec.source_type == "github":
+            unique_repos[rec.source] = rec.repo_meta
+
+    stale_count = sum(1 for r in rows if is_stale(r))
+    current_count = total - stale_count - sum(1 for r in rows if r.repo_meta and r.repo_meta.fetch_error)
+    no_meta_count = sum(1 for r in rows if r.repo_meta and r.repo_meta.fetch_error)
+
+    total_stars = sum(m.stars or 0 for m in unique_repos.values())
+    most_popular = max(unique_repos.items(), key=lambda kv: kv[1].stars or 0, default=(None, None))
+    most_recent = max(
+        (m for m in unique_repos.values() if m.pushed_at),
+        key=lambda m: m.pushed_at,
+        default=None,
+    )
+
+    print()
+    print(f"{C.BOLD}=== Stats summary ==={C.RESET}")
+    print(f"  Skills tracked:      {total}")
+    print(f"  Unique repos:        {len(unique_repos)}")
+    print(f"  Stale (updatable):   {C.YELLOW}{stale_count}{C.RESET}")
+    print(f"  Current:             {C.GREEN}{current_count}{C.RESET}")
+    if no_meta_count:
+        print(f"  No-metadata:         {C.RED}{no_meta_count}{C.RESET}")
+    print(f"  Total stars (sum):   {fmt_stars(total_stars)}")
+    if most_popular[0] and most_popular[1].stars:
+        print(f"  Most popular repo:   {most_popular[0]} ({fmt_stars(most_popular[1].stars)} ⭐)")
+    if most_recent:
+        print(f"  Most recent push:    {most_recent.owner}/{most_recent.repo} ({rel_time(most_recent.pushed_at)})")
+    print()
+
+
 def print_selection_table(rows: list[SkillRecord]) -> None:
     header = f"{C.BOLD}  #  {'Skill':<38} {'Repo':<40} {'Stars':>6}  {'Remote pushed':<14}  Status{C.RESET}"
     print()
+    print(f"{C.BOLD}=== Skills table (preserve all columns — this is the \"stats\" the user asked for) ==={C.RESET}")
     print(header)
     print(f"  {'-' * 3} {'-' * 38} {'-' * 40} {'-' * 6}  {'-' * 14}  {'-' * 16}")
     for idx, rec in enumerate(rows, start=1):
@@ -274,6 +312,7 @@ def parse_selection(raw: str, max_idx: int) -> list[int]:
 
 
 def prompt_selection(records: list[SkillRecord]) -> list[SkillRecord]:
+    print_stats_summary(records)
     print_selection_table(records)
     print(f"{C.BOLD}Select skills to update:{C.RESET}")
     print("  0         — all")

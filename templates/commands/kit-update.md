@@ -83,3 +83,5 @@ Error and print usage (same as empty args).
 - Do NOT stage paths outside what each backend owns — preserve user's unrelated uncommitted work.
 - On missing backend file, print the exact remediation command — do NOT silently fall back to something else.
 - If `$ARGUMENTS` is parseable as both flags (e.g., contains `--update-skills --update-external-skills`), print usage and exit — ambiguous invocation.
+- **Show the backend script's output VERBATIM.** Do NOT reformat the selection table, do NOT drop columns, do NOT omit the `Stars` or `Status` columns. These are the "stats" the user asked for — they are the entire point of this command. If the table is wide, let it wrap rather than compact it into a narrower layout.
+- **Do NOT convert fixed-width text tables into markdown tables.** The script prints aligned columns using spaces; that layout is deliberate. Claude Code renders the raw text just fine in its output pane.
