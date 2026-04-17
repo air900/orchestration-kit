@@ -80,6 +80,18 @@ The script walks up from CWD looking for `skills-lock.json`, so it can be invoke
 8. **Report** final result: updated / unchanged / skipped, with stats.
 9. **Auto-commit+push** if at least one hash actually changed. Staging is explicit (`skills-lock.json`, `.agents/skills`, `.claude/skills`) — never `git add -A`, so unrelated uncommitted work is not swept in.
 
+## Non-interactivity guard
+
+The Action prompt at the end of the script is **for the user**. If an agent (Claude Code in auto mode, a shell script, a CI runner) pipes input into stdin instead of letting the user type, the script detects it via `sys.stdin.isatty()` and refuses to perform the chosen action. Exit code 2 is returned with a clear message.
+
+Override for genuine non-interactive use (CI, batch scripts):
+
+```bash
+UPDATE_EXTERNAL_SKILLS_NON_INTERACTIVE=1 python3 .claude/skills/update-external-skills/scripts/update.py
+```
+
+Without that env var, only `cancel` (empty input) is allowed without a TTY — every mutating action requires either a live terminal or the explicit opt-in.
+
 ## Rate limits
 
 GitHub API without token: 60 requests/hour. Because the script deduplicates by repo, projects with many skills from few repos (e.g. `anthropics/skills`) stay well under limit. If you hit a rate-limit warning, export `GITHUB_TOKEN`:

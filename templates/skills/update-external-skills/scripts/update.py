@@ -636,6 +636,19 @@ def main() -> int:
     sorted_records = sorted(records.values(), key=sort_key)
     action, selected = prompt_selection(sorted_records)
 
+    # Guard against piped input from auto-running agents. An interactive
+    # selection pre-fed via stdin is a trust violation: the user never saw
+    # the prompt, never typed a choice. Require explicit opt-in.
+    piped = not sys.stdin.isatty()
+    auto_ok = os.environ.get("UPDATE_EXTERNAL_SKILLS_NON_INTERACTIVE") == "1"
+    if piped and not auto_ok and action != ACTION_CANCEL:
+        err("Stdin is not a TTY — this looks like input piped by an agent or automation.")
+        err("The selection prompt is for the USER to answer interactively, not to be auto-filled.")
+        err("If you really want to run non-interactively (e.g. CI), set:")
+        err("    UPDATE_EXTERNAL_SKILLS_NON_INTERACTIVE=1")
+        err("Aborting without making any changes.")
+        return 2
+
     if action == ACTION_CLEAN:
         removed = clean_ghosts(root, records)
         git_commit_lock_cleanup(root, removed)

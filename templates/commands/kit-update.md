@@ -85,3 +85,10 @@ Error and print usage (same as empty args).
 - If `$ARGUMENTS` is parseable as both flags (e.g., contains `--update-skills --update-external-skills`), print usage and exit — ambiguous invocation.
 - **Show the backend script's output VERBATIM.** Do NOT reformat the selection table, do NOT drop columns, do NOT omit the `Stars` or `Status` columns. These are the "stats" the user asked for — they are the entire point of this command. If the table is wide, let it wrap rather than compact it into a narrower layout.
 - **Do NOT convert fixed-width text tables into markdown tables.** The script prints aligned columns using spaces; that layout is deliberate. Claude Code renders the raw text just fine in its output pane.
+- **NEVER pipe input into the script.** The Action prompt at the end of the script is an *interactive user choice*, not a task for the assistant to solve. Do NOT:
+  - `echo "clean" | python3 update.py`
+  - `echo "0" | python3 update.py`
+  - `printf "del 1,3\n" | python3 update.py`
+  - or any equivalent that pre-feeds a selection into stdin.
+  Run the script so its output reaches the user, then **stop and ask the user in chat** which action they want. The user must type the selection themselves. Even "safe" actions like `clean` require explicit user go-ahead; a silently-applied `clean` that rewrites `skills-lock.json` and auto-commits is a trust violation regardless of how recoverable it is.
+- **"Auto mode" is not a licence to mutate.** If the current session is running in auto/agent mode and the script's prompt blocks waiting for input, surface the output to the user and wait. Do not guess. Do not pick the least-destructive option "as a compromise". The user picks.
