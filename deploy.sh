@@ -13,8 +13,6 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TEMPLATES="$SCRIPT_DIR/templates"
-LANG_HOOKS="$SCRIPT_DIR/language-hooks"
 
 # --- Colors ---
 RED='\033[0;31m'
@@ -27,6 +25,49 @@ log_info()  { echo -e "${BLUE}[INFO]${NC} $1"; }
 log_ok()    { echo -e "${GREEN}[OK]${NC} $1"; }
 log_warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+
+# --- Self-bootstrap: if templates/ is not alongside, clone kit to /tmp ---
+# This lets a project keep only .claude/scripts/deploy.sh and still run
+# --update-skills — the script fetches its own templates at runtime.
+KIT_REPO="${ORCHESTRATION_KIT_REPO:-air900/orchestration-kit}"
+KIT_REF="${ORCHESTRATION_KIT_REF:-main}"
+BOOTSTRAP_DIR=""
+cleanup_bootstrap() {
+    [ -n "$BOOTSTRAP_DIR" ] && [ -d "$BOOTSTRAP_DIR" ] && rm -rf "$BOOTSTRAP_DIR"
+}
+
+if [ -d "$SCRIPT_DIR/templates" ]; then
+    # Dev mode: running deploy.sh from cloned orchestration-kit repo
+    TEMPLATES="$SCRIPT_DIR/templates"
+    LANG_HOOKS="$SCRIPT_DIR/language-hooks"
+    KIT_SKILL_MD="$SCRIPT_DIR/SKILL.md"
+else
+    # Project-local mode: deploy.sh lives in a project (e.g., .claude/scripts/);
+    # fetch templates from GitHub into a tmp dir for this invocation.
+    log_info "No local templates/ next to deploy.sh; bootstrapping from ${KIT_REPO}@${KIT_REF}..."
+    BOOTSTRAP_DIR=$(mktemp -d)
+    trap cleanup_bootstrap EXIT
+    if command -v git &>/dev/null; then
+        git clone --quiet --depth 1 --branch "$KIT_REF" \
+            "https://github.com/${KIT_REPO}.git" "$BOOTSTRAP_DIR/kit" 2>/dev/null || {
+            log_error "git clone failed for https://github.com/${KIT_REPO}.git@${KIT_REF}"
+            exit 1
+        }
+    else
+        curl -sL "https://codeload.github.com/${KIT_REPO}/tar.gz/${KIT_REF}" | \
+            tar -xz -C "$BOOTSTRAP_DIR" --strip-components=1 \
+                --wildcards '*/templates/*' '*/language-hooks/*' '*/SKILL.md' 2>/dev/null || {
+            log_error "tarball fetch failed for ${KIT_REPO}@${KIT_REF}"
+            exit 1
+        }
+    fi
+    KIT_ROOT="$BOOTSTRAP_DIR/kit"
+    [ -d "$KIT_ROOT" ] || KIT_ROOT="$BOOTSTRAP_DIR"
+    TEMPLATES="$KIT_ROOT/templates"
+    LANG_HOOKS="$KIT_ROOT/language-hooks"
+    KIT_SKILL_MD="$KIT_ROOT/SKILL.md"
+    log_ok "Kit bootstrapped to $KIT_ROOT"
+fi
 
 # --- Usage ---
 usage() {
@@ -301,7 +342,7 @@ fi
 # --- Copy deploy-orchestration skill for Phase 2 ---
 log_info "Installing deploy-orchestration skill..."
 mkdir -p "$TARGET/.claude/skills/deploy-orchestration"
-cp "$SCRIPT_DIR/SKILL.md" "$TARGET/.claude/skills/deploy-orchestration/SKILL.md"
+cp "$KIT_SKILL_MD" "$TARGET/.claude/skills/deploy-orchestration/SKILL.md"
 log_ok "Deploy-orchestration skill installed"
 
 # find-skills is now included in templates/skills/ and deployed with other skills above
@@ -409,17 +450,44 @@ if [ "$PROJECT_TYPE" = "multi" ]; then
     log_info "Use /deploy-orchestration to define sub-projects and generate CLAUDE.md sections"
 fi
 
+# --- Install deploy.sh into project for future self-service updates ---
+# After any install/update, leave a copy of deploy.sh at .claude/scripts/deploy.sh
+# so the project owner can run `.claude/scripts/deploy.sh . --update-skills`
+# without cloning orchestration-kit. deploy.sh self-bootstraps templates from
+# GitHub when templates/ is not next to it.
+DEPLOY_SELF="$SCRIPT_DIR/deploy.sh"
+if [ -n "${BOOTSTRAP_DIR:-}" ] && [ -d "${KIT_ROOT:-$BOOTSTRAP_DIR}" ]; then
+    # Running bootstrapped; use the freshly-cloned kit's deploy.sh as source
+    if [ -f "${KIT_ROOT:-$BOOTSTRAP_DIR}/deploy.sh" ]; then
+        DEPLOY_SELF="${KIT_ROOT:-$BOOTSTRAP_DIR}/deploy.sh"
+    fi
+fi
+if [ -f "$DEPLOY_SELF" ]; then
+    mkdir -p "$TARGET/.claude/scripts"
+    cp "$DEPLOY_SELF" "$TARGET/.claude/scripts/deploy.sh"
+    chmod +x "$TARGET/.claude/scripts/deploy.sh"
+    log_ok "Installed .claude/scripts/deploy.sh (self-service for future updates)"
+fi
+
 # --- Auto commit + push (only in --update-skills mode on git repos) ---
 UPDATE_PUSHED=false
 UPDATE_COMMIT_SHA=""
 if [ "$UPDATE_MODE" = true ] && [ -d "$TARGET/.git" ]; then
-    KIT_SHA=$(cd "$SCRIPT_DIR" && git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    # KIT_SHA: from local repo if running from kit; else from remote ls-remote.
+    if [ -d "$SCRIPT_DIR/.git" ]; then
+        KIT_SHA=$(cd "$SCRIPT_DIR" && git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    elif [ -n "$BOOTSTRAP_DIR" ] && [ -d "${KIT_ROOT:-$BOOTSTRAP_DIR}/.git" ]; then
+        KIT_SHA=$(cd "${KIT_ROOT:-$BOOTSTRAP_DIR}" && git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    else
+        KIT_SHA=$(git ls-remote "https://github.com/${KIT_REPO}.git" "${KIT_REF}" 2>/dev/null | awk '{print $1}' | cut -c1-7 || echo "unknown")
+    fi
+    [ -z "$KIT_SHA" ] && KIT_SHA="unknown"
     (
         cd "$TARGET" || exit 1
         # Stage only kit-owned paths (never git add -A — user may have unrelated
         # uncommitted work that should not land in our auto-commit).
         git add .claude/agents .claude/skills .claude/references .claude/commands \
-                .claude/hooks .claude/.gitignore .claude/settings.json 2>/dev/null || true
+                .claude/hooks .claude/scripts .claude/.gitignore .claude/settings.json 2>/dev/null || true
 
         if git diff --cached --quiet; then
             log_info "No kit-content drift; nothing to commit."
