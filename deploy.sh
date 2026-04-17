@@ -30,14 +30,18 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 # --- Usage ---
 usage() {
-    echo "Usage: $0 <target-project-path> [atomic|multi]"
+    echo "Usage: $0 <target-project-path> [atomic|multi|--update-skills]"
     echo ""
     echo "  target-project-path  Path to the project to deploy orchestration into"
-    echo "  atomic               Single-purpose project (default)"
-    echo "  multi                Multi-purpose project with sub-projects in src/"
+    echo "  atomic               Fresh install — single-purpose project (default)"
+    echo "  multi                Fresh install — multi-purpose project (sub-projects in src/)"
+    echo "  --update-skills      Refresh kit content ONLY on an already-deployed project:"
+    echo "                       re-copies agents, skills (with refs/), commands, hooks,"
+    echo "                       references, and merges settings.json. Skips plugin checks,"
+    echo "                       bd init, orchestration-config. Requires .claude/ to exist."
     echo ""
-    echo "After running this script, use /deploy-orchestration in Claude Code"
-    echo "to discover task-specific skills and generate CLAUDE.md."
+    echo "After fresh install, run /deploy-orchestration in Claude Code to"
+    echo "discover task-specific skills and generate CLAUDE.md."
     exit 1
 }
 
@@ -52,8 +56,19 @@ TARGET="$(cd "$1" 2>/dev/null && pwd)" || {
 }
 
 PROJECT_TYPE="${2:-atomic}"
-if [[ "$PROJECT_TYPE" != "atomic" && "$PROJECT_TYPE" != "multi" ]]; then
-    log_error "Project type must be 'atomic' or 'multi', got: $PROJECT_TYPE"
+UPDATE_MODE=false
+if [[ "$PROJECT_TYPE" == "--update-skills" ]]; then
+    UPDATE_MODE=true
+    # Safety: --update-skills only makes sense on an already-deployed project.
+    # Fresh install should use atomic/multi to trigger plugin checks + bd init.
+    if [ ! -d "$TARGET/.claude" ]; then
+        log_error "--update-skills requires an existing deployment (.claude/ not found at $TARGET)"
+        log_info "For fresh install, use: $0 $TARGET atomic"
+        exit 1
+    fi
+    log_info "UPDATE-SKILLS mode: refreshing kit content only (no plugin checks, no bd init)"
+elif [[ "$PROJECT_TYPE" != "atomic" && "$PROJECT_TYPE" != "multi" ]]; then
+    log_error "Second argument must be one of: atomic | multi | --update-skills (got: $PROJECT_TYPE)"
     exit 1
 fi
 
@@ -78,8 +93,9 @@ ask_yes() {
     [[ "${ans:-y}" =~ ^[Yy]$ ]]
 }
 
-# --- Check & install plugin prerequisites ---
-if command -v claude &>/dev/null; then
+# --- Check & install plugin prerequisites (skipped in --update-skills mode) ---
+if [ "$UPDATE_MODE" = false ]; then
+  if command -v claude &>/dev/null; then
     PLUGIN_LIST=$(claude plugin list 2>/dev/null || echo "")
 
     # Superpowers (required)
@@ -118,20 +134,21 @@ if command -v claude &>/dev/null; then
     else
         log_ok "Template Bridge plugin found"
     fi
-else
+  else
     log_warn "claude CLI not found — install plugins manually after setup:"
     echo "  claude plugin install superpowers"
     echo "  claude plugin marketplace add steveyegge/beads && claude plugin install beads"
     echo "  claude plugin marketplace add maslennikov-ig/template-bridge && claude plugin install template-bridge"
     echo ""
+  fi
 fi
 
-# --- Check & install bd CLI ---
+# --- Check & install bd CLI (skipped in --update-skills mode) ---
 HAS_BD=false
 if command -v bd &>/dev/null; then
     HAS_BD=true
-    log_ok "bd CLI found"
-else
+    [ "$UPDATE_MODE" = false ] && log_ok "bd CLI found"
+elif [ "$UPDATE_MODE" = false ]; then
     log_warn "bd CLI not found (needed for Beads task tracking)"
     if command -v npm &>/dev/null; then
         if ask_yes "Install bd globally via npm?"; then
@@ -370,16 +387,18 @@ fi
 
 rm -f "$NEW_SETTINGS_FILE"
 
-# --- Initialize Beads (if bd is available) ---
-if [ "$HAS_BD" = true ] && [ -d "$TARGET/.git" ]; then
-    if [ ! -d "$TARGET/.beads" ]; then
-        log_info "Initializing Beads issue tracker..."
-        (cd "$TARGET" && bd init 2>/dev/null) && log_ok "Beads initialized (.beads/)" || log_warn "Beads init failed — you can run 'bd init' manually"
-    else
-        log_info "Beads already initialized, skipping"
+# --- Initialize Beads (skipped in --update-skills mode — already initialised) ---
+if [ "$UPDATE_MODE" = false ]; then
+    if [ "$HAS_BD" = true ] && [ -d "$TARGET/.git" ]; then
+        if [ ! -d "$TARGET/.beads" ]; then
+            log_info "Initializing Beads issue tracker..."
+            (cd "$TARGET" && bd init 2>/dev/null) && log_ok "Beads initialized (.beads/)" || log_warn "Beads init failed — you can run 'bd init' manually"
+        else
+            log_info "Beads already initialized, skipping"
+        fi
+    elif [ "$HAS_BD" = false ]; then
+        log_info "bd CLI not found. Install: npm install -g @beads/bd"
     fi
-elif [ "$HAS_BD" = false ]; then
-    log_info "bd CLI not found. Install: npm install -g @beads/bd"
 fi
 
 # --- Multi-project structure ---
@@ -393,7 +412,11 @@ fi
 # --- Summary ---
 echo ""
 echo -e "${GREEN}================================================================${NC}"
-echo -e "${GREEN}  Orchestration deployed successfully!${NC}"
+if [ "$UPDATE_MODE" = true ]; then
+    echo -e "${GREEN}  Kit content refreshed successfully!${NC}"
+else
+    echo -e "${GREEN}  Orchestration deployed successfully!${NC}"
+fi
 echo -e "${GREEN}================================================================${NC}"
 echo ""
 echo "  Target:     $TARGET"
@@ -402,6 +425,18 @@ echo "  Language:   $LANG"
 echo "  Agents:     $AGENTS_COPIED"
 echo "  Skills:     $SKILLS_COPIED + deploy-orchestration"
 echo ""
+
+if [ "$UPDATE_MODE" = true ]; then
+echo "  What changed in this run:"
+echo "    - agents/, skills/ (with references/), commands/, hooks/, shared references/"
+echo "    - settings.json hooks merged with kit's latest"
+echo "    - orchestration-config.json and .beads/ left untouched"
+echo ""
+echo "  Next steps:"
+echo "    1. cd $TARGET"
+echo "    2. git status — review what changed"
+echo "    3. git commit -am 'chore(orchestration): refresh kit content' && git push"
+else
 echo "  Next steps:"
 echo "    1. cd $TARGET"
 echo "    2. Open Claude Code"
@@ -418,6 +453,7 @@ echo ""
 echo "       This discovers relevant skills and generates CLAUDE.md."
 echo ""
 echo "  After setup, Superpowers handles the dev loop."
+fi
 echo "  Beads tracks tasks across sessions (bd ready, bd create)."
 echo ""
 echo "  Specialist skills:"
