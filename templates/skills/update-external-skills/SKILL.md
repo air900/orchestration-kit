@@ -67,9 +67,12 @@ The script walks up from CWD looking for `skills-lock.json`, so it can be invoke
    *stale* = repo's `pushed_at` is newer than the local skill file's mtime.
 
 5. **Prompt** the user:
-   - `0` → all skills
-   - `1,3,5` → specific indexes
-   - `1-5` → range
+   - `0` → **UPDATE** all skills
+   - `1,3,5` → UPDATE specific indexes (comma-separated)
+   - `1-5` → UPDATE range
+   - `del 1,3,5` (or `rm 1,3,5`, or `delete 1,3,5`) → **DELETE** specific indexes — uninstalls skills via `npx skills remove`, removes from lock, removes `.agents/skills/<name>/` content and `.claude/skills/<name>` symlink. Asks Y/n confirmation before running.
+   - `del 1-5` → DELETE range
+   - `clean` (or `c`) → remove ghost entries (`missing` status) from `skills-lock.json` only — no `npx skills` call, no disk cleanup beyond the lock. Use when the source repo no longer exists upstream or the name in lock is bogus.
    - empty → cancel, exit
 
 6. **Execute** `npx skills update <selected> -p -y` on the chosen set.
@@ -125,6 +128,8 @@ If the table appears wide in the terminal/UI, let it wrap naturally. Do not sque
 "Stale" is a *likelihood* signal, not a guarantee of actual drift — the underlying content may or may not have changed. The authoritative drift test is `npx skills update <name>` itself, which compares `computedHash` in `skills-lock.json` vs the source.
 
 "Missing" is flagged before any GitHub call — it's a pure on-disk check. If flagged, the stats summary prints a dedicated `⚠ Ghost entries` block with the repaired-install command.
+
+**Cleaning ghosts:** at the selection prompt, type `clean` (or `c`) to remove all `missing` entries from `skills-lock.json` in one operation. The script writes the cleaned lock back, then auto-commits+pushes with an explanatory message. No install, no update, no network calls to `npx skills`. Use this when ghosts are irrecoverable (the source skill no longer exists upstream, or the name in lock is misspelled).
 
 ## Who writes `skills-lock.json`?
 

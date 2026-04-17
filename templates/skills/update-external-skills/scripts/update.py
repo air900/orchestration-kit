@@ -357,22 +357,57 @@ def parse_selection(raw: str, max_idx: int) -> list[int]:
     return sorted(selected)
 
 
-def prompt_selection(records: list[SkillRecord]) -> list[SkillRecord]:
+ACTION_UPDATE = "update"
+ACTION_DELETE = "delete"
+ACTION_CLEAN  = "clean"
+ACTION_CANCEL = "cancel"
+
+
+def prompt_selection(records: list[SkillRecord]) -> tuple[str, list[SkillRecord]]:
+    """Returns (action, records):
+      ("update", [SkillRecord, ...])  — install/update selected
+      ("delete", [SkillRecord, ...])  — uninstall selected via `npx skills remove`
+      ("clean",  [])                  — remove ghost entries from lock
+      ("cancel", [])                  — exit without changes
+    """
     print_stats_summary(records)
     print_status_legend()
     print_selection_table(records)
-    print(f"{C.BOLD}Select skills to update:{C.RESET}")
-    print("  0         — all")
-    print("  1,3,5     — specific (comma-separated)")
-    print("  1-5       — range")
-    print("  (empty)   — cancel")
+    ghost_count = sum(1 for r in records if r.status == "missing")
+    print(f"{C.BOLD}Action:{C.RESET}")
+    print("  0             — UPDATE all")
+    print("  1,3,5         — UPDATE specific (comma-separated)")
+    print("  1-5           — UPDATE range")
+    print("  del 1,3,5     — DELETE specific (uninstalls skills; updates lock)")
+    print("  del 1-5       — DELETE range")
+    if ghost_count:
+        print(f"  clean         — remove {ghost_count} ghost entry(ies) from skills-lock.json (no install/update)")
+    else:
+        print("  clean         — (no ghosts present — nothing to clean)")
+    print("  (empty)       — cancel")
     try:
         raw = input(">> ").strip()
     except (EOFError, KeyboardInterrupt):
         print()
-        return []
+        return (ACTION_CANCEL, [])
+
+    low = raw.lower()
+
+    if low in ("clean", "clean-ghosts", "c"):
+        return (ACTION_CLEAN, [])
+
+    # Detect delete prefix: "del ...", "rm ...", "delete ..."
+    for prefix in ("delete ", "del ", "rm "):
+        if low.startswith(prefix):
+            rest = raw[len(prefix):]
+            idxs = parse_selection(rest, len(records))
+            return (ACTION_DELETE, [records[i - 1] for i in idxs])
+
+    if not raw:
+        return (ACTION_CANCEL, [])
+
     idxs = parse_selection(raw, len(records))
-    return [records[i - 1] for i in idxs]
+    return (ACTION_UPDATE, [records[i - 1] for i in idxs])
 
 
 # --- Update + report --------------------------------------------------------
@@ -381,12 +416,19 @@ def run_npx_update(selected: list[SkillRecord], root: Path) -> int:
     """Invoke `npx skills update` for the chosen skills (or all)."""
     if not selected:
         return 0
-    if len(selected) == 1:
-        names_arg = [selected[0].name]
-    else:
-        names_arg = [s.name for s in selected]
-
+    names_arg = [s.name for s in selected]
     cmd = ["npx", "--yes", "skills", "update", *names_arg, "-p", "-y"]
+    info(f"Running: {' '.join(cmd)}")
+    result = subprocess.run(cmd, cwd=root)
+    return result.returncode
+
+
+def run_npx_remove(selected: list[SkillRecord], root: Path) -> int:
+    """Invoke `npx skills remove` for the chosen skills."""
+    if not selected:
+        return 0
+    names_arg = [s.name for s in selected]
+    cmd = ["npx", "--yes", "skills", "remove", *names_arg, "-p", "-y"]
     info(f"Running: {' '.join(cmd)}")
     result = subprocess.run(cmd, cwd=root)
     return result.returncode
@@ -432,6 +474,88 @@ def print_final_report(records: dict[str, SkillRecord], selected_names: set[str]
     if skipped and selected_names:
         print(f"{C.DIM}(skipped {len(skipped)} skill(s) not selected){C.RESET}")
         print()
+
+
+# --- Ghost cleanup ----------------------------------------------------------
+
+def clean_ghosts(root: Path, records: dict[str, SkillRecord]) -> int:
+    """Remove entries from skills-lock.json whose files are not on disk.
+    Returns number of ghosts removed."""
+    ghosts = [r for r in records.values() if r.status == "missing"]
+    if not ghosts:
+        info("No ghost entries to clean.")
+        return 0
+
+    info(f"Removing {len(ghosts)} ghost entry(ies) from {LOCK_FILE_NAME}:")
+    for g in ghosts:
+        print(f"  • {g.name}  (source: {g.source})")
+
+    lock_path = root / LOCK_FILE_NAME
+    data = json.loads(lock_path.read_text())
+    skills = data.get("skills", {})
+    for g in ghosts:
+        skills.pop(g.name, None)
+    data["skills"] = skills
+    lock_path.write_text(json.dumps(data, indent=2) + "\n")
+    ok(f"Cleaned. skills-lock.json now tracks {len(skills)} skill(s).")
+    return len(ghosts)
+
+
+def _git_autosync_paths(root: Path, paths: list[str], commit_msg: str) -> None:
+    """Shared git add/commit/push with explicit path staging. No-op if not a git repo."""
+    if not (root / ".git").is_dir():
+        warn("Not a git repo — skipping auto-commit/push.")
+        return
+
+    def git(*args: str, capture: bool = False) -> subprocess.CompletedProcess:
+        return subprocess.run(["git", *args], cwd=root, capture_output=capture, text=True, check=False)
+
+    git("add", *paths)
+    if git("diff", "--cached", "--quiet").returncode == 0:
+        info("No staged changes — no commit.")
+        return
+    if git("commit", "-m", commit_msg).returncode != 0:
+        err("git commit failed.")
+        return
+    sha = git("rev-parse", "--short", "HEAD", capture=True).stdout.strip()
+    ok(f"Committed: {sha}")
+    upstream = git("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}", capture=True)
+    if upstream.returncode != 0:
+        warn("No upstream branch — run 'git push -u origin <branch>' manually.")
+        return
+    if git("push", "--quiet").returncode == 0:
+        ok(f"Pushed to {upstream.stdout.strip()}")
+    else:
+        warn("git push failed — commit is preserved locally.")
+
+
+def git_commit_lock_cleanup(root: Path, removed_count: int) -> None:
+    if removed_count == 0:
+        return
+    _git_autosync_paths(
+        root,
+        [LOCK_FILE_NAME],
+        f"chore(skills): remove {removed_count} ghost entry(ies) from skills-lock.json\n\n"
+        "Ghost = lock entry with no corresponding files on disk (failed install\n"
+        "or manual deletion). Auto-cleaned by update-external-skills script.\n\n"
+        "Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
+    )
+
+
+def git_commit_delete(root: Path, removed: list[SkillRecord]) -> None:
+    if not removed:
+        return
+    names = ", ".join(r.name for r in removed)
+    _git_autosync_paths(
+        root,
+        [LOCK_FILE_NAME, ".agents/skills", ".claude/skills"],
+        f"chore(skills): remove {len(removed)} external skill(s) via npx skills remove\n\n"
+        f"Removed: {names}\n\n"
+        "Removed by: update-external-skills script (delete mode).\n"
+        "Paths affected: skills-lock.json (entry removal), .agents/skills/<name>/\n"
+        "(content removal), .claude/skills/<name> (symlink removal).\n\n"
+        "Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
+    )
 
 
 # --- Git auto-commit + push -------------------------------------------------
@@ -510,11 +634,44 @@ def main() -> int:
         return (-stars, r.name.lower())
 
     sorted_records = sorted(records.values(), key=sort_key)
-    selected = prompt_selection(sorted_records)
-    if not selected:
-        info("No skills selected. Exiting.")
+    action, selected = prompt_selection(sorted_records)
+
+    if action == ACTION_CLEAN:
+        removed = clean_ghosts(root, records)
+        git_commit_lock_cleanup(root, removed)
         return 0
 
+    if action == ACTION_CANCEL:
+        info("Cancelled. No changes made.")
+        return 0
+
+    if not selected:
+        info("Empty selection. Nothing to do.")
+        return 0
+
+    if action == ACTION_DELETE:
+        print()
+        warn(f"About to REMOVE {len(selected)} skill(s) via `npx skills remove`:")
+        for r in selected:
+            print(f"  • {r.name}  (source: {r.source})")
+        try:
+            confirm = input("Proceed? [y/N] ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            info("Cancelled.")
+            return 0
+        if confirm not in ("y", "yes"):
+            info("Cancelled.")
+            return 0
+        rc = run_npx_remove(selected, root)
+        if rc != 0:
+            err(f"`npx skills remove` exited with code {rc}. Check output above.")
+            return rc
+        ok(f"Removed {len(selected)} skill(s).")
+        git_commit_delete(root, selected)
+        return 0
+
+    # action == ACTION_UPDATE
     ok(f"Selected {len(selected)} skill(s) for update.")
     rc = run_npx_update(selected, root)
     if rc != 0:
