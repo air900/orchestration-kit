@@ -54,22 +54,14 @@ Checklist items (Part 1) and rubrics (Parts 2 and 3) exist to structure thought,
 
 ## Mode dispatch (decide this FIRST)
 
-| Mode | When to use | Signals |
-|---|---|---|
-| **1. POST-TASK AUDIT** | Task is done, code committed, about to `bd close` | Slash has no arg or arg starts with `01`; commit exists with issue ID; close reason drafted |
-| **2. MID-TASK SECOND OPINION** | Agent just proposed a solution; user is unsure or sceptical; nothing committed yet | Slash arg starts with `02`; user said "сомневаюсь"/"проверь решение"/"не уверен"; no commit yet for the proposal |
-| **3. HANDOFF ENRICHMENT** | Session is wrapping up; user wants related open tasks enriched so a new session can continue without archaeology | Slash arg starts with `03`; user said "обогатить контекст"/"prepare handoff"/"передать в новую сессию" |
+Resolve the active mode in this strict order:
 
-**Decision rule:**
-
-1. If slash argument starts with `02` → Mode 2 unconditionally.
-2. If slash argument starts with `03` → Mode 3 unconditionally.
-3. If slash argument starts with `01` → Mode 1 unconditionally.
-4. Otherwise auto-detect:
-   - Commit with issue ID exists for current task AND close reason drafted → Mode 1
-   - Only a proposal in conversation, no commit yet → Mode 2
-   - User is ending the session, has open tasks related to current work → Mode 3
-   - Ambiguous → ask user: "Mode 1 (audit landed work), Mode 2 (second opinion on proposed solution), or Mode 3 (enrich related open tasks for handoff)?"
+1. **Slash numeric prefix wins.** `01` → Mode 1; `02` → Mode 2; `03` → Mode 3. Unconditional.
+2. **Auto-detect by evidence.**
+   - Commit with issue ID exists AND close reason drafted → **Mode 1** (post-task audit; run before `bd close`).
+   - Only a proposal in conversation, no commit yet → **Mode 2** (second opinion before agent implements).
+   - Session is wrapping up and related open tasks exist → **Mode 3** (enrich context so a new session can continue without archaeology).
+3. **Ambiguous → ask user:** "Mode 1 (audit landed work), Mode 2 (second opinion on a proposal), or Mode 3 (enrich related open tasks for handoff)?"
 
 State the chosen mode explicitly at the top of the output — the user must see which audit they got.
 
@@ -393,7 +385,7 @@ Use this structure exactly. Keep it tight.
 
 ### Modes 1 & 2 — template
 
-Skeleton below. Filled example (with real findings from a WordPress plugin audit) lives in `references/mode-1-2-example.md`.
+Skeleton below. Annotated filled examples (code audit for Mode 1, proposal review for Mode 2, plus cross-domain walkthroughs) live in `references/mode-1-2-examples.md` — load when you need to calibrate format or work in a domain you are less familiar with.
 
 ```
 === WORKFLOW-GATE-CHECK REPORT ===
@@ -473,33 +465,15 @@ Related open tasks (criterion in brackets):
 - Re-run /workflow-gate-check 03 after fixing.
 ```
 
-## Common mistakes (by the auditor itself)
+## Common mistakes
 
-### Across all modes
+Detailed failure modes organised by scope (across all modes, Modes 1 & 2 specific, Mode 3 specific) live in `references/common-mistakes.md`. Load that file before finalising a verdict — these are the failure modes that turn expert opinion into mechanical checklist compliance.
 
-- **Grep-level verdict** — if your conclusion could have been produced by a checklist runner or a linter, you did not give expert opinion. The verdict is the compressed form of reasoning — the reasoning itself must be visible in the findings.
-- **Assuming a code-project default** — this skill is domain-agnostic. Check project signals (`tests/` vs `assets/` vs `docs/runbooks/`) before applying any pattern. A code-first framing imposed on a content or infra project is its own kind of band-aid.
-- **Half-audit** — all six Part 1 sections run in Mode 1; all three Part 2 layers run in Modes 1-2; all three Part 3 phases run in Mode 3. No shortcuts.
+Three umbrella reminders to keep in mind even without loading the file:
 
-### Modes 1 & 2 specific
-
-- **Skipping Layer 1 (Diagnosis)** — most tempting failure. Code looks clean → pronounce APPROVED → but the fix solved the wrong problem. Always ask first: "was the right question answered?"
-- **Taking "I did it systemically" on trust** — always check the diff. Structural work is visible in code, not in prose.
-- **Confusing churn with depth** — a 10-line diff can be structural; a 300-line PR can be band-aid. "Minimal diff" is not a structural signal on its own — a 2-line `if (foo) return;` is still a band-aid.
-- **Leniency on verification** — "tested, works" without artefacts is not verification. It is a claim. → `BLOCKED`.
-- **Confirmation bias** — when the user is senior / confident / just explained the fix at length, the temptation to rubber-stamp is maximal. Resist it. Independent second opinion is the entire value of this skill.
-- **Withholding an Alternative** — saying `BLOCKED` without "here is what I would do instead" is low-value. Expert judgement is actionable; the alternative is part of the product.
-- **Redesigning the feature** — the opposite failure. Audit what landed; don't scope-creep into a product redesign. If the real issue is product-level, say so in one sentence and defer.
-
-### Mode 3 specific
-
-- **Enriching unrelated tasks** — Mode 3's scope filter exists for a reason. Pumping unrelated P1 tasks with noise from this session's context hides future signal.
-- **Dumping conversation into bd notes** — bad form. Extract *knowledge atoms* (one-line findings, mappings, decisions with rationale), not transcripts. If the content is transcript-shaped, commit it to `docs/orchestration/doc-drafts/` and link from the issue.
-- **Fabricating a design decision** — if the conversation is ambiguous about "why was X chosen", ask the user before `bd decision`. A wrong decision record is worse than no record.
-- **Silently losing volatile state** — if `S1` artefacts are about to die and you cannot recover them, say so explicitly in the report. Don't pretend.
-- **Force-fitting code vocabulary to non-code domains** — "runtime invariants" for a content task is a smell. Use the domain-appropriate wording (brand voice rule, SEO guardrail, legal boundary) and flag the category (`S4`) the same.
-- **Acting before approval** — Mode 3 Phase 2 requires the user to approve the enrichment plan. Running `bd update` / `bd decision` / `git commit` before approval is a trust violation.
-- **Stopping at "everything looks fine"** — if Phase 1 finds zero gaps on every related task, either (a) no related tasks existed, (b) the scope filter was wrong, or (c) your gap detection was shallow. Re-check before declaring APPROVED.
+- **Grep-level verdict is not expert opinion.** If your finding could have been produced by a linter, you have not done the job.
+- **Domain-agnostic default.** Check project signals before applying any code-only pattern.
+- **Half-audit is disqualifying.** Run all Part sections the active mode requires — no shortcuts.
 
 ## Troubleshooting
 

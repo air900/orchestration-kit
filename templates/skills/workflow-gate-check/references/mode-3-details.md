@@ -2,6 +2,18 @@
 
 This file holds tables and extended examples that support Part 3 of `SKILL.md`. Main file references this document; load it on demand when running Mode 3.
 
+## Contents
+
+- Gap → Action conversion table
+- Persistence-path auto-detect table
+- Cross-domain examples — what `S1`–`S5` look like per domain
+- Mode 3 output template — annotated example
+- Extended examples — domain-specific walkthroughs
+  - Code session (PHP WordPress plugin)
+  - Content session (text4site avers020 article)
+  - Infrastructure session (vpn-manager node rollout)
+  - Design session (mobile-first dashboard)
+
 ## Gap → Action conversion table
 
 | Gap | Action |
