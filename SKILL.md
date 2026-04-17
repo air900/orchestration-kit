@@ -1,6 +1,6 @@
 ---
 name: deploy-orchestration
-description: Interactive orchestration setup — Phase 2 after deploy.sh. User provides task context, skill asks clarifying questions, discovers skills via find-skills, and generates CLAUDE.md with Superpowers integration. Use when setting up orchestration in a new project.
+description: Interactive orchestration setup — Phase 2 after deploy.sh. User provides task context, skill asks clarifying questions, discovers skills via find-skills-my, and generates CLAUDE.md with Superpowers integration. Use when setting up orchestration in a new project.
 ---
 
 # Deploy Orchestration — Phase 2 (Interactive)
@@ -234,7 +234,7 @@ Manual commands:
 - `/012-update-docs` — Post-task documentation verification (did code changes break docs?)
 
 **Utility:**
-- `/find-skills` — Discover and install new skills from registry
+- `/find-skills-my` — Discover and install new skills from registry (custom deep-discovery version; renamed to avoid collision with vercel-labs/skills' own `find-skills`)
 - `/sync-skills` — Detect unregistered skills in `.claude/skills/`
 - `/knowledge-harvest` — Extract insights from sessions to knowledge base
 - `/workflow-gate` — Beads quality-overlay entry (delegates to template-bridge:unified-workflow)
@@ -338,7 +338,7 @@ Project: {name}
 Type: {atomic | multi-purpose}
 Purpose: {from conversation}
 Tech stack: {from answers}
-Skills: 7 (arch-review, security-audit, refactor-code, 012-update-docs, find-skills, sync-skills, knowledge-harvest)
+Skills: 7 (arch-review, security-audit, refactor-code, 012-update-docs, find-skills-my, sync-skills, knowledge-harvest)
 External skills: {count} ({list names})
 Specialist agents: 7 (planner, security-auditor, senior-reviewer, refactor, documenter, doc-keeper, observer)
 

@@ -345,7 +345,8 @@ mkdir -p "$TARGET/.claude/skills/deploy-orchestration"
 cp "$KIT_SKILL_MD" "$TARGET/.claude/skills/deploy-orchestration/SKILL.md"
 log_ok "Deploy-orchestration skill installed"
 
-# find-skills is now included in templates/skills/ and deployed with other skills above
+# find-skills-my is now included in templates/skills/ and deployed with other skills above
+# (renamed from find-skills to avoid collision with vercel-labs/skills' find-skills)
 
 # --- Copy orchestration config ---
 log_info "Setting up orchestration config..."

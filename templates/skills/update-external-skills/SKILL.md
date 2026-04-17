@@ -9,7 +9,7 @@ description: >
   "update external skills", "которые скиллы устарели", "refresh skills.sh",
   "обнови скиллы с skills.sh", "skills drift check", "sync external skills".
   Do NOT use for: kit-shipped skills (use `deploy.sh --update-skills`), creating
-  new skills (use skill-creator), finding new skills to install (use find-skills).
+  new skills (use skill-creator), finding new skills to install (use find-skills-my).
 ---
 
 # Update External Skills
@@ -228,7 +228,7 @@ are tagged `no-meta`. The report is still usable.
 ## Who writes `skills-lock.json`?
 
 The `npx skills` CLI (from `vercel-labs/skills`) is the only writer. Our
-`find-skills` slash command only *recommends* the install command; the CLI does
+`find-skills-my` slash command only *recommends* the install command; the CLI does
 the install + lock write. A `missing` entry means the CLI wrote the lock but the
 files did not land (partial install, path issue, or manual deletion later).
 
@@ -243,7 +243,7 @@ files did not land (partial install, path issue, or manual deletion later).
 
 ## What this skill does NOT do
 
-- Install *new* skills — use `/find-skills` then the install command it gives.
+- Install *new* skills — use `/find-skills-my` then the install command it gives.
 - Update kit-shipped skills — use `/kit-update --update-skills`.
 - Touch anything outside `skills-lock.json`, `.agents/skills/`, `.claude/skills/`.
 - Run `npx` on its own. Every CLI invocation is printed for the user/Claude to run.

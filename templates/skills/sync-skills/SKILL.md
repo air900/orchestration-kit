@@ -11,7 +11,7 @@ Detect skills present in `.claude/skills/` but missing from the `## Claude Autom
 
 ### Step 1: Collect Installed Skills
 
-**IMPORTANT:** Many skills are installed as symlinks (e.g., `find-skills` links to `../../.agents/skills/...`). The Glob tool does NOT follow symlinks. You MUST use Bash to discover skills:
+**IMPORTANT:** Many skills are installed as symlinks (e.g., external skills from `npx skills add` — `.claude/skills/<name>` links to `../../.agents/skills/<name>/`). The Glob tool does NOT follow symlinks. You MUST use Bash to discover skills:
 
 ```bash
 find -L .claude/skills -maxdepth 2 -name "SKILL.md" -type f 2>/dev/null

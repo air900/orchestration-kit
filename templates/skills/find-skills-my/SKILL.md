@@ -1,12 +1,14 @@
 ---
-name: find-skills
+name: find-skills-my
 description: >
   Deep skill discovery with analysis of skill content, overlap detection, and reasoned recommendations.
   Use when the user asks "find a skill for X", "how do I do X", "is there a skill that can...",
   or wants to extend agent capabilities. Do NOT use for creating new skills (use skill-creator).
+  Renamed from `find-skills` to avoid collision with the upstream `vercel-labs/skills`
+  package's `find-skills` skill, which has different (and simpler) behaviour.
 ---
 
-# Find Skills — Deep Discovery
+# Find Skills — Deep Discovery (my version)
 
 Find the right skill by actually reading what each candidate does, comparing it with what is already installed, and presenting a reasoned recommendation — not just a keyword match.
 
@@ -37,7 +39,7 @@ If the request is vague ("find me something useful"), ask one clarifying questio
 Run the inventory script to see what the user already has:
 
 ```bash
-python3 ~/.agents/skills/find-skills/scripts/inventory_local.py --cwd "$(pwd)"
+python3 .agents/skills/find-skills-my/scripts/inventory_local.py --cwd "$(pwd)"
 ```
 
 This returns JSON with all locally installed skills: names, descriptions, paths, scope (global vs project).

@@ -5,7 +5,7 @@ Lightweight development orchestration for Claude Code. Deploys specialist agents
 ## What You Get
 
 - **7 specialist agents** — planner, security-auditor, senior-reviewer, refactor, documenter, doc-keeper, observer
-- **7 skills** — `/arch-review`, `/security-audit`, `/refactor-code`, `/012-update-docs`, `/find-skills`, `/sync-skills`, `/knowledge-harvest`
+- **7 skills** — `/arch-review`, `/security-audit`, `/refactor-code`, `/012-update-docs`, `/find-skills-my`, `/sync-skills`, `/knowledge-harvest`
 - **Language hooks** — auto-lint/format after every edit (TypeScript, Python, Go, Rust, JavaScript)
 - **Safety guard** — PreToolUse hook blocking `rm -rf`, `git push --force`, `git reset --hard`
 - **Config-driven artifacts** — plans, reports, issues, doc-drafts, observer reports
