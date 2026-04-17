@@ -509,6 +509,120 @@ def reload_hashes(root: Path, records: dict[str, SkillRecord]) -> None:
             records[name].new_hash = entry.get("computedHash", "")
 
 
+def snapshot_skill_files(root: Path, skill_name: str) -> dict[str, str]:
+    """Read all text files in .agents/skills/<name>/ as dict {relative_path: content}.
+    Binary files are recorded as the marker '<binary>' so presence/absence still diffs."""
+    skill_dir = root / ".agents" / "skills" / skill_name
+    if not skill_dir.is_dir():
+        return {}
+    snapshot: dict[str, str] = {}
+    for f in skill_dir.rglob("*"):
+        if not f.is_file():
+            continue
+        rel = f.relative_to(skill_dir).as_posix()
+        try:
+            snapshot[rel] = f.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            snapshot[rel] = "<binary>"
+    return snapshot
+
+
+def parse_frontmatter_version(content: str) -> Optional[str]:
+    """Extract `version:` from YAML frontmatter if present."""
+    if not content.startswith("---"):
+        return None
+    end_marker = content.find("\n---", 3)
+    if end_marker < 0:
+        return None
+    fm = content[3:end_marker]
+    for line in fm.splitlines():
+        s = line.strip()
+        if s.startswith("version:"):
+            v = s.split(":", 1)[1].strip()
+            return v.strip('"\'')
+    return None
+
+
+def unified_diff_excerpt(old: str, new: str, path: str, max_lines: int = 60) -> str:
+    """Produce a unified diff, truncate if too long."""
+    import difflib
+    lines = list(difflib.unified_diff(
+        old.splitlines(keepends=True),
+        new.splitlines(keepends=True),
+        fromfile=f"a/{path}", tofile=f"b/{path}",
+        n=2,
+    ))
+    if not lines:
+        return ""
+    text = "".join(lines)
+    split = text.splitlines()
+    if len(split) > max_lines:
+        truncated = "\n".join(split[:max_lines])
+        return truncated + f"\n... [+{len(split) - max_lines} more lines — diff truncated]"
+    return text
+
+
+def print_per_skill_diffs(
+    records: dict[str, SkillRecord],
+    pre_snapshots: dict[str, dict[str, str]],
+    post_snapshots: dict[str, dict[str, str]],
+) -> None:
+    """For each actually-updated skill, print structured diff data that Claude
+    can turn into a semantic summary (version, files changed, unified diff)."""
+    updated = [r for r in records.values() if r.updated]
+    if not updated:
+        return
+
+    print()
+    print(f"{C.BOLD}=== Per-skill diff (structured for LLM interpretation) ==={C.RESET}")
+
+    for rec in sorted(updated, key=lambda x: x.name):
+        pre = pre_snapshots.get(rec.name, {})
+        post = post_snapshots.get(rec.name, {})
+
+        added = sorted(set(post) - set(pre))
+        deleted = sorted(set(pre) - set(post))
+        modified = sorted([f for f in set(pre) & set(post) if pre[f] != post[f]])
+
+        old_skill = pre.get("SKILL.md", "")
+        new_skill = post.get("SKILL.md", "")
+        old_v = parse_frontmatter_version(old_skill) or "—"
+        new_v = parse_frontmatter_version(new_skill) or "—"
+
+        meta = rec.repo_meta
+        stars_str = fmt_stars(meta.stars) if meta and meta.stars else "—"
+        pushed_str = rel_time(meta.pushed_at) if meta and meta.pushed_at else "—"
+
+        print()
+        print(f"{C.BOLD}### SKILL: {rec.name}{C.RESET}")
+        print(f"source:       {rec.source}  ⭐ {stars_str}  pushed {pushed_str}")
+        print(f"hash:         {rec.old_hash[:12]} → {rec.new_hash[:12]}")
+        print(f"version:      {old_v} → {new_v}")
+        print(f"files added:    {', '.join(added) or '(none)'}")
+        print(f"files modified: {', '.join(modified) or '(none)'}")
+        print(f"files deleted:  {', '.join(deleted) or '(none)'}")
+
+        # Unified diff for SKILL.md
+        if old_skill and new_skill and old_skill != new_skill:
+            print(f"{C.BOLD}--- diff of SKILL.md (unified, max 60 lines) ---{C.RESET}")
+            diff_text = unified_diff_excerpt(old_skill, new_skill, "SKILL.md")
+            print(diff_text if diff_text else "(no textual diff)")
+            print(f"{C.BOLD}--- end diff ---{C.RESET}")
+
+        # References: enumerate with change sizes, no full dump
+        for f in modified:
+            if f == "SKILL.md":
+                continue  # already done above
+            old_c = pre.get(f, "")
+            new_c = post.get(f, "")
+            import difflib
+            changed_lines = sum(
+                1 for line in difflib.unified_diff(old_c.splitlines(), new_c.splitlines(), n=0)
+                if line.startswith(("+", "-")) and not line.startswith(("+++", "---"))
+            )
+            print(f"  modified reference {f}: {changed_lines} changed lines")
+
+
 def print_final_report(records: dict[str, SkillRecord], selected_names: set[str]) -> None:
     updated = [r for r in records.values() if r.updated]
     unchanged = [r for r in records.values() if r.name in selected_names and not r.updated]
@@ -752,6 +866,12 @@ def main() -> int:
 
     # action == ACTION_UPDATE
     ok(f"Selected {len(selected)} skill(s) for update.")
+
+    # Capture pre-update snapshot of each selected skill's file tree so we can
+    # produce a structured diff after the update. Must happen BEFORE npx runs —
+    # once `skills add` overwrites files, the old content is gone.
+    pre_snapshots = {rec.name: snapshot_skill_files(root, rec.name) for rec in selected}
+
     rc = run_npx_update(selected, root)
     if rc != 0:
         err(f"`npx skills update` exited with code {rc}. Check output above.")
@@ -759,8 +879,12 @@ def main() -> int:
 
     reload_hashes(root, records)
 
+    # Post-update snapshot — same skills, same on-disk path.
+    post_snapshots = {rec.name: snapshot_skill_files(root, rec.name) for rec in selected}
+
     selected_names = {s.name for s in selected}
     print_final_report(records, selected_names)
+    print_per_skill_diffs(records, pre_snapshots, post_snapshots)
 
     updated_count = sum(1 for r in records.values() if r.updated)
     git_autosync(root, updated_count)

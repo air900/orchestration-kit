@@ -128,6 +128,41 @@ Those columns and blocks ARE the statistics the user is asking for when they inv
 
 If the table appears wide in the terminal/UI, let it wrap naturally. Do not squeeze it into a narrower layout at the cost of dropping columns.
 
+## Post-update: semantic diff report
+
+After `run_npx_update` succeeds, the script prints a `=== Per-skill diff ===` block per updated skill, containing:
+
+- `source`, `hash old → new`, `version old → new` (parsed from frontmatter if present)
+- `files added / modified / deleted` lists
+- Unified diff of `SKILL.md` (truncated to 60 lines)
+- Line-count summaries for each modified reference file
+
+This is **structured raw data for LLM interpretation**, not final output. After the script exits, produce a **human-readable semantic summary** for the user in the style of:
+
+```
+Update Check — copywriting
+Yes, есть обновления. Upstream (coreyhaines31/marketingskills@main, 21.8k⭐)
+на версии 1.1.0, у тебя 1.0.0.
+
+Что изменилось (3 хунка, 31 строка diff, только в SKILL.md; references/ идентичны)
+  1. Description расширен — добавлен trigger "email copy" и negative trigger
+     "не для long-form SEO".
+  2. Путь к контексту обновлён: `references/voice.md` → `references/tone.md`.
+  3. Правило #6 в Quick Quality Check переформулировано: было "cut fluff",
+     стало "cut fluff and vague qualifiers".
+```
+
+Interpretation rules:
+
+- Read the unified diff for **each** updated skill. Don't skip, don't summarize all skills together.
+- Group changes by semantic category (description / structure / rules / references), not by line number.
+- Number the changes (1., 2., 3.) when there are >2 changes — helps scanning.
+- If version field moved, state it explicitly (`1.0.0 → 1.1.0`).
+- If only hash changed but no textual diff is visible (binary or whitespace-only), say so — don't invent changes.
+- If `files added` or `files deleted` is non-empty, call it out — those are structural changes, more significant than content edits.
+
+Do NOT just dump the raw diff block to the user — the whole point of the structured output is that you interpret it.
+
 ## Status semantics
 
 | Status    | Meaning                                                                                                                                            |
