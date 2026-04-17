@@ -1,58 +1,95 @@
 ---
 name: workflow-gate-check
 description: >
-  Manual post-task audit — verifies workflow-gate protocol compliance AND judges
-  whether the solution was a band-aid or a structural/systemic fix that keeps
-  the rest of the code as predictable as before. Independent second opinion
-  before closing the Beads issue.
-  TRIGGER via slash command /workflow-gate-check, or when user says
-  "проверь задачу", "audit this task", "second opinion", "check workflow-gate",
-  "было ли это заплатка", "system vs patch", "systemic or band-aid",
-  "проверь workflow-gate", or requests a post-task quality review.
+  Manual quality gate with TWO modes. Mode 1 (POST-TASK AUDIT): verifies
+  workflow-gate protocol compliance after task completion, before bd close.
+  Mode 2 (MID-TASK SECOND OPINION): independent assessment of an agent's
+  proposed solution before accepting it. Both modes apply the same
+  band-aid vs structural/systemic rubric — does the fix keep the rest of
+  the code as predictable as before, or does it hide a symptom?
+  TRIGGER via slash command /workflow-gate-check (add "02" for Mode 2,
+  e.g. "/workflow-gate-check 02"), by skill name, or when user says
+  "проверь задачу", "проверь решение", "audit this task", "second opinion",
+  "независимая оценка", "сомневаюсь в решении", "было ли это заплатка",
+  "systemic or band-aid", "check workflow-gate", "проверь прежде чем принимать".
   Do NOT use for: pre-work planning (use superpowers:brainstorming),
-  routine code review (use code-review skill), real-time linting, or
+  routine code review (use code-review skill), real-time linting,
   open-task triage (use bd ready).
 ---
 
 # Workflow Gate Check
 
-**Role:** manual, post-task auditor. Two jobs:
+**Role:** manual quality gate, user-triggered only. Not automatic. Two modes share one rubric.
 
-1. **Protocol compliance** — mechanical check of workflow-gate discipline (6-point Beads description, 4-point close reason with verification evidence, commit conventions).
-2. **Solution quality second opinion** — central question: was this a band-aid that hides the symptom, or a structural/systemic fix that keeps the rest of the code as predictable as before?
+## Mode dispatch (decide this FIRST)
 
-**Output:** single verdict `BLOCKED` / `WARNINGS` / `APPROVED` plus actionable findings.
+| Mode | When to use | Signals |
+|---|---|---|
+| **1. POST-TASK AUDIT** | Task is done, code committed, about to `bd close` | Slash has no arg or arg starts with `01`; commit exists with issue ID; close reason drafted |
+| **2. MID-TASK SECOND OPINION** | Agent just proposed a solution; user is unsure or sceptical; nothing committed yet | Slash arg starts with `02`; user said "сомневаюсь"/"проверь решение"/"не уверен"; no commit yet for the proposal |
 
-**Invocation:** user-triggered only. Not automatic. Runs AFTER the task is done, BEFORE `bd close`.
+**Decision rule:**
+
+1. If slash argument starts with `02` → Mode 2 unconditionally.
+2. If slash argument starts with `01` → Mode 1 unconditionally.
+3. Otherwise auto-detect:
+   - Commit with issue ID exists for current task AND close reason drafted → Mode 1
+   - Only a proposal in conversation, no commit yet → Mode 2
+   - Ambiguous → ask user: "Mode 1 (post-task audit of landed code) or Mode 2 (second opinion on proposed solution)?"
+
+State the chosen mode explicitly at the top of the output — the user must see which audit they got.
+
+## What each mode does
+
+**Mode 1 — POST-TASK AUDIT**
+1. Protocol compliance — full Part 1 checklist (6-point Beads issue, 4-point close reason with verification artefacts, commit conventions, docs sync, land-the-plane).
+2. Solution quality — Part 2 rubric applied to the **landed diff**.
+3. Output: verdict drives `bd close` decision.
+
+**Mode 2 — MID-TASK SECOND OPINION**
+1. Protocol compliance — **SKIPPED** (the task is not finished — there is nothing to audit compliance against yet).
+2. Solution quality — Part 2 rubric applied to the **proposal** (conversation text + preview diff if shared).
+3. Output: verdict drives whether the user accepts, revises, or rejects the agent's proposed fix.
+
+**Output:** single verdict `BLOCKED` / `WARNINGS` / `APPROVED` plus actionable findings. Verdict semantics depend on mode:
+
+| Verdict | Mode 1 meaning | Mode 2 meaning |
+|---|---|---|
+| `APPROVED` | Fine to run `bd close` | Accept the proposal, proceed |
+| `WARNINGS` | MAY close, save findings to `bd update --notes` first | Accept only after addressing findings |
+| `BLOCKED` | DO NOT `bd close`, fix issues, re-audit | REJECT the proposal as-is — revise substantially or try a different approach |
 
 ---
 
 ## Input gathering
 
-Before auditing, collect (in this order):
+Collect in this order. Which items are required depends on mode.
 
-1. **Task identity**
-   ```bash
-   bd show <id> --json
-   ```
-   If user did not give an ID, ask. If no Beads issue exists at all, that IS the first finding.
+### Mode 1 — POST-TASK AUDIT (all required)
 
-2. **Git evidence of the change**
-   ```bash
-   git log --oneline -10
-   git show <commit>            # the change commit
-   git diff <commit>^..<commit> # what actually landed
-   ```
-
-3. **User narrative** — one or two sentences from the user: what did you change and why did you think it was the right fix.
-
+1. **Task identity** — `bd show <id> --json`. If no ID from user, ask. If no Beads issue exists at all, that IS the first finding.
+2. **Git evidence** — `git log --oneline -10`, `git show <commit>`, `git diff <commit>^..<commit>`.
+3. **Close reason (draft or saved)** — read it; it is what Part 1 evaluates against.
 4. **Verification artefacts** — if the close reason references a test run or screenshot, locate the actual file or terminal output in session history.
+5. **User narrative** — one or two sentences: what changed and why it is the right fix.
 
-Skip nothing. An audit with incomplete evidence defaults to `BLOCKED` — the user can always re-run after supplying what was missing.
+Skip nothing. An audit with incomplete evidence defaults to `BLOCKED` — the user can re-run after supplying what was missing.
+
+### Mode 2 — MID-TASK SECOND OPINION (lighter)
+
+1. **The proposal itself** — the agent's message(s) proposing the fix. If the proposal is vague ("I'll fix X by adding a check"), ask for specifics before auditing.
+2. **Target code context** — which files/functions the proposal would touch. Read them now to ground the rubric.
+3. **Preview diff if available** — if the agent produced a draft patch, apply the rubric to the patch directly. If not, apply it to the *plan* as written.
+4. **Current Beads issue (if any)** — `bd show <id>` gives context for what the fix is supposed to solve. Used only for framing, not for compliance grading.
+5. **User's specific doubt** — one sentence: what makes you uncertain about this proposal? Named doubts are strong input to the rubric.
+
+Mode 2 has no `git show <commit>` step — nothing has landed yet. Do NOT fabricate or assume code changes: apply the rubric to what is actually on the table.
 
 ---
 
-## Part 1 — Protocol compliance (mechanical)
+## Part 1 — Protocol compliance (mechanical) — MODE 1 ONLY
+
+**In Mode 2 this whole Part is SKIPPED** — there is nothing to grade compliance against until work lands. Jump to Part 2.
 
 Tick each item. Each miss has a severity tag.
 
@@ -144,7 +181,7 @@ Apply the rubric. Flag every matching signal. Band-aid signals combine; structur
 
 ## Verdict
 
-Combine Parts 1 and 2.
+### Mode 1 — combined Part 1 + Part 2
 
 | Combined findings | Verdict |
 |---|---|
@@ -156,6 +193,18 @@ Combine Parts 1 and 2.
 - `WARNINGS` → user MAY close, but should first write findings into `bd update <id> --notes` so they are preserved for future maintainers.
 - `BLOCKED` → DO NOT run `bd close`. Write findings into `bd update <id> --notes`, fix the issues, re-run this audit.
 
+### Mode 2 — Part 2 only
+
+| Findings on the proposal | Verdict |
+|---|---|
+| Zero band-aid signals AND 2+ structural signals present | `APPROVED` |
+| 1 band-aid signal OR few/no structural signals (weak-but-workable proposal) | `WARNINGS` |
+| 2+ band-aid signals OR a likely regression OR proposal does not address root cause | `BLOCKED` |
+
+- `APPROVED` → accept the proposal, proceed with implementation.
+- `WARNINGS` → accept only after the agent addresses the listed findings. Ask the agent to revise before writing code.
+- `BLOCKED` → reject the proposal as-is. Ask the agent to reconsider — different layer, different primitive, or deeper root-cause analysis. Do NOT let the agent start implementing until the revise lands.
+
 ---
 
 ## Output template
@@ -164,12 +213,14 @@ Use this structure exactly. Keep it tight.
 
 ```
 === WORKFLOW-GATE-CHECK REPORT ===
-Task: <bd-id> — <title>
-Commit(s): <sha>[, <sha2>]
+Mode: <1 POST-TASK-AUDIT | 2 MID-TASK-SECOND-OPINION>
+Task: <bd-id or "(no issue)"> — <title>
+Commit(s): <sha>[, <sha2>]          # Mode 1 only
+Proposal source: <agent message or draft diff>   # Mode 2 only
 
 ### Verdict: <BLOCKED | WARNINGS | APPROVED>
 
-### Part 1 — Protocol compliance
+### Part 1 — Protocol compliance               # Mode 1 only; omit section in Mode 2
 [x] A. Beads description — 6-point
 [ ] B. Close reason — verification artefact ← MISSING (severity: BLOCKED)
 [x] C. Commit includes issue ID
@@ -187,14 +238,19 @@ Structural signals found:
 - #2 Correct primitive: replaced custom parser with lib's official one.
 
 ### Action items
-1. Add test output to bd close reason point 4 (fresh session, snippet).
+1. Add test output to bd close reason point 4 (fresh session, snippet).   # Mode 1
 2. Replace wp_kses_post with sanitize_textarea_field.
 3. Justify or remove magic retry count.
 
 ### If verdict ≠ APPROVED
+Mode 1:
 - Do NOT call bd close yet.
 - Preserve findings: bd update <id> --notes "WORKFLOW-GATE-CHECK: <summary>".
 - Re-run /workflow-gate-check after fixing the items above.
+Mode 2:
+- Do NOT let the agent start implementing.
+- Reply to the agent with the findings and ask for a revised proposal.
+- Re-run /workflow-gate-check 02 on the revised proposal.
 ```
 
 ---
