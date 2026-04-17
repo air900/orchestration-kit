@@ -450,25 +450,24 @@ if [ "$PROJECT_TYPE" = "multi" ]; then
     log_info "Use /deploy-orchestration to define sub-projects and generate CLAUDE.md sections"
 fi
 
-# --- Install orch.sh + deploy.sh into project for future self-service updates ---
-# After any install/update, leave fresh copies at .claude/scripts/ so the
-# project owner can run `.claude/scripts/orch.sh --update-skills` or
-# `--update-external-skills` without cloning orchestration-kit.
-# deploy.sh self-bootstraps templates from GitHub when templates/ is not
-# next to it. orch.sh is the unified entry point that dispatches to either
-# deploy.sh or the update-external-skills python script.
+# --- Install deploy.sh into project for future self-service updates ---
+# After any install/update, leave a fresh copy of deploy.sh at
+# .claude/scripts/deploy.sh so the /kit-update slash command (shipped via
+# templates/commands/kit-update.md) can invoke it without requiring the
+# orchestration-kit repo to be cloned locally. deploy.sh self-bootstraps
+# templates from GitHub when templates/ is not next to it.
 SOURCE_DIR="$SCRIPT_DIR"
 if [ -n "${BOOTSTRAP_DIR:-}" ] && [ -d "${KIT_ROOT:-$BOOTSTRAP_DIR}" ] && [ -f "${KIT_ROOT:-$BOOTSTRAP_DIR}/deploy.sh" ]; then
     SOURCE_DIR="${KIT_ROOT:-$BOOTSTRAP_DIR}"
 fi
-mkdir -p "$TARGET/.claude/scripts"
-for script in deploy.sh orch.sh; do
-    if [ -f "$SOURCE_DIR/$script" ]; then
-        cp "$SOURCE_DIR/$script" "$TARGET/.claude/scripts/$script"
-        chmod +x "$TARGET/.claude/scripts/$script"
-    fi
-done
-log_ok "Installed .claude/scripts/orch.sh + deploy.sh (self-service entry points)"
+if [ -f "$SOURCE_DIR/deploy.sh" ]; then
+    mkdir -p "$TARGET/.claude/scripts"
+    cp "$SOURCE_DIR/deploy.sh" "$TARGET/.claude/scripts/deploy.sh"
+    chmod +x "$TARGET/.claude/scripts/deploy.sh"
+    # Remove stale orch.sh wrapper if it was ever installed
+    rm -f "$TARGET/.claude/scripts/orch.sh"
+    log_ok "Installed .claude/scripts/deploy.sh (backend for /kit-update)"
+fi
 
 # --- Auto commit + push (only in --update-skills mode on git repos) ---
 UPDATE_PUSHED=false
