@@ -37,6 +37,34 @@ if [ "${1:-}" = "--update-deploy" ]; then
     }
     chmod +x "$TARGET/.claude/scripts/deploy.sh"
     log_ok "deploy.sh updated at $TARGET/.claude/scripts/deploy.sh"
+
+    # Auto commit + push if in a git repo and file actually changed
+    if [ -d "$TARGET/.git" ]; then
+        (
+            cd "$TARGET" || exit 1
+            git add .claude/scripts/deploy.sh 2>/dev/null || true
+            if git diff --cached --quiet; then
+                log_info "No change in deploy.sh — skipping commit."
+                exit 10
+            fi
+            REMOTE_SHA=$(git ls-remote "https://github.com/${REPO}.git" "${REF}" 2>/dev/null | awk '{print $1}' | cut -c1-7 || echo "unknown")
+            git commit --quiet -m "chore(orchestration): update .claude/scripts/deploy.sh from kit ${REMOTE_SHA}
+
+Refreshed via: curl -sSL .../install.sh | bash -s -- --update-deploy
+Source: ${REPO}@${REF}
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>" || exit 12
+            log_ok "Committed: $(git rev-parse --short HEAD)"
+            if git rev-parse --abbrev-ref --symbolic-full-name '@{u}' &>/dev/null; then
+                git push --quiet 2>/dev/null && log_ok "Pushed to $(git rev-parse --abbrev-ref '@{u}')" || log_info "git push failed — run manually later"
+            else
+                log_info "No upstream branch set — run 'git push' manually."
+            fi
+        )
+    else
+        log_info "Not a git repo — skipping auto commit/push."
+    fi
+
     log_info "Next: run '.claude/scripts/deploy.sh . --update-skills' to refresh kit content."
     exit 0
 fi
