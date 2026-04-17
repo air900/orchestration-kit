@@ -263,10 +263,17 @@ def print_stats_summary(rows: list[SkillRecord]) -> None:
     print()
 
 
+def print_status_legend() -> None:
+    print(f"{C.BOLD}=== Status meanings ==={C.RESET}")
+    print(f"  {C.GREEN}current{C.RESET}  — upstream has NOT been pushed since your local install; no update needed.")
+    print(f"  {C.YELLOW}stale{C.RESET}    — upstream HAS been pushed since your local install; likely has updates available.")
+    print(f"  {C.RED}no-meta{C.RESET}  — couldn't fetch GitHub metadata (rate limit, 404, or network error); status unknown.")
+    print()
+
+
 def print_selection_table(rows: list[SkillRecord]) -> None:
     header = f"{C.BOLD}  #  {'Skill':<38} {'Repo':<40} {'Stars':>6}  {'Remote pushed':<14}  Status{C.RESET}"
-    print()
-    print(f"{C.BOLD}=== Skills table (preserve all columns — this is the \"stats\" the user asked for) ==={C.RESET}")
+    print(f"{C.BOLD}=== Skills table (sorted by ⭐ desc — preserve all columns; this is the \"stats\" the user asked for) ==={C.RESET}")
     print(header)
     print(f"  {'-' * 3} {'-' * 38} {'-' * 40} {'-' * 6}  {'-' * 14}  {'-' * 16}")
     for idx, rec in enumerate(rows, start=1):
@@ -274,7 +281,7 @@ def print_selection_table(rows: list[SkillRecord]) -> None:
         pushed = rel_time(meta.pushed_at) if meta else "-"
         stars = fmt_stars(meta.stars) if meta else "-"
         repo = rec.source if rec.source_type == "github" else f"({rec.source_type}:{rec.source})"
-        status = f"{C.YELLOW}stale{C.RESET}" if is_stale(rec) else (f"{C.RED}no-meta{C.RESET}" if meta and meta.fetch_error else "current")
+        status = f"{C.YELLOW}stale{C.RESET}" if is_stale(rec) else (f"{C.RED}no-meta{C.RESET}" if meta and meta.fetch_error else f"{C.GREEN}current{C.RESET}")
         print(f"  {idx:>3}  {rec.name[:38]:<38} {repo[:40]:<40} {stars:>6}  {pushed:<14}  {status}")
     print()
 
@@ -313,6 +320,7 @@ def parse_selection(raw: str, max_idx: int) -> list[int]:
 
 def prompt_selection(records: list[SkillRecord]) -> list[SkillRecord]:
     print_stats_summary(records)
+    print_status_legend()
     print_selection_table(records)
     print(f"{C.BOLD}Select skills to update:{C.RESET}")
     print("  0         — all")
@@ -456,7 +464,13 @@ def main() -> int:
     stat_local_mtimes(root, records)
     enrich_repo_meta(records)
 
-    sorted_records = sorted(records.values(), key=lambda r: r.name)
+    # Sort by ⭐ stars descending; skills without metadata sink to the bottom.
+    # Secondary sort by name for stable ordering among ties.
+    def sort_key(r: SkillRecord) -> tuple:
+        stars = r.repo_meta.stars if r.repo_meta and r.repo_meta.stars else 0
+        return (-stars, r.name.lower())
+
+    sorted_records = sorted(records.values(), key=sort_key)
     selected = prompt_selection(sorted_records)
     if not selected:
         info("No skills selected. Exiting.")

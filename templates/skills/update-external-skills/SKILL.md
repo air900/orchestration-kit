@@ -96,9 +96,32 @@ No token → the script falls back gracefully; metadata columns show `no-meta` f
 
 ## Presentation of script output
 
-The script prints a fixed-width table with columns: `#`, `Skill`, `Repo`, `Stars`, `Remote pushed`, `Status`. **Show this table VERBATIM to the user** — don't reformat it into a markdown table, don't drop the `Stars` or `Status` columns. Those columns ARE the statistics the user is asking for when they invoke this skill. Compacting the table defeats the purpose of running it.
+The script prints, in order:
+
+1. **Stats summary** — aggregate numbers (skills tracked, unique repos, stale/current/no-meta counts, total stars, most popular repo, most recent push).
+2. **Status legend** — meaning of `current` / `stale` / `no-meta`.
+3. **Skills table** — fixed-width columns: `#`, `Skill`, `Repo`, `Stars`, `Remote pushed`, `Status`. **Sorted by stars descending** (most popular repos at the top; no-meta entries at the bottom).
+
+**Show ALL THREE blocks VERBATIM to the user.** Don't:
+
+- Reformat the fixed-width table into a markdown table
+- Drop the `Stars` or `Status` columns
+- Collapse the stats summary or legend into terse prose
+- Hide "current" rows to save space — the user wants the full picture
+
+Those columns and blocks ARE the statistics the user is asking for when they invoke this skill. Compacting defeats the purpose.
 
 If the table appears wide in the terminal/UI, let it wrap naturally. Do not squeeze it into a narrower layout at the cost of dropping columns.
+
+## Status semantics
+
+| Status    | Meaning                                                                                                   |
+| :-------- | :-------------------------------------------------------------------------------------------------------- |
+| `current` | Upstream repo has NOT been pushed since this local skill was installed. No update needed.                |
+| `stale`   | Upstream repo HAS been pushed since this local skill was installed. An update is likely available.       |
+| `no-meta` | Could not fetch GitHub metadata (rate limit, 404, network error). Status cannot be determined.           |
+
+"Stale" is a *likelihood* signal, not a guarantee of actual drift — the underlying content may or may not have changed. The authoritative drift test is `npx skills update <name>` itself, which compares `computedHash` in `skills-lock.json` vs the source.
 
 ## Failure modes
 
