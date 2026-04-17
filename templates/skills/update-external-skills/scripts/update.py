@@ -1,27 +1,45 @@
 #!/usr/bin/env python3
 """
-update-external-skills — manage npx-skills (skills.sh) installs in this project.
+external-skills report — list npx-skills (skills.sh) installs in this project.
 
-Invoke from the project root; the script reads skills-lock.json, fetches remote
-metadata from GitHub, presents an interactive selection, runs `npx skills update`,
-and reports what actually changed. On success with changes, auto-commits and pushes.
+READ-ONLY. This script does NOT run `npx`, does NOT modify `skills-lock.json`,
+does NOT touch files, does NOT commit. It prints a report and exits.
+
+Output:
+  1. Stats summary      — counts, unique repos, most-popular, most-recent push
+  2. Status legend      — what current / stale / no-meta / missing mean
+  3. Skills table       — fixed-width columns, sorted by ⭐ desc
+  4. Install commands   — grouped per source repo, ready to paste into bash
+  5. Usage footer       — next-step instructions
+
+Why read-only: earlier versions of this script tried to run `npx skills update`
+and auto-commit. Two classes of bug followed:
+
+  (a) `npx skills update <name>` re-installs the ENTIRE source repo when the
+      lock entry has no `skillPath` (project-level lock format v1). Safe
+      alternative: `npx skills add <source> -s <name> -p -y`.
+  (b) Agents running in auto mode bypassed the interactive TTY guard and
+      invoked `npx skills update` themselves — the exact command (a) forbids.
+
+The fix: remove the execution path from this script entirely. What's printed
+is plain bash; the user (or Claude, following the rules in SKILL.md) runs it.
 
 Usage:
     python3 .claude/skills/update-external-skills/scripts/update.py
 
 Optional env:
-    GITHUB_TOKEN  — increases GitHub API rate limit from 60/hr to 5000/hr.
+    GITHUB_TOKEN  — raises GitHub API rate limit from 60/hr to 5000/hr.
 """
 
 from __future__ import annotations
 
 import json
 import os
-import subprocess
 import sys
 import urllib.error
 import urllib.request
-from dataclasses import dataclass, field
+from collections import defaultdict
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -47,20 +65,9 @@ def log(msg: str, *, prefix: str = "", colour: str = ""):
     sys.stdout.write(f"{colour}{prefix}{C.RESET if colour else ''}{msg}\n")
 
 
-def info(msg: str):
-    log(msg, prefix="[INFO] ", colour=C.BLUE)
-
-
-def ok(msg: str):
-    log(msg, prefix="[OK] ", colour=C.GREEN)
-
-
-def warn(msg: str):
-    log(msg, prefix="[WARN] ", colour=C.YELLOW)
-
-
-def err(msg: str):
-    log(msg, prefix="[ERROR] ", colour=C.RED)
+def info(msg: str): log(msg, prefix="[INFO] ", colour=C.BLUE)
+def warn(msg: str): log(msg, prefix="[WARN] ", colour=C.YELLOW)
+def err(msg: str):  log(msg, prefix="[ERROR] ", colour=C.RED)
 
 
 # --- Data model -------------------------------------------------------------
@@ -79,26 +86,16 @@ class RepoMeta:
 @dataclass
 class SkillRecord:
     name: str
-    source: str          # "owner/repo" for sourceType=github
+    source: str
     source_type: str
-    old_hash: str
-    new_hash: Optional[str] = None
+    computed_hash: str
     repo_meta: Optional[RepoMeta] = None
     local_mtime: Optional[datetime] = None
-    installed: bool = False    # does a local SKILL.md actually exist?
-    selected: bool = False
-
-    @property
-    def updated(self) -> bool:
-        return self.new_hash is not None and self.new_hash != self.old_hash
-
-    @property
-    def repo_key(self) -> str:
-        return self.source if self.source_type == "github" else f"{self.source_type}:{self.source}"
+    installed: bool = False
 
     @property
     def status(self) -> str:
-        """Returns one of: missing, no-meta, stale, current."""
+        """One of: missing, no-meta, stale, current."""
         if not self.installed:
             return "missing"
         if self.repo_meta and self.repo_meta.fetch_error:
@@ -113,17 +110,16 @@ class SkillRecord:
         return "current"
 
 
-# --- Lock-file handling -----------------------------------------------------
+# --- Lock + disk scan -------------------------------------------------------
 
 def find_project_root() -> Path:
-    """Start at cwd; walk up to find a skills-lock.json."""
     here = Path.cwd().resolve()
     for parent in [here, *here.parents]:
         if (parent / LOCK_FILE_NAME).is_file():
             return parent
     raise SystemExit(
-        f"No {LOCK_FILE_NAME} found in {here} or any parent. "
-        f"Run this from a project that has external skills installed."
+        f"No {LOCK_FILE_NAME} found in {here} or any parent.\n"
+        f"Run from a project that has external skills installed."
     )
 
 
@@ -138,22 +134,17 @@ def load_lock(root: Path) -> dict[str, SkillRecord]:
             name=name,
             source=entry.get("source", ""),
             source_type=entry.get("sourceType", ""),
-            old_hash=entry.get("computedHash", ""),
+            computed_hash=entry.get("computedHash", ""),
         )
     return records
 
 
 def stat_local_mtimes(root: Path, records: dict[str, SkillRecord]) -> None:
-    """Attach the mtime of each skill's SKILL.md + set installed=True if present.
-    If neither .agents/skills/<name>/SKILL.md nor .claude/skills/<name>/SKILL.md
-    exists, the lock entry is a 'ghost' — marked installed=False → status='missing'.
-    """
     for rec in records.values():
-        candidates = [
+        for c in [
             root / ".agents" / "skills" / rec.name / "SKILL.md",
             root / ".claude" / "skills" / rec.name / "SKILL.md",
-        ]
-        for c in candidates:
+        ]:
             if c.is_file():
                 rec.local_mtime = datetime.fromtimestamp(c.stat().st_mtime, tz=timezone.utc)
                 rec.installed = True
@@ -164,7 +155,7 @@ def stat_local_mtimes(root: Path, records: dict[str, SkillRecord]) -> None:
 
 def fetch_repo_meta(owner: str, repo: str) -> RepoMeta:
     url = f"{GITHUB_API}/repos/{owner}/{repo}"
-    headers = {"Accept": "application/vnd.github+json", "User-Agent": "update-external-skills/1.0"}
+    headers = {"Accept": "application/vnd.github+json", "User-Agent": "update-external-skills/2.0"}
     token = os.environ.get("GITHUB_TOKEN")
     if token:
         headers["Authorization"] = f"Bearer {token}"
@@ -193,50 +184,41 @@ def fetch_repo_meta(owner: str, repo: str) -> RepoMeta:
 
 
 def enrich_repo_meta(records: dict[str, SkillRecord]) -> None:
-    """Fetch GitHub metadata once per unique repo; attach to all owning records."""
-    repo_cache: dict[str, RepoMeta] = {}
-    unique_repos = [r.source for r in records.values() if r.source_type == "github"]
-    unique_repos = sorted(set(unique_repos))
-
-    info(f"Fetching metadata for {len(unique_repos)} unique GitHub repo(s)...")
-    for source in unique_repos:
+    unique = sorted({r.source for r in records.values() if r.source_type == "github"})
+    info(f"Fetching metadata for {len(unique)} unique GitHub repo(s)...")
+    cache: dict[str, RepoMeta] = {}
+    for source in unique:
         if "/" not in source:
             continue
         owner, repo = source.split("/", 1)
-        repo_cache[source] = fetch_repo_meta(owner, repo)
-
+        cache[source] = fetch_repo_meta(owner, repo)
     for rec in records.values():
         if rec.source_type == "github":
-            rec.repo_meta = repo_cache.get(rec.source)
+            rec.repo_meta = cache.get(rec.source)
 
 
-# --- Reporting helpers ------------------------------------------------------
+# --- Formatting helpers -----------------------------------------------------
 
 def rel_time(ts: Optional[datetime]) -> str:
     if ts is None:
         return "-"
     now = datetime.now(tz=timezone.utc)
-    delta = now - ts
-    secs = delta.total_seconds()
-    if secs < 3600:
-        return f"{int(secs // 60)}m ago"
-    if secs < 86400:
-        return f"{int(secs // 3600)}h ago"
+    secs = (now - ts).total_seconds()
+    if secs < 3600:  return f"{int(secs // 60)}m ago"
+    if secs < 86400: return f"{int(secs // 3600)}h ago"
     days = int(secs // 86400)
-    if days < 30:
-        return f"{days}d ago"
-    if days < 365:
-        return f"{days // 30}mo ago"
+    if days < 30:    return f"{days}d ago"
+    if days < 365:   return f"{days // 30}mo ago"
     return f"{days // 365}y ago"
 
 
-def is_stale(rec: SkillRecord) -> bool:
-    """Thin alias over rec.status for backward compatibility."""
-    return rec.status == "stale"
+def fmt_stars(n: Optional[int]) -> str:
+    if n is None:      return "-"
+    if n >= 1000:      return f"{n / 1000:.1f}k"
+    return str(n)
 
 
 def status_badge(s: str) -> str:
-    """Coloured status tag for the table."""
     return {
         "missing": f"{C.RED}missing{C.RESET}",
         "no-meta": f"{C.RED}no-meta{C.RESET}",
@@ -245,49 +227,25 @@ def status_badge(s: str) -> str:
     }.get(s, s)
 
 
-def fmt_stars(n: Optional[int]) -> str:
-    if n is None:
-        return "-"
-    if n >= 1000:
-        return f"{n / 1000:.1f}k"
-    return str(n)
-
-
-# --- Interactive selection --------------------------------------------------
+# --- Report blocks ----------------------------------------------------------
 
 def print_rate_limit_banner(rows: list[SkillRecord]) -> None:
-    """If most unique repos failed metadata fetch due to rate limit,
-    print a prominent banner so the user doesn't mistake '-' cells
-    and 0 counts for a broken table."""
-    gh_repos = {r.source: r.repo_meta for r in rows if r.source_type == "github" and r.repo_meta}
-    if not gh_repos:
+    gh = {r.source: r.repo_meta for r in rows if r.source_type == "github" and r.repo_meta}
+    if not gh:
         return
-    rate_limited = sum(1 for m in gh_repos.values() if m.fetch_error and "rate-limit" in m.fetch_error)
-    if rate_limited == 0:
+    limited = sum(1 for m in gh.values() if m.fetch_error and "rate-limit" in m.fetch_error)
+    if limited == 0 or limited / len(gh) < 0.5:
         return
-    ratio = rate_limited / len(gh_repos)
-    if ratio < 0.5:
-        return  # minor issue, not worth a banner
-
     print()
     print(f"{C.RED}{C.BOLD}╔══════════════════════════════════════════════════════════════════════╗{C.RESET}")
     print(f"{C.RED}{C.BOLD}║  ⚠ GITHUB API RATE LIMIT HIT  —  stats are temporarily unavailable   ║{C.RESET}")
     print(f"{C.RED}{C.BOLD}╚══════════════════════════════════════════════════════════════════════╝{C.RESET}")
-    print(f"  {rate_limited} of {len(gh_repos)} unique repos returned {C.RED}HTTP 403 rate-limit{C.RESET}.")
-    print(f"  That is why {C.BOLD}Stars{C.RESET} and {C.BOLD}Remote pushed{C.RESET} columns show '-' and")
-    print(f"  most rows are tagged {C.RED}no-meta{C.RESET}. This is NOT a table-rendering bug.")
-    print()
-    print(f"  {C.BOLD}Fix in one of two ways:{C.RESET}")
-    print(f"    1. Wait ~1 hour — anonymous limit (60 req/hr) will reset.")
-    print(f"    2. Set {C.BOLD}GITHUB_TOKEN{C.RESET} env var (5000 req/hr with auth):")
-    print(f"         export GITHUB_TOKEN=ghp_...   # classic PAT, no scopes needed for public repos")
-    print(f"       then re-run this command.")
+    print(f"  {limited} of {len(gh)} unique repos returned {C.RED}HTTP 403{C.RESET}.")
+    print(f"  Fix: export {C.BOLD}GITHUB_TOKEN{C.RESET} (5000 req/hr) or wait ~1h for reset.")
     print()
 
 
 def print_stats_summary(rows: list[SkillRecord]) -> None:
-    """Aggregate numbers first, so stats are visible even if the table is
-    reformatted by a wrapping layer."""
     total = len(rows)
     unique_repos: dict[str, RepoMeta] = {}
     for rec in rows:
@@ -302,58 +260,59 @@ def print_stats_summary(rows: list[SkillRecord]) -> None:
     most_popular = max(unique_repos.items(), key=lambda kv: kv[1].stars or 0, default=(None, None))
     most_recent = max(
         (m for m in unique_repos.values() if m.pushed_at),
-        key=lambda m: m.pushed_at,
-        default=None,
+        key=lambda m: m.pushed_at, default=None,
     )
+
+    all_no_meta = status_counts["no-meta"] + status_counts["missing"] == total
 
     print()
     print(f"{C.BOLD}=== Stats summary ==={C.RESET}")
     print(f"  Skills in lock:      {total}")
     print(f"  Unique repos:        {len(unique_repos)}")
-    # If metadata is mostly unavailable, mark stats as unknown rather than 0.
-    all_no_meta = status_counts['no-meta'] + status_counts['missing'] == total
-    if all_no_meta and status_counts['no-meta'] > 0:
+    if all_no_meta and status_counts["no-meta"] > 0:
         print(f"  Current:             {C.DIM}unknown (rate-limited){C.RESET}")
         print(f"  Stale (updatable):   {C.DIM}unknown (rate-limited){C.RESET}")
     else:
         print(f"  Current:             {C.GREEN}{status_counts['current']}{C.RESET}")
         print(f"  Stale (updatable):   {C.YELLOW}{status_counts['stale']}{C.RESET}")
-    if status_counts['no-meta']:
+    if status_counts["no-meta"]:
         print(f"  No-metadata:         {C.RED}{status_counts['no-meta']}{C.RESET}   (metadata fetch failed)")
-    if status_counts['missing']:
-        print(f"  {C.RED}Missing (ghosts):    {status_counts['missing']}{C.RESET}   (in lock but not on disk — see below)")
+    if status_counts["missing"]:
+        print(f"  {C.RED}Missing (ghosts):    {status_counts['missing']}{C.RESET}   (in lock but not on disk)")
     if total_stars > 0:
         print(f"  Total stars (sum):   {fmt_stars(total_stars)}")
-    else:
-        print(f"  Total stars (sum):   {C.DIM}unknown (rate-limited){C.RESET}")
     if most_popular[0] and most_popular[1].stars:
         print(f"  Most popular repo:   {most_popular[0]} ({fmt_stars(most_popular[1].stars)} ⭐)")
     if most_recent:
         print(f"  Most recent push:    {most_recent.owner}/{most_recent.repo} ({rel_time(most_recent.pushed_at)})")
     print()
 
-    if status_counts['missing']:
-        print(f"{C.RED}{C.BOLD}⚠ Ghost entries in skills-lock.json (not installed on disk):{C.RESET}")
+    if status_counts["missing"]:
+        print(f"{C.RED}{C.BOLD}⚠ Ghost entries (in lock but files not on disk):{C.RESET}")
         for r in rows:
             if r.status == "missing":
                 print(f"  • {r.name!r}  (source: {r.source})")
-        print(f"  Remedy: either {C.BOLD}npx skills add <source>@<name>{C.RESET} to install, or edit skills-lock.json to remove the ghost entry.")
+        print(f"  Remedy: re-install via add command below, OR edit {LOCK_FILE_NAME} to drop the entry.")
         print()
 
 
 def print_status_legend() -> None:
     print(f"{C.BOLD}=== Status meanings ==={C.RESET}")
-    print(f"  {C.GREEN}current{C.RESET}  — upstream has NOT been pushed since your local install; no update needed.")
-    print(f"  {C.YELLOW}stale{C.RESET}    — upstream HAS been pushed since your local install; likely has updates available.")
-    print(f"  {C.RED}no-meta{C.RESET}  — couldn't fetch GitHub metadata (rate limit, 404, or network error); status unknown.")
-    print(f"  {C.RED}missing{C.RESET}  — entry in skills-lock.json but NO local files (.agents/skills/<name>/ or .claude/skills/<name>/ do not exist). Ghost lock entry — install failed or files were deleted.")
+    print(f"  {C.GREEN}current{C.RESET}  — upstream has NOT been pushed since your install (mtime-based heuristic).")
+    print(f"  {C.YELLOW}stale{C.RESET}    — upstream HAS been pushed since your install; an update is likely available.")
+    print(f"  {C.RED}no-meta{C.RESET}  — couldn't fetch GitHub metadata; status unknown.")
+    print(f"  {C.RED}missing{C.RESET}  — lock entry exists but no local files — ghost install.")
+    print()
+    print(f"  {C.DIM}Note: status is a likelihood signal, not ground truth. Two caveats:{C.RESET}")
+    print(f"  {C.DIM}  - For multi-skill repos, `pushed_at` bumps on any skill; all siblings move in lockstep.{C.RESET}")
+    print(f"  {C.DIM}  - If you installed from a push that already contained upstream work, current may be false.{C.RESET}")
+    print(f"  {C.DIM}  Authoritative drift test: re-run the install command and diff.{C.RESET}")
     print()
 
 
-def print_selection_table(rows: list[SkillRecord]) -> None:
-    header = f"{C.BOLD}  #  {'Skill':<38} {'Repo':<40} {'Stars':>6}  {'Remote pushed':<14}  Status{C.RESET}"
-    print(f"{C.BOLD}=== Skills table (sorted by ⭐ desc — preserve all columns; this is the \"stats\" the user asked for) ==={C.RESET}")
-    print(header)
+def print_skills_table(rows: list[SkillRecord]) -> None:
+    print(f"{C.BOLD}=== Skills table (sorted by ⭐ desc) ==={C.RESET}")
+    print(f"{C.BOLD}  #  {'Skill':<38} {'Repo':<40} {'Stars':>6}  {'Remote pushed':<14}  Status{C.RESET}")
     print(f"  {'-' * 3} {'-' * 38} {'-' * 40} {'-' * 6}  {'-' * 14}  {'-' * 16}")
     for idx, rec in enumerate(rows, start=1):
         meta = rec.repo_meta
@@ -364,432 +323,81 @@ def print_selection_table(rows: list[SkillRecord]) -> None:
     print()
 
 
-def parse_selection(raw: str, max_idx: int) -> list[int]:
-    """Return 1-based indexes of selected skills; [] means cancel; [0] expands to all."""
-    raw = raw.strip()
-    if not raw:
-        return []
-    if raw == "0":
-        return list(range(1, max_idx + 1))
+def print_install_commands(rows: list[SkillRecord]) -> None:
+    """Print ready-to-paste bash commands grouped by source repo.
 
-    selected: set[int] = set()
-    for part in raw.split(","):
-        part = part.strip()
-        if not part:
-            continue
-        if "-" in part:
-            lo, hi = part.split("-", 1)
-            try:
-                a, b = int(lo), int(hi)
-                for i in range(min(a, b), max(a, b) + 1):
-                    if 1 <= i <= max_idx:
-                        selected.add(i)
-            except ValueError:
-                warn(f"Skipping invalid range: {part}")
-        else:
-            try:
-                i = int(part)
-                if 1 <= i <= max_idx:
-                    selected.add(i)
-            except ValueError:
-                warn(f"Skipping invalid index: {part}")
-    return sorted(selected)
+    Format: `npx skills add <source> -s <name1> -s <name2> ... -p -y`
 
+    This is the ONLY safe invocation for multi-skill repos on project-level
+    locks — `skills update` re-installs the whole repo. The `-s` flag pins
+    installation to the explicit names.
 
-ACTION_UPDATE = "update"
-ACTION_DELETE = "delete"
-ACTION_CLEAN  = "clean"
-ACTION_CANCEL = "cancel"
-
-
-def prompt_selection(records: list[SkillRecord]) -> tuple[str, list[SkillRecord]]:
-    """Returns (action, records):
-      ("update", [SkillRecord, ...])  — install/update selected
-      ("delete", [SkillRecord, ...])  — uninstall selected via `npx skills remove`
-      ("clean",  [])                  — remove ghost entries from lock
-      ("cancel", [])                  — exit without changes
+    Indexes follow the table above, so row 4 maps to the command that
+    contains `-s <name_of_row_4>`.
     """
-    print_rate_limit_banner(records)
-    print_stats_summary(records)
-    print_status_legend()
-    print_selection_table(records)
-    ghost_count = sum(1 for r in records if r.status == "missing")
-    print(f"{C.BOLD}Action:{C.RESET}")
-    print("  0             — UPDATE all")
-    print("  1,3,5         — UPDATE specific (comma-separated)")
-    print("  1-5           — UPDATE range")
-    print("  del 1,3,5     — DELETE specific (uninstalls skills; updates lock)")
-    print("  del 1-5       — DELETE range")
-    if ghost_count:
-        print(f"  clean         — remove {ghost_count} ghost entry(ies) from skills-lock.json (no install/update)")
-    else:
-        print("  clean         — (no ghosts present — nothing to clean)")
-    print("  (empty)       — cancel")
-    try:
-        raw = input(">> ").strip()
-    except (EOFError, KeyboardInterrupt):
-        print()
-        return (ACTION_CANCEL, [])
+    by_source: dict[str, list[tuple[int, str]]] = defaultdict(list)
+    for idx, rec in enumerate(rows, start=1):
+        if rec.source_type != "github":
+            continue  # non-github sources printed separately below
+        by_source[rec.source].append((idx, rec.name))
 
-    low = raw.lower()
-
-    if low in ("clean", "clean-ghosts", "c"):
-        return (ACTION_CLEAN, [])
-
-    # Detect delete prefix: "del ...", "rm ...", "delete ..."
-    for prefix in ("delete ", "del ", "rm "):
-        if low.startswith(prefix):
-            rest = raw[len(prefix):]
-            idxs = parse_selection(rest, len(records))
-            return (ACTION_DELETE, [records[i - 1] for i in idxs])
-
-    if not raw:
-        return (ACTION_CANCEL, [])
-
-    idxs = parse_selection(raw, len(records))
-    return (ACTION_UPDATE, [records[i - 1] for i in idxs])
-
-
-# --- Update + report --------------------------------------------------------
-
-def run_npx_update(selected: list[SkillRecord], root: Path) -> int:
-    """Install/update the chosen skills.
-
-    Do NOT use `npx skills update <names>` — for project-level lock entries
-    it internally calls `npx skills add <source>` WITHOUT skill-path restriction
-    (confirmed in vercel-labs/skills src/update-source.ts → buildLocalUpdateSource),
-    so it re-installs the ENTIRE source repo. With multi-skill repos like
-    coreyhaines31/marketingskills (50+ skills), this causes an explosion.
-
-    Correct behaviour: group selections by source repo, then invoke
-    `npx skills add <source> -s <name1> -s <name2> ... -p -y` per group.
-    The `-s` flag on `add` restricts installation to named skills only.
-    """
-    if not selected:
-        return 0
-
-    from collections import defaultdict
-    by_source: dict[str, list[str]] = defaultdict(list)
-    for rec in selected:
-        by_source[rec.source].append(rec.name)
-
-    info(f"Updating {len(selected)} skill(s) across {len(by_source)} source repo(s):")
-    overall_rc = 0
-    for source, names in sorted(by_source.items()):
-        info(f"  source {source}: {', '.join(names)}")
-        cmd = ["npx", "--yes", "skills", "add", source]
-        for n in names:
-            cmd += ["-s", n]
-        cmd += ["-p", "-y"]
-        info(f"  → {' '.join(cmd)}")
-        result = subprocess.run(cmd, cwd=root)
-        if result.returncode != 0:
-            err(f"  exit {result.returncode} for source {source}")
-            overall_rc = result.returncode or 1
-    return overall_rc
-
-
-def run_npx_remove(selected: list[SkillRecord], root: Path) -> int:
-    """Invoke `npx skills remove` for the chosen skills."""
-    if not selected:
-        return 0
-    names_arg = [s.name for s in selected]
-    cmd = ["npx", "--yes", "skills", "remove", *names_arg, "-p", "-y"]
-    info(f"Running: {' '.join(cmd)}")
-    result = subprocess.run(cmd, cwd=root)
-    return result.returncode
-
-
-def reload_hashes(root: Path, records: dict[str, SkillRecord]) -> None:
-    """After npx skills update, read lock again and record new hashes."""
-    data = json.loads((root / LOCK_FILE_NAME).read_text())
-    skills = data.get("skills", {})
-    for name, entry in skills.items():
-        if name in records:
-            records[name].new_hash = entry.get("computedHash", "")
-
-
-def snapshot_skill_files(root: Path, skill_name: str) -> dict[str, str]:
-    """Read all text files in .agents/skills/<name>/ as dict {relative_path: content}.
-    Binary files are recorded as the marker '<binary>' so presence/absence still diffs."""
-    skill_dir = root / ".agents" / "skills" / skill_name
-    if not skill_dir.is_dir():
-        return {}
-    snapshot: dict[str, str] = {}
-    for f in skill_dir.rglob("*"):
-        if not f.is_file():
-            continue
-        rel = f.relative_to(skill_dir).as_posix()
-        try:
-            snapshot[rel] = f.read_text(encoding="utf-8", errors="replace")
-        except Exception:
-            snapshot[rel] = "<binary>"
-    return snapshot
-
-
-def parse_frontmatter_version(content: str) -> Optional[str]:
-    """Extract `version:` from YAML frontmatter if present."""
-    if not content.startswith("---"):
-        return None
-    end_marker = content.find("\n---", 3)
-    if end_marker < 0:
-        return None
-    fm = content[3:end_marker]
-    for line in fm.splitlines():
-        s = line.strip()
-        if s.startswith("version:"):
-            v = s.split(":", 1)[1].strip()
-            return v.strip('"\'')
-    return None
-
-
-def unified_diff_excerpt(old: str, new: str, path: str, max_lines: int = 60) -> str:
-    """Produce a unified diff, truncate if too long."""
-    import difflib
-    lines = list(difflib.unified_diff(
-        old.splitlines(keepends=True),
-        new.splitlines(keepends=True),
-        fromfile=f"a/{path}", tofile=f"b/{path}",
-        n=2,
-    ))
-    if not lines:
-        return ""
-    text = "".join(lines)
-    split = text.splitlines()
-    if len(split) > max_lines:
-        truncated = "\n".join(split[:max_lines])
-        return truncated + f"\n... [+{len(split) - max_lines} more lines — diff truncated]"
-    return text
-
-
-def print_per_skill_diffs(
-    records: dict[str, SkillRecord],
-    pre_snapshots: dict[str, dict[str, str]],
-    post_snapshots: dict[str, dict[str, str]],
-) -> None:
-    """For each actually-updated skill, print structured diff data that Claude
-    can turn into a semantic summary (version, files changed, unified diff)."""
-    updated = [r for r in records.values() if r.updated]
-    if not updated:
-        return
-
-    print()
-    print(f"{C.BOLD}=== Per-skill diff (structured for LLM interpretation) ==={C.RESET}")
-
-    for rec in sorted(updated, key=lambda x: x.name):
-        pre = pre_snapshots.get(rec.name, {})
-        post = post_snapshots.get(rec.name, {})
-
-        added = sorted(set(post) - set(pre))
-        deleted = sorted(set(pre) - set(post))
-        modified = sorted([f for f in set(pre) & set(post) if pre[f] != post[f]])
-
-        old_skill = pre.get("SKILL.md", "")
-        new_skill = post.get("SKILL.md", "")
-        old_v = parse_frontmatter_version(old_skill) or "—"
-        new_v = parse_frontmatter_version(new_skill) or "—"
-
-        meta = rec.repo_meta
-        stars_str = fmt_stars(meta.stars) if meta and meta.stars else "—"
-        pushed_str = rel_time(meta.pushed_at) if meta and meta.pushed_at else "—"
-
-        print()
-        print(f"{C.BOLD}### SKILL: {rec.name}{C.RESET}")
-        print(f"source:       {rec.source}  ⭐ {stars_str}  pushed {pushed_str}")
-        print(f"hash:         {rec.old_hash[:12]} → {rec.new_hash[:12]}")
-        print(f"version:      {old_v} → {new_v}")
-        print(f"files added:    {', '.join(added) or '(none)'}")
-        print(f"files modified: {', '.join(modified) or '(none)'}")
-        print(f"files deleted:  {', '.join(deleted) or '(none)'}")
-
-        # Unified diff for SKILL.md
-        if old_skill and new_skill and old_skill != new_skill:
-            print(f"{C.BOLD}--- diff of SKILL.md (unified, max 60 lines) ---{C.RESET}")
-            diff_text = unified_diff_excerpt(old_skill, new_skill, "SKILL.md")
-            print(diff_text if diff_text else "(no textual diff)")
-            print(f"{C.BOLD}--- end diff ---{C.RESET}")
-
-        # References: enumerate with change sizes, no full dump
-        for f in modified:
-            if f == "SKILL.md":
-                continue  # already done above
-            old_c = pre.get(f, "")
-            new_c = post.get(f, "")
-            import difflib
-            changed_lines = sum(
-                1 for line in difflib.unified_diff(old_c.splitlines(), new_c.splitlines(), n=0)
-                if line.startswith(("+", "-")) and not line.startswith(("+++", "---"))
-            )
-            print(f"  modified reference {f}: {changed_lines} changed lines")
-
-
-def print_final_report(records: dict[str, SkillRecord], selected_names: set[str]) -> None:
-    updated = [r for r in records.values() if r.updated]
-    unchanged = [r for r in records.values() if r.name in selected_names and not r.updated]
-    not_attempted = [r for r in records.values() if r.name not in selected_names and selected_names]
-
-    print()
-    print(f"{C.BOLD}=== Update report ==={C.RESET}")
-    print(f"Attempted: {len(selected_names)}   Updated: {C.GREEN}{len(updated)}{C.RESET}   Unchanged: {len(unchanged)}")
+    print(f"{C.BOLD}=== Install / refresh commands ==={C.RESET}")
+    print(f"  One command per source repo. `-s` restricts installation to the listed skills only.")
+    print(f"  {C.BOLD}Do NOT use `npx skills update <name>`{C.RESET} — it re-installs the whole source repo for")
+    print(f"  project-level locks. Always `add -s <name>` as shown below.")
     print()
 
-    if updated:
-        print(f"{C.GREEN}✓ UPDATED ({len(updated)}):{C.RESET}")
-        for r in sorted(updated, key=lambda x: x.name):
-            meta = r.repo_meta
-            pushed = rel_time(meta.pushed_at) if meta else "-"
-            stars = fmt_stars(meta.stars) if meta else "-"
-            print(f"  • {r.name}")
-            print(f"    hash:  {r.old_hash[:12]} → {r.new_hash[:12]}")
-            print(f"    repo:  {r.source}   ⭐ {stars}   pushed {pushed}")
+    for source in sorted(by_source):
+        entries = by_source[source]
+        idx_list = ", ".join(f"#{i}" for i, _ in entries)
+        names = [n for _, n in entries]
+        print(f"  {C.DIM}# {source}  ({idx_list}){C.RESET}")
+        flags = " ".join(f"-s {n}" for n in names)
+        print(f"  npx skills add {source} {flags} -p -y")
         print()
 
-    if unchanged:
-        print(f"{C.DIM}⏸ UNCHANGED ({len(unchanged)}):{C.RESET}")
-        for r in sorted(unchanged, key=lambda x: x.name):
-            print(f"  • {r.name} — already on latest hash ({r.old_hash[:12]})")
-        print()
-
-    skipped = [r for r in records.values() if r.name not in selected_names]
-    if skipped and selected_names:
-        print(f"{C.DIM}(skipped {len(skipped)} skill(s) not selected){C.RESET}")
+    non_github = [r for r in rows if r.source_type != "github"]
+    if non_github:
+        print(f"  {C.DIM}# Non-github sources (no generated command; consult the source tool):{C.RESET}")
+        for r in non_github:
+            print(f"  {C.DIM}#   {r.name}  ({r.source_type}:{r.source}){C.RESET}")
         print()
 
 
-# --- Ghost cleanup ----------------------------------------------------------
-
-def clean_ghosts(root: Path, records: dict[str, SkillRecord]) -> int:
-    """Remove entries from skills-lock.json whose files are not on disk.
-    Returns number of ghosts removed."""
-    ghosts = [r for r in records.values() if r.status == "missing"]
-    if not ghosts:
-        info("No ghost entries to clean.")
-        return 0
-
-    info(f"Removing {len(ghosts)} ghost entry(ies) from {LOCK_FILE_NAME}:")
-    for g in ghosts:
-        print(f"  • {g.name}  (source: {g.source})")
-
-    lock_path = root / LOCK_FILE_NAME
-    data = json.loads(lock_path.read_text())
-    skills = data.get("skills", {})
-    for g in ghosts:
-        skills.pop(g.name, None)
-    data["skills"] = skills
-    lock_path.write_text(json.dumps(data, indent=2) + "\n")
-    ok(f"Cleaned. skills-lock.json now tracks {len(skills)} skill(s).")
-    return len(ghosts)
+def print_maintenance_commands(rows: list[SkillRecord]) -> None:
+    """Delete + ghost-clean helpers as plain bash, for the user to run if wanted."""
+    ghosts = [r for r in rows if r.status == "missing"]
+    print(f"{C.BOLD}=== Maintenance (optional) ==={C.RESET}")
+    print(f"  {C.DIM}# Uninstall a skill (replace <name>):{C.RESET}")
+    print(f"  npx skills remove <name> -p -y")
+    print()
+    if ghosts:
+        names = " ".join(g.name for g in ghosts)
+        print(f"  {C.DIM}# Remove {len(ghosts)} ghost entry(ies) from {LOCK_FILE_NAME}:{C.RESET}")
+        print(f"  python3 - <<'PY'")
+        print(f"import json, pathlib")
+        print(f"p = pathlib.Path('{LOCK_FILE_NAME}')")
+        print(f"d = json.loads(p.read_text())")
+        print(f"for g in {names.split()!r}:")
+        print(f"    d['skills'].pop(g, None)")
+        print(f"p.write_text(json.dumps(d, indent=2) + '\\n')")
+        print(f"PY")
+        print()
 
 
-def _git_autosync_paths(root: Path, paths: list[str], commit_msg: str) -> None:
-    """Shared git add/commit/push with explicit path staging. No-op if not a git repo."""
-    if not (root / ".git").is_dir():
-        warn("Not a git repo — skipping auto-commit/push.")
-        return
-
-    def git(*args: str, capture: bool = False) -> subprocess.CompletedProcess:
-        return subprocess.run(["git", *args], cwd=root, capture_output=capture, text=True, check=False)
-
-    git("add", *paths)
-    if git("diff", "--cached", "--quiet").returncode == 0:
-        info("No staged changes — no commit.")
-        return
-    if git("commit", "-m", commit_msg).returncode != 0:
-        err("git commit failed.")
-        return
-    sha = git("rev-parse", "--short", "HEAD", capture=True).stdout.strip()
-    ok(f"Committed: {sha}")
-    upstream = git("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}", capture=True)
-    if upstream.returncode != 0:
-        warn("No upstream branch — run 'git push -u origin <branch>' manually.")
-        return
-    if git("push", "--quiet").returncode == 0:
-        ok(f"Pushed to {upstream.stdout.strip()}")
-    else:
-        warn("git push failed — commit is preserved locally.")
-
-
-def git_commit_lock_cleanup(root: Path, removed_count: int) -> None:
-    if removed_count == 0:
-        return
-    _git_autosync_paths(
-        root,
-        [LOCK_FILE_NAME],
-        f"chore(skills): remove {removed_count} ghost entry(ies) from skills-lock.json\n\n"
-        "Ghost = lock entry with no corresponding files on disk (failed install\n"
-        "or manual deletion). Auto-cleaned by update-external-skills script.\n\n"
-        "Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
-    )
-
-
-def git_commit_delete(root: Path, removed: list[SkillRecord]) -> None:
-    if not removed:
-        return
-    names = ", ".join(r.name for r in removed)
-    _git_autosync_paths(
-        root,
-        [LOCK_FILE_NAME, ".agents/skills", ".claude/skills"],
-        f"chore(skills): remove {len(removed)} external skill(s) via npx skills remove\n\n"
-        f"Removed: {names}\n\n"
-        "Removed by: update-external-skills script (delete mode).\n"
-        "Paths affected: skills-lock.json (entry removal), .agents/skills/<name>/\n"
-        "(content removal), .claude/skills/<name> (symlink removal).\n\n"
-        "Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
-    )
-
-
-# --- Git auto-commit + push -------------------------------------------------
-
-def git_autosync(root: Path, updated_count: int) -> None:
-    if not (root / ".git").is_dir():
-        warn("Not a git repo — skipping auto-commit/push.")
-        return
-    if updated_count == 0:
-        info("No real drift (hash-identical) — no commit.")
-        return
-
-    def git(*args: str, capture: bool = False) -> subprocess.CompletedProcess:
-        return subprocess.run(
-            ["git", *args],
-            cwd=root,
-            capture_output=capture,
-            text=True,
-            check=False,
-        )
-
-    # Stage only paths that external-skills might change. Custom unrelated work
-    # the user has elsewhere is not swept in.
-    git("add", LOCK_FILE_NAME, ".agents/skills", ".claude/skills")
-
-    status = git("diff", "--cached", "--quiet")
-    if status.returncode == 0:
-        info("Lock file unchanged — no commit.")
-        return
-
-    commit_msg = (
-        "chore(skills): refresh external skills via npx skills update\n\n"
-        f"Updated {updated_count} skill(s) to latest upstream hashes.\n"
-        "Auto-synced by: update-external-skills script.\n\n"
-        "Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
-    )
-    commit_res = git("commit", "-m", commit_msg)
-    if commit_res.returncode != 0:
-        err("git commit failed.")
-        return
-
-    sha = git("rev-parse", "--short", "HEAD", capture=True).stdout.strip()
-    ok(f"Committed: {sha}")
-
-    # Push only if upstream is tracked
-    upstream = git("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}", capture=True)
-    if upstream.returncode != 0:
-        warn("No upstream branch — run 'git push -u origin <branch>' manually.")
-        return
-    push_res = git("push", "--quiet")
-    if push_res.returncode == 0:
-        ok(f"Pushed to {upstream.stdout.strip()}")
-    else:
-        warn("git push failed — commit is preserved locally.")
+def print_usage_footer() -> None:
+    print(f"{C.BOLD}=== What to do next ==={C.RESET}")
+    print(f"  1. Review the status column — {C.YELLOW}stale{C.RESET} rows likely have upstream updates.")
+    print(f"  2. Ensure working tree is clean on scoped paths:")
+    print(f"     {C.DIM}git status .agents/skills .claude/skills {LOCK_FILE_NAME}{C.RESET}")
+    print(f"  3. Run the {C.BOLD}install command(s){C.RESET} above for the source(s) you want to refresh.")
+    print(f"     If only some skills — edit the command to keep only the desired `-s <name>` flags.")
+    print(f"  4. Inspect changes with git:")
+    print(f"     {C.DIM}git diff --stat .agents/skills .claude/skills {LOCK_FILE_NAME}{C.RESET}")
+    print(f"     {C.DIM}git diff -- .agents/skills/<name>/{C.RESET}")
+    print(f"  5. Commit if desired, scoped to the paths above:")
+    print(f"     {C.DIM}git add {LOCK_FILE_NAME} .agents/skills .claude/skills && git commit -m \"...\"{C.RESET}")
+    print()
 
 
 # --- Main -------------------------------------------------------------------
@@ -800,94 +408,26 @@ def main() -> int:
 
     records = load_lock(root)
     if not records:
-        warn(f"{LOCK_FILE_NAME} has no skills. Nothing to update.")
+        warn(f"{LOCK_FILE_NAME} has no skills. Nothing to report.")
         return 0
 
     info(f"Tracked: {len(records)} skill(s)")
     stat_local_mtimes(root, records)
     enrich_repo_meta(records)
 
-    # Sort by ⭐ stars descending; skills without metadata sink to the bottom.
-    # Secondary sort by name for stable ordering among ties.
     def sort_key(r: SkillRecord) -> tuple:
         stars = r.repo_meta.stars if r.repo_meta and r.repo_meta.stars else 0
         return (-stars, r.name.lower())
 
-    sorted_records = sorted(records.values(), key=sort_key)
-    action, selected = prompt_selection(sorted_records)
+    rows = sorted(records.values(), key=sort_key)
 
-    # Guard against piped input from auto-running agents. An interactive
-    # selection pre-fed via stdin is a trust violation: the user never saw
-    # the prompt, never typed a choice. Require explicit opt-in.
-    piped = not sys.stdin.isatty()
-    auto_ok = os.environ.get("UPDATE_EXTERNAL_SKILLS_NON_INTERACTIVE") == "1"
-    if piped and not auto_ok and action != ACTION_CANCEL:
-        err("Stdin is not a TTY — this looks like input piped by an agent or automation.")
-        err("The selection prompt is for the USER to answer interactively, not to be auto-filled.")
-        err("If you really want to run non-interactively (e.g. CI), set:")
-        err("    UPDATE_EXTERNAL_SKILLS_NON_INTERACTIVE=1")
-        err("Aborting without making any changes.")
-        return 2
-
-    if action == ACTION_CLEAN:
-        removed = clean_ghosts(root, records)
-        git_commit_lock_cleanup(root, removed)
-        return 0
-
-    if action == ACTION_CANCEL:
-        info("Cancelled. No changes made.")
-        return 0
-
-    if not selected:
-        info("Empty selection. Nothing to do.")
-        return 0
-
-    if action == ACTION_DELETE:
-        print()
-        warn(f"About to REMOVE {len(selected)} skill(s) via `npx skills remove`:")
-        for r in selected:
-            print(f"  • {r.name}  (source: {r.source})")
-        try:
-            confirm = input("Proceed? [y/N] ").strip().lower()
-        except (EOFError, KeyboardInterrupt):
-            print()
-            info("Cancelled.")
-            return 0
-        if confirm not in ("y", "yes"):
-            info("Cancelled.")
-            return 0
-        rc = run_npx_remove(selected, root)
-        if rc != 0:
-            err(f"`npx skills remove` exited with code {rc}. Check output above.")
-            return rc
-        ok(f"Removed {len(selected)} skill(s).")
-        git_commit_delete(root, selected)
-        return 0
-
-    # action == ACTION_UPDATE
-    ok(f"Selected {len(selected)} skill(s) for update.")
-
-    # Capture pre-update snapshot of each selected skill's file tree so we can
-    # produce a structured diff after the update. Must happen BEFORE npx runs —
-    # once `skills add` overwrites files, the old content is gone.
-    pre_snapshots = {rec.name: snapshot_skill_files(root, rec.name) for rec in selected}
-
-    rc = run_npx_update(selected, root)
-    if rc != 0:
-        err(f"`npx skills update` exited with code {rc}. Check output above.")
-        return rc
-
-    reload_hashes(root, records)
-
-    # Post-update snapshot — same skills, same on-disk path.
-    post_snapshots = {rec.name: snapshot_skill_files(root, rec.name) for rec in selected}
-
-    selected_names = {s.name for s in selected}
-    print_final_report(records, selected_names)
-    print_per_skill_diffs(records, pre_snapshots, post_snapshots)
-
-    updated_count = sum(1 for r in records.values() if r.updated)
-    git_autosync(root, updated_count)
+    print_rate_limit_banner(rows)
+    print_stats_summary(rows)
+    print_status_legend()
+    print_skills_table(rows)
+    print_install_commands(rows)
+    print_maintenance_commands(rows)
+    print_usage_footer()
     return 0
 
 

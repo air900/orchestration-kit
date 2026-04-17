@@ -1,5 +1,5 @@
 ---
-description: Unified post-install refresh. Two modes — kit content (--update-skills) or user-installed skills.sh skills (--update-external-skills). Auto-commits + pushes on real drift.
+description: Unified post-install refresh. Two modes — kit content (--update-skills) or user-installed skills.sh skills (--update-external-skills). The external mode is read-only; Claude drives apply + commit.
 ---
 
 User args: $ARGUMENTS
@@ -17,8 +17,12 @@ Run from the project root:
 ```
 
 What happens:
-- `deploy.sh` detects no `templates/` alongside, clones kit from GitHub (`ORCHESTRATION_KIT_REPO`/`_REF` env vars or defaults to `air900/orchestration-kit@main`) into a tmp dir.
-- Refreshes `.claude/agents/`, `.claude/skills/` (dirs — with `rm -rf` + `cp -r` to handle ref-count changes), `.claude/commands/`, `.claude/hooks/`, `.claude/references/`, merges `.claude/settings.json` hooks.
+- `deploy.sh` detects no `templates/` alongside, clones kit from GitHub
+  (`ORCHESTRATION_KIT_REPO`/`_REF` env vars or defaults to `air900/orchestration-kit@main`)
+  into a tmp dir.
+- Refreshes `.claude/agents/`, `.claude/skills/` (dirs — with `rm -rf` + `cp -r` to
+  handle ref-count changes), `.claude/commands/`, `.claude/hooks/`, `.claude/references/`,
+  merges `.claude/settings.json` hooks.
 - Custom (non-kit-named) files left untouched.
 - Auto-commits (explicit path staging, never `git add -A`) + pushes.
 - Cleans up tmp clone.
@@ -31,7 +35,7 @@ First install the deploy tool:
   curl -sSL https://raw.githubusercontent.com/air900/orchestration-kit/main/install.sh | bash -s -- --update-deploy
 ```
 
-### 2. `--update-external-skills` → user skills.sh refresh
+### 2. `--update-external-skills` → user skills.sh report (read-only)
 
 Run from the project root:
 
@@ -39,13 +43,17 @@ Run from the project root:
 python3 .claude/skills/update-external-skills/scripts/update.py
 ```
 
-What happens:
+What the script does (all read-only):
 - Reads `skills-lock.json` at project root.
 - Fetches GitHub metadata per unique repo (stars, pushed_at). Deduplicated.
-- Shows indexed selection table with status (current / stale / no-meta).
-- Prompts: `0` = all, `1,3,5` = specific, `1-5` = range, empty = cancel.
-- Runs `npx skills update <selected> -p -y`, diffs computedHash pre/post.
-- Auto-commits (`skills-lock.json`, `.agents/skills`, `.claude/skills`) + pushes.
+- Prints: stats summary, status legend, skills table (sorted by ⭐ desc),
+  **install commands grouped per source**, maintenance commands, usage footer.
+- Exits. Touches nothing on disk. Does not run `npx`. Does not modify the lock.
+  Does not commit.
+
+**After the script exits, Claude drives Phase 2 — apply, diff, summarize, commit.**
+The detailed procedure lives in the skill's SKILL.md (sections "Phase 2 — Apply"
+and "Safety — what Claude must NOT do"). Follow it exactly.
 
 If `.claude/skills/update-external-skills/scripts/update.py` is missing:
 
@@ -65,12 +73,10 @@ Usage: /kit-update --update-skills | --update-external-skills
                              commands, hooks, references) via deploy.sh.
                              Self-bootstraps templates from GitHub.
 
-  --update-external-skills   Refresh user-installed skills.sh skills
-                             (tracked in skills-lock.json). Interactive
-                             selection + GitHub stats.
-
-Both modes auto-commit + auto-push on real drift using explicit path
-staging (never `git add -A`).
+  --update-external-skills   Print a status report for user-installed skills.sh
+                             skills (tracked in skills-lock.json). Read-only —
+                             Claude + user handle apply and commit from the
+                             printed commands, following SKILL.md's Phase 2.
 ```
 
 ### 4. Unknown flag
@@ -79,17 +85,54 @@ Error and print usage (same as empty args).
 
 ## Non-negotiables
 
+### Shared (both modes)
+
 - Do NOT run both modes in one invocation — user must explicitly choose.
-- Do NOT stage paths outside what each backend owns — preserve user's unrelated uncommitted work.
-- On missing backend file, print the exact remediation command — do NOT silently fall back to something else.
-- If `$ARGUMENTS` is parseable as both flags (e.g., contains `--update-skills --update-external-skills`), print usage and exit — ambiguous invocation.
-- **Show the backend script's output VERBATIM.** Do NOT reformat the selection table, do NOT drop columns, do NOT omit the `Stars` or `Status` columns. These are the "stats" the user asked for — they are the entire point of this command. If the table is wide, let it wrap rather than compact it into a narrower layout.
-- **Do NOT convert fixed-width text tables into markdown tables.** The script prints aligned columns using spaces; that layout is deliberate. Claude Code renders the raw text just fine in its output pane.
-- **NEVER pipe input into the script.** The Action prompt at the end of the script is an *interactive user choice*, not a task for the assistant to solve. Do NOT:
-  - `echo "clean" | python3 update.py`
-  - `echo "0" | python3 update.py`
-  - `printf "del 1,3\n" | python3 update.py`
-  - or any equivalent that pre-feeds a selection into stdin.
-  Run the script so its output reaches the user, then **stop and ask the user in chat** which action they want. The user must type the selection themselves. Even "safe" actions like `clean` require explicit user go-ahead; a silently-applied `clean` that rewrites `skills-lock.json` and auto-commits is a trust violation regardless of how recoverable it is.
-- **"Auto mode" is not a licence to mutate.** If the current session is running in auto/agent mode and the script's prompt blocks waiting for input, surface the output to the user and wait. Do not guess. Do not pick the least-destructive option "as a compromise". The user picks.
-- **After an update run, produce a semantic diff report.** When the script finishes with an `=== Per-skill diff ===` block, do not dump that block verbatim to the user (unlike the stats/table blocks, which ARE verbatim). Instead, interpret each per-skill diff into a human-readable summary — describe *what* changed (description wording, new trigger, rule rewording, added reference file), not just line numbers. See `templates/skills/update-external-skills/SKILL.md` for the target format (the `copywriting` example).
+- Do NOT stage paths outside what each backend owns — preserve user's unrelated
+  uncommitted work.
+- On missing backend file, print the exact remediation command — do NOT silently
+  fall back to something else.
+- If `$ARGUMENTS` is parseable as both flags, print usage and exit — ambiguous.
+
+### Read-only report mode (`--update-external-skills`)
+
+- **Show the script's output VERBATIM.** Do NOT reformat the fixed-width table
+  into markdown, do NOT drop the `Stars` or `Status` columns, do NOT omit the
+  install-commands block. These blocks ARE the stats the user asked for. If the
+  table is wide, let it wrap rather than compact it.
+- **Do NOT convert fixed-width text tables into markdown tables.** The aligned
+  spacing is deliberate and renders fine.
+
+### Apply (Phase 2) — Claude's responsibility
+
+The script prints `npx skills add <source> -s <name> ... -p -y` lines. Claude
+uses those — and only those — to perform refreshes. Hard rules:
+
+- **NEVER run `npx skills update <name>`.** For project-level locks it re-installs
+  the ENTIRE source repo, silently adding unwanted sibling skills. This is a
+  confirmed bug/design limitation in `vercel-labs/skills` (see SKILL.md for
+  source-code reference). The only safe form is `npx skills add <source> -s <name>`.
+- **NEVER widen the `-s` list** beyond the skills the user explicitly chose.
+  Copy the exact line from the report and strip `-s` flags for unwanted skills;
+  never add flags the report didn't list.
+- **ALWAYS verify a clean working tree** on `.agents/skills`, `.claude/skills`,
+  and `skills-lock.json` BEFORE running `add -s` — the semantic-diff step relies
+  on `git diff HEAD` being a clean before→after.
+- **ALWAYS use `git diff` for the change report**, not a hand-rolled snapshot.
+  Clean-tree precondition + post-install `git diff HEAD` = authoritative delta.
+- **ALWAYS produce a semantic summary** (not a raw diff dump) — describe WHAT
+  changed in concept: "description extended", "rule #6 reworded", "new
+  reference file". The example format is in SKILL.md.
+- **NEVER commit without user approval.** After showing the semantic summary,
+  ask. On yes: `git add skills-lock.json .agents/skills .claude/skills` (explicit
+  paths) + commit + push. Never `git add -A`, never amend, never `--no-verify`.
+- **On anomaly, STOP and tell the user.** Examples: more files changed than
+  expected, unknown skills appeared, upstream hash did not change. Do NOT run
+  `git clean`, `rm -rf`, or `git checkout --` to "fix" it silently — that can
+  destroy in-progress work.
+
+### "Auto mode" is not a licence to mutate
+
+If the current session is running in auto/agent mode, the apply step still
+requires user acknowledgement of the selection and the commit. Do not pick a
+"safe default" and proceed. The user picks.
