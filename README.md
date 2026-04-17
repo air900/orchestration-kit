@@ -80,32 +80,62 @@ git clone --depth 1 https://github.com/air900/orchestration-kit.git /tmp/orch-ki
 rm -rf /tmp/orch-kit
 ```
 
-### 2b. Refresh kit content on an already-deployed project
+After the initial install, the project gets `.claude/scripts/deploy.sh` — a project-local copy that self-bootstraps templates from GitHub on every run. You no longer need the kit cloned locally to refresh content.
 
-When the kit is updated (new skill, new hook, modified slash command, etc.)
-and you want to propagate the change to a project that already has the kit
-deployed, use `--update-skills`:
+### 2b. Three-layer update model (post-install)
 
-```bash
-cd /path/to/orchestration-kit
-./deploy.sh /path/to/my-project --update-skills
+Each layer is independent and project-autonomous — no orchestration-kit checkout required at runtime.
+
+```
+┌─── Layer 0 ──────────────────────────────────────────────────────────┐
+│  Refresh ONLY the local .claude/scripts/deploy.sh from the repo.     │
+│  Use when deploy.sh itself has changed (new flag, bug fix).          │
+│                                                                      │
+│  curl -sSL https://raw.githubusercontent.com/air900/orchestration-kit/main/install.sh | bash -s -- --update-deploy │
+└──────────────────────────────────────────────────────────────────────┘
+
+┌─── Layer 1 ──────────────────────────────────────────────────────────┐
+│  Refresh kit content (agents/skills/commands/hooks/refs) via the     │
+│  project-local deploy.sh. Self-bootstraps templates from GitHub into │
+│  /tmp, applies them, cleans up, auto-commits + pushes.               │
+│                                                                      │
+│  .claude/scripts/deploy.sh . --update-skills                         │
+└──────────────────────────────────────────────────────────────────────┘
+
+┌─── Layer 2 ──────────────────────────────────────────────────────────┐
+│  Refresh user-installed external skills (installed via                │
+│  `npx skills add`, tracked in skills-lock.json). Interactive          │
+│  selection + GitHub stats (stars, pushed_at) + auto-commit + push.   │
+│                                                                      │
+│  python3 .claude/skills/update-external-skills/scripts/update.py     │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
-What it does:
+**Layer 0 (`install.sh --update-deploy`)**
 
-- Re-copies all kit-shipped content: `.claude/agents/`, `.claude/skills/`
-  (with `references/`), `.claude/commands/`, `.claude/hooks/`,
-  `.claude/references/`, and merges `.claude/settings.json` hooks.
-- For **skill directories**, nukes and re-copies (so if a skill previously
-  had 5 reference files and now has 3, the old 2 are removed cleanly).
-- For **single files** (agents, commands, hooks, shared refs), overwrites
-  same-name files only. Custom files with non-kit names are left untouched.
-- **Auto-commits** the changes in the target project with a message
-  including the kit commit SHA for traceability, and **auto-pushes** to
-  the tracked remote. Uses explicit path staging (never `git add -A`), so
-  any unrelated uncommitted work you had stays uncommitted.
+One curl, single file (`deploy.sh`, ~15 KB). Run from project root. Places the latest `deploy.sh` at `<project>/.claude/scripts/deploy.sh`. No templates downloaded — those are fetched by deploy.sh on its next run.
 
-What it does NOT touch:
+**Layer 1 (`deploy.sh --update-skills`)**
+
+Runs from the project (`.claude/scripts/deploy.sh` is the installed copy). On invocation:
+
+- Detects that no local `templates/` is alongside the script.
+- `git clone --depth 1` of the kit into a tmp dir (or tarball fallback if git is missing).
+- Re-copies all kit-shipped content: `.claude/agents/`, `.claude/skills/` (with `references/`), `.claude/commands/`, `.claude/hooks/`, `.claude/references/`, and merges `.claude/settings.json` hooks.
+- For **skill directories**, nukes and re-copies (so if a skill previously had 5 reference files and now has 3, the old 2 are removed cleanly).
+- For **single files** (agents, commands, hooks, shared refs), overwrites same-name files only. Custom files with non-kit names are left untouched.
+- **Auto-commits** changes in the target project with a message including the kit commit SHA for traceability, and **auto-pushes** to the tracked remote. Uses explicit path staging (never `git add -A`), so unrelated uncommitted work stays uncommitted.
+- Cleans up the tmp kit clone on exit.
+
+Requires `.claude/` to already exist — if not, the script exits with an instruction to run the full install first.
+
+Environment overrides: `ORCHESTRATION_KIT_REPO` (default `air900/orchestration-kit`) and `ORCHESTRATION_KIT_REF` (default `main`) — for forks or version pinning.
+
+**Layer 2 (`update-external-skills`)**
+
+See the skill's own [SKILL.md](templates/skills/update-external-skills/SKILL.md). Short version: reads `skills-lock.json`, fetches GitHub metadata, shows a numbered selection table (`0` = all, `1,3,5` = specific, `1-5` = range), runs `npx skills update <selected>`, reports what actually updated, auto-commits + pushes.
+
+### What these layers do NOT touch
 
 - `.claude/settings.local.json` — your local permissions
 - `.claude/orchestration-config.json` — project artefact paths
@@ -113,21 +143,19 @@ What it does NOT touch:
 - `docs/orchestration/` — generated content
 - `CLAUDE.md` — project documentation
 - Any `.claude/skills/<custom-name>/` not shipped by the kit
-- Any unrelated uncommitted changes you have in the target
+- Any unrelated uncommitted changes in the target
 
-Safety: requires `.claude/` to already exist — if not, the script exits
-with instruction to use `atomic` (fresh install) instead.
+### Batch update across multiple projects
 
-To propagate a kit update to a batch of projects:
+From any one project that has the kit:
 
 ```bash
 for p in project-a project-b project-c; do
-  /path/to/orchestration-kit/deploy.sh "/root/projects/$p" --update-skills
+  (cd "/root/projects/$p" && .claude/scripts/deploy.sh . --update-skills)
 done
 ```
 
-Each iteration auto-commits+pushes; final state is every project synced
-to the current kit HEAD.
+Each iteration auto-commits + pushes in its own project; final state is every project synced to the current kit HEAD.
 
 ### 3. Interactive setup (in Claude Code)
 
