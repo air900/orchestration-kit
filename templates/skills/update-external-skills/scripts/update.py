@@ -255,6 +255,36 @@ def fmt_stars(n: Optional[int]) -> str:
 
 # --- Interactive selection --------------------------------------------------
 
+def print_rate_limit_banner(rows: list[SkillRecord]) -> None:
+    """If most unique repos failed metadata fetch due to rate limit,
+    print a prominent banner so the user doesn't mistake '-' cells
+    and 0 counts for a broken table."""
+    gh_repos = {r.source: r.repo_meta for r in rows if r.source_type == "github" and r.repo_meta}
+    if not gh_repos:
+        return
+    rate_limited = sum(1 for m in gh_repos.values() if m.fetch_error and "rate-limit" in m.fetch_error)
+    if rate_limited == 0:
+        return
+    ratio = rate_limited / len(gh_repos)
+    if ratio < 0.5:
+        return  # minor issue, not worth a banner
+
+    print()
+    print(f"{C.RED}{C.BOLD}╔══════════════════════════════════════════════════════════════════════╗{C.RESET}")
+    print(f"{C.RED}{C.BOLD}║  ⚠ GITHUB API RATE LIMIT HIT  —  stats are temporarily unavailable   ║{C.RESET}")
+    print(f"{C.RED}{C.BOLD}╚══════════════════════════════════════════════════════════════════════╝{C.RESET}")
+    print(f"  {rate_limited} of {len(gh_repos)} unique repos returned {C.RED}HTTP 403 rate-limit{C.RESET}.")
+    print(f"  That is why {C.BOLD}Stars{C.RESET} and {C.BOLD}Remote pushed{C.RESET} columns show '-' and")
+    print(f"  most rows are tagged {C.RED}no-meta{C.RESET}. This is NOT a table-rendering bug.")
+    print()
+    print(f"  {C.BOLD}Fix in one of two ways:{C.RESET}")
+    print(f"    1. Wait ~1 hour — anonymous limit (60 req/hr) will reset.")
+    print(f"    2. Set {C.BOLD}GITHUB_TOKEN{C.RESET} env var (5000 req/hr with auth):")
+    print(f"         export GITHUB_TOKEN=ghp_...   # classic PAT, no scopes needed for public repos")
+    print(f"       then re-run this command.")
+    print()
+
+
 def print_stats_summary(rows: list[SkillRecord]) -> None:
     """Aggregate numbers first, so stats are visible even if the table is
     reformatted by a wrapping layer."""
@@ -280,13 +310,22 @@ def print_stats_summary(rows: list[SkillRecord]) -> None:
     print(f"{C.BOLD}=== Stats summary ==={C.RESET}")
     print(f"  Skills in lock:      {total}")
     print(f"  Unique repos:        {len(unique_repos)}")
-    print(f"  Current:             {C.GREEN}{status_counts['current']}{C.RESET}")
-    print(f"  Stale (updatable):   {C.YELLOW}{status_counts['stale']}{C.RESET}")
+    # If metadata is mostly unavailable, mark stats as unknown rather than 0.
+    all_no_meta = status_counts['no-meta'] + status_counts['missing'] == total
+    if all_no_meta and status_counts['no-meta'] > 0:
+        print(f"  Current:             {C.DIM}unknown (rate-limited){C.RESET}")
+        print(f"  Stale (updatable):   {C.DIM}unknown (rate-limited){C.RESET}")
+    else:
+        print(f"  Current:             {C.GREEN}{status_counts['current']}{C.RESET}")
+        print(f"  Stale (updatable):   {C.YELLOW}{status_counts['stale']}{C.RESET}")
     if status_counts['no-meta']:
         print(f"  No-metadata:         {C.RED}{status_counts['no-meta']}{C.RESET}   (metadata fetch failed)")
     if status_counts['missing']:
         print(f"  {C.RED}Missing (ghosts):    {status_counts['missing']}{C.RESET}   (in lock but not on disk — see below)")
-    print(f"  Total stars (sum):   {fmt_stars(total_stars)}")
+    if total_stars > 0:
+        print(f"  Total stars (sum):   {fmt_stars(total_stars)}")
+    else:
+        print(f"  Total stars (sum):   {C.DIM}unknown (rate-limited){C.RESET}")
     if most_popular[0] and most_popular[1].stars:
         print(f"  Most popular repo:   {most_popular[0]} ({fmt_stars(most_popular[1].stars)} ⭐)")
     if most_recent:
@@ -370,6 +409,7 @@ def prompt_selection(records: list[SkillRecord]) -> tuple[str, list[SkillRecord]
       ("clean",  [])                  — remove ghost entries from lock
       ("cancel", [])                  — exit without changes
     """
+    print_rate_limit_banner(records)
     print_stats_summary(records)
     print_status_legend()
     print_selection_table(records)
