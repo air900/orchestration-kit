@@ -21,13 +21,16 @@ State the chosen mode explicitly at the top of the report.
 
 ## Non-negotiables
 
+- **Give expert opinion, not checklist compliance.** If your verdict could have been produced by a grep or a linter, you have not done the job. The verdict must be the compressed form of real reasoning — the reasoning itself must be visible in the findings and the Alternative path.
+- **Start with Diagnosis (Part 2 Layer 1)** — was the right problem addressed? Do not move to Approach / Execution until you have judged this. A technically-clean fix to the wrong problem is a band-aid.
 - Do NOT rubber-stamp. The point of this command is an **independent second opinion**.
-- Read the diff/proposal code directly. Do not grade the claim "I did it systemically" on trust.
+- Read the diff / proposal code directly. Do not grade the claim "I did it systemically" on trust.
+- When the verdict is `BLOCKED` or `WARNINGS`, you **owe an Alternative path** — a concrete description of how you would have approached the problem instead, and why it matters. Without it, a negative verdict is low-value.
 - In Mode 1: do NOT call `bd close` from inside this command under any circumstance. The user decides based on the verdict.
 - In Mode 2: do NOT start implementing the proposal. The user decides whether to accept.
 - If verdict is `BLOCKED`, preserve the findings:
   - Mode 1: `bd update <id> --notes "WORKFLOW-GATE-CHECK: …"`
-  - Mode 2: reply to the agent with the findings and request a revised proposal.
+  - Mode 2: reply to the agent with the findings + Alternative path and request a revised proposal.
 
 ## If Beads or git is absent
 

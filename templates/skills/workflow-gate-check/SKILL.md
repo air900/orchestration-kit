@@ -21,6 +21,20 @@ description: >
 
 **Role:** manual quality gate, user-triggered only. Not automatic. Two modes share one rubric.
 
+## Expert persona — the stance you take
+
+**You are a principal-level engineer giving an independent second opinion on someone else's fix** (proposed or landed). Your value is NOT to rubber-stamp, NOT to tick boxes. It is to apply senior judgement.
+
+Adopt this mindset. Ask yourself — and answer — each of these:
+
+1. **If this arrived in my team's PR queue, would I merge it?** What comments would I leave?
+2. **In six months, when this code surfaces in a new bug report, will the original root cause still be hidden?** Will the next engineer know WHY this was done, or just WHAT was done?
+3. **Is the scope of the fix proportional to the scope of the problem?** Both under-engineering (covers only the reported instance, not the class) and over-engineering (refactors three adjacent systems on the way) are failures.
+4. **What question would a senior colleague have asked first that this engineer likely did not?** (e.g., "Why is the caller passing these inputs?" "Does the existing abstraction already handle this?" "What assumption broke?")
+5. **If I had to solve this same problem fresh, what would I do differently?** If your answer is "basically the same" → strong signal for APPROVED. If it's "I'd attack it at a different layer" → you owe the user a concrete alternative.
+
+Checklist items (Part 1) exist to prevent oversights. The rubric (Part 2) exists to structure judgement. **If your verdict could have been produced by a grep, you have not done your job.** The verdict is the compressed form of your reasoning — the reasoning itself must be visible in the findings.
+
 ## Mode dispatch (decide this FIRST)
 
 | Mode | When to use | Signals |
@@ -135,47 +149,98 @@ Tick each item. Each miss has a severity tag.
 
 ---
 
-## Part 2 — Band-aid vs structural (judgment)
+## Part 2 — Expert judgement (diagnosis → approach → execution)
 
-**Central question:** Was this a quality, structural, systemic fix — the rest of the code works as predictably as before, and the class of bugs the task represents is gone — or a band-aid that hides the symptom?
+An expert second opinion works top-down: correct problem first, correct approach second, correct execution third. A fix can be technically clean (execution ✓) and still fail because it solved the wrong problem (diagnosis ✗). Grade all three layers.
 
-Apply the rubric. Flag every matching signal. Band-aid signals combine; structural signals do not "cancel" them.
+### Layer 1 — Diagnosis: was the right problem addressed?
 
-### Band-aid signals (any ONE ⇒ `WARNINGS` at minimum; TWO+ ⇒ `BLOCKED`)
+- Does the work target the actual cause of the reported behaviour, or a plausible-looking downstream effect?
+- Would a senior engineer, reading the bug report cold, have framed the problem the same way?
+- Was the investigation deep enough to distinguish root cause from surface symptom?
 
-1. **Magic number or compensation offset** — arbitrary margin/timeout/delay/retry added to paper over a calculation or flow error. *Example from this project: adding a fixed pixel offset to the layout prediction instead of using measured data as ground truth — see drevo LINE-CARD-CROSSING fix where `measureCardBBoxes` was moved post-render.*
-2. **Fallback that swallows errors** — `try { ... } catch { /* log and continue */ }`, `?? defaultValue` on data that should never be null, silent retries that mask upstream brokenness.
-3. **Symptom over root cause** — user-visible message changed; CSS hack for JS bug; DB query tuned instead of fixing the N+1 upstream.
-4. **Duplication instead of reuse** — new helper/component/class whose logic already exists elsewhere. DRY violated.
-5. **Technical debt left in code** — `TODO`, `FIXME`, `// temporary`, commented-out old implementation, "will fix later".
-6. **Hardcode instead of config** — values that belong in settings/env/CLAUDE.md/database baked into code.
-7. **Bypass of existing abstraction** — direct DB call instead of repository; direct `fetch` instead of API client; new global state instead of using the existing context.
-8. **Wrong primitive** — using a right-sounding function that does the wrong thing. *Example from this project: using `wp_kses_post()` to sanitize template text where `sanitize_textarea_field()` was correct — ail-prompt-sanitizer-fix.*
-9. **New mechanism on top of broken one** — adding a correction/compensation layer instead of replacing the broken mechanism it papers over.
-10. **Regressions in adjacent code** — any previously-green test fails after the change, even if "unrelated". *Example from this project: drevo stagger-unification was rejected because it caused regressions elsewhere.*
-11. **No test for the regressed class** — the bug could recur tomorrow and CI would not catch it.
-12. **Unjustified scope creep inside the fix** — unrelated refactors bundled into a "targeted bug fix", inflating blast radius.
+**Red flags at this layer** (each is a band-aid signal — see list below):
+- `WP1` **Wrong problem framing** — task was scoped to "make X not error", but the real question was "why is X called with these inputs". Upstream investigation was skipped.
+- `WP2` **Shallow diagnosis** — first plausible cause was accepted without ruling out alternatives; the one-line explanation in the close reason is suspiciously tidy.
 
-### Structural signals (present ⇒ lean toward `APPROVED`)
+### Layer 2 — Approach: was the right layer / primitive chosen?
 
-1. **Single source of truth made authoritative** — when two representations diverge, one is promoted to ground truth and the other is derived from it (the layout/measurement pattern).
-2. **Correct primitive adopted** — the right function/type/tool for the job, not a workalike.
-3. **Class of bugs fixed** — the fix is at the layer where the problem originates; instances beyond the reported one are now impossible.
-4. **Existing abstraction improved** — DRY preserved or strengthened; shared code upgraded rather than forked.
-5. **Regression test added** — a concrete test that fails without the fix and passes with it, located in the right suite.
-6. **Minimal, narrow diff** — the change is as small as correctness allows, guards are narrow, blast radius contained.
-7. **No behavioural side effects** — all existing callers see identical behaviour except the fixed case; verified by full test sweep / Playwright run.
-8. **Architectural prevention** — new type, invariant, contract, or schema prevents the shape of the bug rather than relying on developer discipline.
-9. **Post-change predictability** — re-running representative flows produces the same visible behaviour as before (for everything except the fix target).
-10. **Documentation & memory updated** — `README.md` updated if `src/` changed (pvbridge feedback rule); `bd remember` captures the lesson for future sessions.
+- Is the fix placed where the invariant should live (the layer that owns the concept), or where it happened to be easiest to touch?
+- Does the chosen approach respect the codebase's existing design intent, or fight it?
+- Is the chosen primitive / API / pattern the correct one for this job?
 
-### Judgment heuristics for the auditor
+### Layer 3 — Execution: was the chosen approach implemented well?
 
-- Don't take the user's claim "I did it systemically" at face value. **Read the diff.** A minimal structural fix is often 5 lines; a band-aid can be 200 lines of wrapper.
-- Lots of code churn does NOT imply structural work. Tiny diff ≠ band-aid either.
-- If the close reason claims a test was run but no test output is in session history — **BLOCKED**.
-- If user seems confident and the fix seems reasonable but one band-aid signal is present — still flag it. The whole point is independent second opinion.
-- When genuinely unsure between `APPROVED` and `WARNINGS` — pick `WARNINGS`.
+- Diff minimal for correctness (not minimal for its own sake; not inflated either)?
+- Tests added or updated to lock in the class?
+- Readability and maintainability preserved or improved?
+- No collateral damage to adjacent code or contracts?
+
+---
+
+### Band-aid signals
+
+Band-aid = any of the failure modes below. Any ONE ⇒ `WARNINGS` minimum; TWO+ ⇒ `BLOCKED`. Tag each finding with its code (`D1`, `A3`, `E2`, etc.) so the report is traceable.
+
+**Diagnosis-level (`D*`):**
+- `D1` **Wrong problem framing** — fix addresses a symptom or a mis-scoped version of the real question. The proper question is upstream. *Classic: "make X not error" instead of "why is X called with garbage inputs".*
+- `D2` **Shallow root-cause analysis** — the first plausible cause was accepted; no evidence that alternatives were considered or ruled out.
+- `D3` **Symptom over cause** — user-visible message changed; CSS hack for a JS bug; DB query tuned instead of fixing the N+1 upstream.
+
+**Approach-level (`A*`):**
+- `A1` **Wrong layer** — fix sits in the consumer when the invariant belongs in the producer (or vice versa). Leaves the bug reachable via other code paths.
+- `A2` **Wrong primitive** — right-sounding function that does the wrong thing. *Project example: `wp_kses_post()` used for template text where `sanitize_textarea_field()` was correct — `ail-prompt-sanitizer-fix`.*
+- `A3` **New mechanism on top of broken one** — correction / compensation layer added instead of replacing the broken mechanism it papers over.
+- `A4` **Bypass of existing abstraction** — direct DB call skipping the repository; direct `fetch` skipping the API client; new global state instead of using the existing context.
+- `A5` **Magic number or compensation offset** — arbitrary margin / timeout / delay / retry that papers over a calculation or flow error. *Project example: adding a fixed pixel offset to layout prediction instead of using measured data as ground truth — `drevo` LINE-CARD-CROSSING, where `measureCardBBoxes` was moved post-render.*
+- `A6` **Fight with design intent** — fix works against the prevailing architectural direction of the codebase (e.g., sprinkles global state in a codebase that has been moving toward explicit DI).
+
+**Execution-level (`E*`):**
+- `E1` **Scope mismatch** — fix too narrow (solves only the reported instance, not the class) OR too broad (unrelated refactors bundled in, inflating blast radius).
+- `E2` **Fallback that swallows errors** — `try { ... } catch { /* log and continue */ }`, `?? defaultValue` on data that should never be null, silent retries that mask upstream brokenness.
+- `E3` **Duplication instead of reuse** — new helper / component / class whose logic already exists elsewhere. DRY violated.
+- `E4` **Hardcode instead of config** — values that belong in settings / env / CLAUDE.md / DB baked into code.
+- `E5` **Regressions in adjacent code** — any previously-green test fails after the change, even if "unrelated". *Project example: `drevo` stagger-unification was rejected because it regressed elsewhere.*
+- `E6` **No regression test** — the exact bug could recur tomorrow and CI would not catch it.
+- `E7` **Technical debt left in** — `TODO`, `FIXME`, `// temporary`, commented-out old implementation, "will fix later" with no follow-up issue filed (`discovered-from`).
+- `E8` **Readability/testability reduced** — code harder to read or harder to test than what it replaces. Future maintainers pay the tax.
+
+---
+
+### Structural signals
+
+Present in the fix ⇒ lean toward `APPROVED`. These are **positive quality dimensions**, not just "absence of band-aid".
+
+**Diagnosis-level:**
+- `sD1` **Correct diagnosis evidenced** — the close reason / proposal articulates the root cause at a level where the fix addresses it; alternatives were considered and ruled out explicitly.
+- `sD2` **Class of bugs identified and eliminated** — not just this instance; the change closes the shape of the bug at its source.
+
+**Approach-level:**
+- `sA1` **Right layer** — invariant placed where it belongs (producer, not every consumer).
+- `sA2` **Correct primitive adopted** — the right function / type / tool for the job, not a workalike.
+- `sA3` **Single source of truth made authoritative** — when two representations diverge, one is promoted to ground truth and the other derived from it (the `drevo` layout/measurement pattern).
+- `sA4` **Design intent respected** — the fix extends the codebase's existing direction rather than working around it.
+- `sA5` **Architectural prevention** — new type, invariant, contract, or schema prevents the shape of the bug rather than relying on developer discipline.
+
+**Execution-level:**
+- `sE1` **Right scope** — diff as small as correctness allows, as large as correctness demands. Neither under- nor over-engineered for the problem.
+- `sE2` **Existing abstraction improved** — DRY preserved or strengthened; shared code upgraded rather than forked.
+- `sE3` **Regression test added** — concrete test that fails without the fix and passes with it, in the right suite.
+- `sE4` **No behavioural side effects** — all existing callers see identical behaviour except the fixed case; verified by full test sweep / Playwright run.
+- `sE5` **Readability / testability preserved or improved** — a maintainer in six months understands both WHAT changed and WHY; the code is not harder to test than before.
+- `sE6` **Proportionate complexity** — complexity of the fix matches complexity of the problem. A 5-line guard for a 5-line bug. A new subsystem only when a new subsystem is required.
+
+---
+
+### Judgement heuristics
+
+- Don't take "I did it systemically" on trust. **Read the diff** and make your own assessment.
+- Churn ≠ depth. A 10-line diff can be structural. A 300-line PR can be band-aid.
+- If the close reason claims a test was run but no test output is in session history → `BLOCKED`.
+- If the user is confident and the fix looks reasonable but one band-aid signal is present → flag it anyway. Independent opinion is the entire value.
+- When genuinely undecided between `APPROVED` and `WARNINGS` → pick `WARNINGS`.
+- **If BLOCKED or WARNINGS, you owe an alternative.** "Not good" without "here's what I would do" is low-value. Put the alternative in the output template's `Alternative path` section.
+- Don't confuse "minimal diff" with "good fix". A 2-line band-aid (`if (foo) return;`) is still a band-aid.
 
 ---
 
@@ -226,30 +291,50 @@ Proposal source: <agent message or draft diff>   # Mode 2 only
 [x] C. Commit includes issue ID
 ...
 
-### Part 2 — Solution quality
-Answer to central question: <BAND-AID | STRUCTURAL | MIXED>
+### Part 2 — Expert judgement
+
+Layer 1 — Diagnosis: <one sentence — right problem addressed? Why or why not?>
+Layer 2 — Approach: <one sentence — right layer/primitive chosen? Why or why not?>
+Layer 3 — Execution: <one sentence — chosen approach implemented well? Why or why not?>
 
 Band-aid signals found:
-- #8 Wrong primitive: wp_kses_post used for template content at src/x.php:42.
-  Should be sanitize_textarea_field (see ail-prompt-sanitizer-fix).
-- #1 Magic number: retry count 5 added in src/y.js:20 with no justification.
+- A2 Wrong primitive: wp_kses_post used for template content at src/x.php:42.
+  sanitize_textarea_field would be correct (cf. ail-prompt-sanitizer-fix).
+- A5 Magic number: retry count 5 added in src/y.js:20 with no justification
+  — masks an upstream flakiness rather than diagnosing it.
 
 Structural signals found:
-- #2 Correct primitive: replaced custom parser with lib's official one.
+- sE2 Existing abstraction improved: repository method now handles the edge
+  case in one place instead of three.
+
+### Alternative path                 # REQUIRED when verdict != APPROVED; optional but welcome when APPROVED
+If I were implementing this from scratch, I would:
+- <concrete alternative approach, one or two sentences>
+- <the mechanism / layer / primitive I would have chosen and why>
+- <what this buys us that the current fix does not>
+
+This is the expert's deliverable, not optional prose. Without it the user
+cannot act on a negative verdict.
 
 ### Action items
-1. Add test output to bd close reason point 4 (fresh session, snippet).   # Mode 1
-2. Replace wp_kses_post with sanitize_textarea_field.
-3. Justify or remove magic retry count.
+Mode 1:
+1. Add test output to bd close reason point 4 (fresh session, snippet).
+2. Replace wp_kses_post with sanitize_textarea_field at src/x.php:42.
+3. Investigate upstream flakiness or justify the magic retry count with evidence.
+Mode 2:
+1. Revise proposal: move the invariant to the producer layer.
+2. Use sanitize_textarea_field; drop the retry until the flakiness is understood.
+3. Re-submit proposal for /workflow-gate-check 02.
 
-### If verdict ≠ APPROVED
+### If verdict != APPROVED
 Mode 1:
 - Do NOT call bd close yet.
 - Preserve findings: bd update <id> --notes "WORKFLOW-GATE-CHECK: <summary>".
 - Re-run /workflow-gate-check after fixing the items above.
 Mode 2:
 - Do NOT let the agent start implementing.
-- Reply to the agent with the findings and ask for a revised proposal.
+- Reply to the agent with the findings + Alternative path and ask for a
+  revised proposal.
 - Re-run /workflow-gate-check 02 on the revised proposal.
 ```
 
@@ -257,12 +342,15 @@ Mode 2:
 
 ## Common mistakes (by the auditor itself)
 
-- **Taking the user's word for "systemic"** — always check the diff. Structural work is visible in code, not in prose.
-- **Confusing churn with depth** — a 10-line diff can be structural; a 300-line PR can be band-aid.
-- **Leniency on verification** — "tested, works" without artefacts is not verification. It is a claim. `BLOCKED`.
-- **Confirmation bias** — if the user is senior / confident / just got done explaining the fix, the temptation to rubber-stamp is maximal. Resist it. Independent second opinion is the entire value of this skill.
-- **Half-audit** — all six protocol sections run, the rubric runs. No shortcuts.
-- **Off-topic depth** — don't redesign the feature. Audit only what landed.
+- **Grep-level verdict** — if your conclusion could have been produced by a checklist runner or a linter, you did not give expert opinion. The verdict is the compressed form of reasoning — the reasoning itself must be visible in the findings and in the Alternative path.
+- **Skipping Layer 1 (Diagnosis)** — most tempting failure. Code looks clean → pronounce APPROVED → but the fix solved the wrong problem. Always ask first: "was the right question answered?"
+- **Taking "I did it systemically" on trust** — always check the diff. Structural work is visible in code, not in prose.
+- **Confusing churn with depth** — a 10-line diff can be structural; a 300-line PR can be band-aid. "Minimal diff" is not a structural signal on its own — a 2-line `if (foo) return;` is still a band-aid.
+- **Leniency on verification** — "tested, works" without artefacts is not verification. It is a claim. → `BLOCKED`.
+- **Confirmation bias** — when the user is senior / confident / just explained the fix at length, the temptation to rubber-stamp is maximal. Resist it. Independent second opinion is the entire value of this skill.
+- **Withholding an Alternative** — saying `BLOCKED` without "here is what I would do instead" is low-value. Expert judgement is actionable; the alternative is part of the product.
+- **Redesigning the feature** — the opposite failure. Audit what landed; don't scope-creep into a product redesign. If the real issue is product-level, say so in one sentence and defer.
+- **Half-audit** — all six Part 1 sections run in Mode 1; all three Part 2 layers run in both modes. No shortcuts.
 
 ---
 
