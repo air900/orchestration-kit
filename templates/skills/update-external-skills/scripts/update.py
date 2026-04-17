@@ -85,6 +85,7 @@ class SkillRecord:
     new_hash: Optional[str] = None
     repo_meta: Optional[RepoMeta] = None
     local_mtime: Optional[datetime] = None
+    installed: bool = False    # does a local SKILL.md actually exist?
     selected: bool = False
 
     @property
@@ -94,6 +95,22 @@ class SkillRecord:
     @property
     def repo_key(self) -> str:
         return self.source if self.source_type == "github" else f"{self.source_type}:{self.source}"
+
+    @property
+    def status(self) -> str:
+        """Returns one of: missing, no-meta, stale, current."""
+        if not self.installed:
+            return "missing"
+        if self.repo_meta and self.repo_meta.fetch_error:
+            return "no-meta"
+        if (
+            self.repo_meta
+            and self.repo_meta.pushed_at
+            and self.local_mtime
+            and self.repo_meta.pushed_at > self.local_mtime
+        ):
+            return "stale"
+        return "current"
 
 
 # --- Lock-file handling -----------------------------------------------------
@@ -127,7 +144,10 @@ def load_lock(root: Path) -> dict[str, SkillRecord]:
 
 
 def stat_local_mtimes(root: Path, records: dict[str, SkillRecord]) -> None:
-    """Attach the mtime of each skill's SKILL.md for relative reporting."""
+    """Attach the mtime of each skill's SKILL.md + set installed=True if present.
+    If neither .agents/skills/<name>/SKILL.md nor .claude/skills/<name>/SKILL.md
+    exists, the lock entry is a 'ghost' — marked installed=False → status='missing'.
+    """
     for rec in records.values():
         candidates = [
             root / ".agents" / "skills" / rec.name / "SKILL.md",
@@ -136,6 +156,7 @@ def stat_local_mtimes(root: Path, records: dict[str, SkillRecord]) -> None:
         for c in candidates:
             if c.is_file():
                 rec.local_mtime = datetime.fromtimestamp(c.stat().st_mtime, tz=timezone.utc)
+                rec.installed = True
                 break
 
 
@@ -210,10 +231,18 @@ def rel_time(ts: Optional[datetime]) -> str:
 
 
 def is_stale(rec: SkillRecord) -> bool:
-    """Remote repo has been pushed after this skill was last installed locally."""
-    if not rec.repo_meta or not rec.repo_meta.pushed_at or not rec.local_mtime:
-        return False
-    return rec.repo_meta.pushed_at > rec.local_mtime
+    """Thin alias over rec.status for backward compatibility."""
+    return rec.status == "stale"
+
+
+def status_badge(s: str) -> str:
+    """Coloured status tag for the table."""
+    return {
+        "missing": f"{C.RED}missing{C.RESET}",
+        "no-meta": f"{C.RED}no-meta{C.RESET}",
+        "stale":   f"{C.YELLOW}stale{C.RESET}",
+        "current": f"{C.GREEN}current{C.RESET}",
+    }.get(s, s)
 
 
 def fmt_stars(n: Optional[int]) -> str:
@@ -235,9 +264,9 @@ def print_stats_summary(rows: list[SkillRecord]) -> None:
         if rec.repo_meta and rec.source_type == "github":
             unique_repos[rec.source] = rec.repo_meta
 
-    stale_count = sum(1 for r in rows if is_stale(r))
-    current_count = total - stale_count - sum(1 for r in rows if r.repo_meta and r.repo_meta.fetch_error)
-    no_meta_count = sum(1 for r in rows if r.repo_meta and r.repo_meta.fetch_error)
+    status_counts = {"missing": 0, "no-meta": 0, "stale": 0, "current": 0}
+    for r in rows:
+        status_counts[r.status] = status_counts.get(r.status, 0) + 1
 
     total_stars = sum(m.stars or 0 for m in unique_repos.values())
     most_popular = max(unique_repos.items(), key=lambda kv: kv[1].stars or 0, default=(None, None))
@@ -249,12 +278,14 @@ def print_stats_summary(rows: list[SkillRecord]) -> None:
 
     print()
     print(f"{C.BOLD}=== Stats summary ==={C.RESET}")
-    print(f"  Skills tracked:      {total}")
+    print(f"  Skills in lock:      {total}")
     print(f"  Unique repos:        {len(unique_repos)}")
-    print(f"  Stale (updatable):   {C.YELLOW}{stale_count}{C.RESET}")
-    print(f"  Current:             {C.GREEN}{current_count}{C.RESET}")
-    if no_meta_count:
-        print(f"  No-metadata:         {C.RED}{no_meta_count}{C.RESET}")
+    print(f"  Current:             {C.GREEN}{status_counts['current']}{C.RESET}")
+    print(f"  Stale (updatable):   {C.YELLOW}{status_counts['stale']}{C.RESET}")
+    if status_counts['no-meta']:
+        print(f"  No-metadata:         {C.RED}{status_counts['no-meta']}{C.RESET}   (metadata fetch failed)")
+    if status_counts['missing']:
+        print(f"  {C.RED}Missing (ghosts):    {status_counts['missing']}{C.RESET}   (in lock but not on disk — see below)")
     print(f"  Total stars (sum):   {fmt_stars(total_stars)}")
     if most_popular[0] and most_popular[1].stars:
         print(f"  Most popular repo:   {most_popular[0]} ({fmt_stars(most_popular[1].stars)} ⭐)")
@@ -262,12 +293,21 @@ def print_stats_summary(rows: list[SkillRecord]) -> None:
         print(f"  Most recent push:    {most_recent.owner}/{most_recent.repo} ({rel_time(most_recent.pushed_at)})")
     print()
 
+    if status_counts['missing']:
+        print(f"{C.RED}{C.BOLD}⚠ Ghost entries in skills-lock.json (not installed on disk):{C.RESET}")
+        for r in rows:
+            if r.status == "missing":
+                print(f"  • {r.name!r}  (source: {r.source})")
+        print(f"  Remedy: either {C.BOLD}npx skills add <source>@<name>{C.RESET} to install, or edit skills-lock.json to remove the ghost entry.")
+        print()
+
 
 def print_status_legend() -> None:
     print(f"{C.BOLD}=== Status meanings ==={C.RESET}")
     print(f"  {C.GREEN}current{C.RESET}  — upstream has NOT been pushed since your local install; no update needed.")
     print(f"  {C.YELLOW}stale{C.RESET}    — upstream HAS been pushed since your local install; likely has updates available.")
     print(f"  {C.RED}no-meta{C.RESET}  — couldn't fetch GitHub metadata (rate limit, 404, or network error); status unknown.")
+    print(f"  {C.RED}missing{C.RESET}  — entry in skills-lock.json but NO local files (.agents/skills/<name>/ or .claude/skills/<name>/ do not exist). Ghost lock entry — install failed or files were deleted.")
     print()
 
 
@@ -281,8 +321,7 @@ def print_selection_table(rows: list[SkillRecord]) -> None:
         pushed = rel_time(meta.pushed_at) if meta else "-"
         stars = fmt_stars(meta.stars) if meta else "-"
         repo = rec.source if rec.source_type == "github" else f"({rec.source_type}:{rec.source})"
-        status = f"{C.YELLOW}stale{C.RESET}" if is_stale(rec) else (f"{C.RED}no-meta{C.RESET}" if meta and meta.fetch_error else f"{C.GREEN}current{C.RESET}")
-        print(f"  {idx:>3}  {rec.name[:38]:<38} {repo[:40]:<40} {stars:>6}  {pushed:<14}  {status}")
+        print(f"  {idx:>3}  {rec.name[:38]:<38} {repo[:40]:<40} {stars:>6}  {pushed:<14}  {status_badge(rec.status)}")
     print()
 
 

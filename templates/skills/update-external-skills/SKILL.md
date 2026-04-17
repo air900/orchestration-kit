@@ -115,13 +115,20 @@ If the table appears wide in the terminal/UI, let it wrap naturally. Do not sque
 
 ## Status semantics
 
-| Status    | Meaning                                                                                                   |
-| :-------- | :-------------------------------------------------------------------------------------------------------- |
-| `current` | Upstream repo has NOT been pushed since this local skill was installed. No update needed.                |
-| `stale`   | Upstream repo HAS been pushed since this local skill was installed. An update is likely available.       |
-| `no-meta` | Could not fetch GitHub metadata (rate limit, 404, network error). Status cannot be determined.           |
+| Status    | Meaning                                                                                                                                            |
+| :-------- | :------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `current` | Upstream repo has NOT been pushed since this local skill was installed. No update needed.                                                         |
+| `stale`   | Upstream repo HAS been pushed since this local skill was installed. An update is likely available.                                                |
+| `no-meta` | Could not fetch GitHub metadata (rate limit, 404, network error). Status cannot be determined — set `GITHUB_TOKEN` or retry later.                |
+| `missing` | Entry exists in `skills-lock.json` but no local files (`.agents/skills/<name>/SKILL.md` and `.claude/skills/<name>/SKILL.md` both absent). A **ghost** lock entry from a failed install or a manual deletion. Remedy: re-run `npx skills add <source>@<name>`, or edit `skills-lock.json` to drop the stale entry. |
 
 "Stale" is a *likelihood* signal, not a guarantee of actual drift — the underlying content may or may not have changed. The authoritative drift test is `npx skills update <name>` itself, which compares `computedHash` in `skills-lock.json` vs the source.
+
+"Missing" is flagged before any GitHub call — it's a pure on-disk check. If flagged, the stats summary prints a dedicated `⚠ Ghost entries` block with the repaired-install command.
+
+## Who writes `skills-lock.json`?
+
+The `npx skills` CLI (from `vercel-labs/skills`) is the ONLY writer. Our `find-skills` slash command only *recommends* the install command (`npx skills add <owner/repo@skill>`); the actual install + lock write is done by the `npx skills` binary. A ghost entry means the CLI wrote the lock but failed to deliver the files (partial install, path issue, or manual deletion after install).
 
 ## Failure modes
 
