@@ -80,6 +80,55 @@ git clone --depth 1 https://github.com/air900/orchestration-kit.git /tmp/orch-ki
 rm -rf /tmp/orch-kit
 ```
 
+### 2b. Refresh kit content on an already-deployed project
+
+When the kit is updated (new skill, new hook, modified slash command, etc.)
+and you want to propagate the change to a project that already has the kit
+deployed, use `--update-skills`:
+
+```bash
+cd /path/to/orchestration-kit
+./deploy.sh /path/to/my-project --update-skills
+```
+
+What it does:
+
+- Re-copies all kit-shipped content: `.claude/agents/`, `.claude/skills/`
+  (with `references/`), `.claude/commands/`, `.claude/hooks/`,
+  `.claude/references/`, and merges `.claude/settings.json` hooks.
+- For **skill directories**, nukes and re-copies (so if a skill previously
+  had 5 reference files and now has 3, the old 2 are removed cleanly).
+- For **single files** (agents, commands, hooks, shared refs), overwrites
+  same-name files only. Custom files with non-kit names are left untouched.
+- **Auto-commits** the changes in the target project with a message
+  including the kit commit SHA for traceability, and **auto-pushes** to
+  the tracked remote. Uses explicit path staging (never `git add -A`), so
+  any unrelated uncommitted work you had stays uncommitted.
+
+What it does NOT touch:
+
+- `.claude/settings.local.json` — your local permissions
+- `.claude/orchestration-config.json` — project artefact paths
+- `.beads/` — issue tracker state
+- `docs/orchestration/` — generated content
+- `CLAUDE.md` — project documentation
+- Any `.claude/skills/<custom-name>/` not shipped by the kit
+- Any unrelated uncommitted changes you have in the target
+
+Safety: requires `.claude/` to already exist — if not, the script exits
+with instruction to use `atomic` (fresh install) instead.
+
+To propagate a kit update to a batch of projects:
+
+```bash
+for p in project-a project-b project-c; do
+  /path/to/orchestration-kit/deploy.sh "/root/projects/$p" --update-skills
+done
+```
+
+Each iteration auto-commits+pushes; final state is every project synced
+to the current kit HEAD.
+
 ### 3. Interactive setup (in Claude Code)
 
 ```

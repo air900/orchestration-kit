@@ -409,6 +409,77 @@ if [ "$PROJECT_TYPE" = "multi" ]; then
     log_info "Use /deploy-orchestration to define sub-projects and generate CLAUDE.md sections"
 fi
 
+# --- Auto commit + push (only in --update-skills mode on git repos) ---
+UPDATE_PUSHED=false
+UPDATE_COMMIT_SHA=""
+if [ "$UPDATE_MODE" = true ] && [ -d "$TARGET/.git" ]; then
+    KIT_SHA=$(cd "$SCRIPT_DIR" && git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    (
+        cd "$TARGET" || exit 1
+        # Stage only kit-owned paths (never git add -A — user may have unrelated
+        # uncommitted work that should not land in our auto-commit).
+        git add .claude/agents .claude/skills .claude/references .claude/commands \
+                .claude/hooks .claude/.gitignore .claude/settings.json 2>/dev/null || true
+
+        if git diff --cached --quiet; then
+            log_info "No kit-content drift; nothing to commit."
+            exit 10
+        fi
+
+        COMMIT_MSG="chore(orchestration): refresh kit content (kit ${KIT_SHA})
+
+Auto-synced by: deploy.sh --update-skills from orchestration-kit ${KIT_SHA}
+
+Paths refreshed:
+- .claude/agents/             kit agent roster
+- .claude/skills/             kit skills (directories with references/)
+- .claude/commands/           kit slash commands
+- .claude/references/         kit shared references
+- .claude/hooks/              kit hooks (log-commands.sh etc.)
+- .claude/.gitignore          audit-log exclusion
+- .claude/settings.json       merged hooks
+
+Custom files with non-kit names are preserved. settings.local.json,
+orchestration-config.json, .beads/, docs/orchestration/ untouched.
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
+
+        if git commit -m "$COMMIT_MSG" --quiet; then
+            COMMIT_SHA=$(git rev-parse --short HEAD)
+            log_ok "Committed: $COMMIT_SHA"
+            echo "$COMMIT_SHA" > /tmp/.wgc_commit_sha
+
+            if git rev-parse --abbrev-ref --symbolic-full-name '@{u}' &>/dev/null; then
+                if git push --quiet 2>/dev/null; then
+                    log_ok "Pushed to $(git rev-parse --abbrev-ref '@{u}')"
+                    exit 0
+                else
+                    log_warn "git push failed — run 'git push' manually in $TARGET"
+                    exit 11
+                fi
+            else
+                log_warn "No upstream branch set — run 'git push -u origin <branch>' manually"
+                exit 11
+            fi
+        else
+            log_error "git commit failed"
+            exit 12
+        fi
+    )
+    rc=$?
+    case $rc in
+        0)  UPDATE_PUSHED=true
+            UPDATE_COMMIT_SHA=$(cat /tmp/.wgc_commit_sha 2>/dev/null || echo "")
+            rm -f /tmp/.wgc_commit_sha ;;
+        10) : ;; # no changes
+        11) UPDATE_COMMIT_SHA=$(cat /tmp/.wgc_commit_sha 2>/dev/null || echo "")
+            rm -f /tmp/.wgc_commit_sha ;;
+        *)  log_warn "Auto-commit subshell exited with code $rc" ;;
+    esac
+elif [ "$UPDATE_MODE" = true ]; then
+    log_warn "Target is not a git repo — skipping auto-commit/push"
+fi
+
 # --- Summary ---
 echo ""
 echo -e "${GREEN}================================================================${NC}"
@@ -432,10 +503,15 @@ echo "    - agents/, skills/ (with references/), commands/, hooks/, shared refer
 echo "    - settings.json hooks merged with kit's latest"
 echo "    - orchestration-config.json and .beads/ left untouched"
 echo ""
-echo "  Next steps:"
-echo "    1. cd $TARGET"
-echo "    2. git status — review what changed"
-echo "    3. git commit -am 'chore(orchestration): refresh kit content' && git push"
+if [ "$UPDATE_PUSHED" = true ]; then
+echo "  Git:        committed ($UPDATE_COMMIT_SHA) and pushed to remote."
+elif [ -n "$UPDATE_COMMIT_SHA" ]; then
+echo "  Git:        committed ($UPDATE_COMMIT_SHA) but push failed — run 'git push' in $TARGET."
+elif [ -d "$TARGET/.git" ]; then
+echo "  Git:        no drift detected; no commit created."
+else
+echo "  Git:        target is not a git repo; manual tracking required."
+fi
 else
 echo "  Next steps:"
 echo "    1. cd $TARGET"
