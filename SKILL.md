@@ -237,6 +237,8 @@ Manual commands:
 - `/find-skills` — Discover and install new skills from registry
 - `/sync-skills` — Detect unregistered skills in `.claude/skills/`
 - `/knowledge-harvest` — Extract insights from sessions to knowledge base
+- `/workflow-gate` — Beads quality-overlay entry (delegates to template-bridge:unified-workflow)
+- `/workflow-gate-check` — Post-task audit (Mode 1) or independent second opinion on a proposed solution (Mode 2). Slash: `/workflow-gate-check` or `/workflow-gate-check 02`
 
 {FOR EACH INSTALLED EXTERNAL SKILL:}
 **External:**
