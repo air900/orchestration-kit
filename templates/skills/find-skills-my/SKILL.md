@@ -39,7 +39,7 @@ If the request is vague ("find me something useful"), ask one clarifying questio
 Run the inventory script to see what the user already has:
 
 ```bash
-python3 .agents/skills/find-skills-my/scripts/inventory_local.py --cwd "$(pwd)"
+python3 .claude/skills/find-skills-my/scripts/inventory_local.py --cwd "$(pwd)"
 ```
 
 This returns JSON with all locally installed skills: names, descriptions, paths, scope (global vs project).
