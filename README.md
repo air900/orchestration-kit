@@ -5,7 +5,7 @@ Lightweight development orchestration for Claude Code. Deploys specialist agents
 ## What You Get
 
 - **7 specialist agents** — planner, security-auditor, senior-reviewer, refactor, documenter, doc-keeper, observer
-- **7 skills** — `/arch-review`, `/security-audit`, `/refactor-code`, `/012-update-docs`, `/find-skills-my`, `/sync-skills`, `/knowledge-harvest`
+- **8 skills** — `/arch-review`, `/security-audit`, `/refactor-code`, `/012-update-docs`, `/find-skills-my`, `/sync-skills`, `/knowledge-harvest`, `/delegate-with-context`
 - **Language hooks** — auto-lint/format after every edit (TypeScript, Python, Go, Rust, JavaScript)
 - **Safety guard** — PreToolUse hook blocking `rm -rf`, `git push --force`, `git reset --hard`
 - **Config-driven artifacts** — plans, reports, issues, doc-drafts, observer reports
@@ -188,10 +188,11 @@ User: /workflow-gate fix LINE-CARD-CROSSING P1
 After the core flow you can plug in specialist agents on demand:
 
 ```
-/arch-review      — architecture health
-/security-audit   — OWASP Top 10
-/refactor-code    — structural refactor
-/012-update-docs  — docs sweep
+/arch-review            — architecture health
+/security-audit         — OWASP Top 10
+/refactor-code          — structural refactor
+/012-update-docs        — docs sweep
+/delegate-with-context  — chat-to-subagents dispatch (Iron Law evidence)
 ```
 
 And for end-of-epic documentation: `documenter` → `doc-keeper` → `observer`.

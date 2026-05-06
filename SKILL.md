@@ -239,6 +239,7 @@ Manual commands:
 - `/knowledge-harvest` — Extract insights from sessions to knowledge base
 - `/workflow-gate` — Beads quality-overlay entry (delegates to template-bridge:unified-workflow)
 - `/workflow-gate-check` — Post-task audit (Mode 1) or independent second opinion on a proposed solution (Mode 2). Slash: `/workflow-gate-check` or `/workflow-gate-check 02`
+- `/delegate-with-context` — Chat-to-subagents dispatch gateway. Distills the architect's pick, builds a context bundle (CLAUDE.md + optional overlay + docs manifest), runs implementer + spec-reviewer + code-quality-reviewer with Iron Law evidence, ends with doc-proposer + knowledge-harvester. Use after a discussion or for handoff blobs. `--dry-run` prints planned prompts without dispatching
 
 {FOR EACH INSTALLED EXTERNAL SKILL:}
 **External:**
@@ -338,7 +339,7 @@ Project: {name}
 Type: {atomic | multi-purpose}
 Purpose: {from conversation}
 Tech stack: {from answers}
-Skills: 7 (arch-review, security-audit, refactor-code, 012-update-docs, find-skills-my, sync-skills, knowledge-harvest)
+Skills: 8 (arch-review, security-audit, refactor-code, 012-update-docs, find-skills-my, sync-skills, knowledge-harvest, delegate-with-context)
 External skills: {count} ({list names})
 Specialist agents: 7 (planner, security-auditor, senior-reviewer, refactor, documenter, doc-keeper, observer)
 
