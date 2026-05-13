@@ -166,7 +166,6 @@ if [ "$UPDATE_MODE" = false ]; then
   else
     log_warn "claude CLI not found — install plugins manually after setup:"
     echo "  claude plugin install superpowers"
-    echo "  claude plugin marketplace add steveyegge/beads && claude plugin install beads"
     echo "  claude plugin marketplace add maslennikov-ig/template-bridge && claude plugin install template-bridge"
     echo ""
   fi
