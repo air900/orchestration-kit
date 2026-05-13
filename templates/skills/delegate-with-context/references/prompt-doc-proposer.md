@@ -1,6 +1,6 @@
 # Prompt Template — Doc Proposer
 
-Phase 8 dispatch (parallel with knowledge-harvester). Scans changes, proposes architectural doc edits. Does NOT apply edits — controller applies after architect approval.
+Phase 8 dispatch (parallel with doc-curator). Scans changes, proposes architectural doc edits. Does NOT apply edits — controller applies after architect approval.
 
 ## Subagent type
 

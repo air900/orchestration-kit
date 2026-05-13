@@ -1,6 +1,6 @@
 # Prompt Template — Doc Curator
 
-Phase 8 dispatch (parallel with doc-proposer and knowledge-harvester). Reviews the project's `docs/MANIFEST.md` against this run's outputs and proposes structural updates: ADD, ARCHIVE, RESTRUCTURE, or BOOTSTRAP.
+Phase 8 dispatch (parallel with doc-proposer). Reviews the project's `docs/MANIFEST.md` against this run's outputs and proposes structural updates: ADD, ARCHIVE, RESTRUCTURE, or BOOTSTRAP.
 
 ## Subagent type
 
