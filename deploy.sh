@@ -153,7 +153,7 @@ if [ "$UPDATE_MODE" = false ]; then
 
     # Template Bridge (recommended — connects Superpowers)
     if ! echo "$PLUGIN_LIST" | grep -q "template-bridge"; then
-        log_warn "Template Bridge plugin not found (connects Superpowers + Beads into unified flow)"
+        log_warn "Template Bridge plugin not found (connects Superpowers into unified flow)"
         if ask_yes "Install template-bridge?"; then
             log_info "Adding template-bridge marketplace..."
             claude plugin marketplace add maslennikov-ig/template-bridge 2>&1 || true
