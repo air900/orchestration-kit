@@ -171,23 +171,6 @@ if [ "$UPDATE_MODE" = false ]; then
   fi
 fi
 
-# --- Check & install bd CLI (skipped in --update-skills mode) ---
-HAS_BD=false
-if command -v bd &>/dev/null; then
-    HAS_BD=true
-    [ "$UPDATE_MODE" = false ] && log_ok "bd CLI found"
-elif [ "$UPDATE_MODE" = false ]; then
-    log_warn "bd CLI not found (needed for Beads task tracking)"
-    if command -v npm &>/dev/null; then
-        if ask_yes "Install bd globally via npm?"; then
-            log_info "Installing @beads/bd..."
-            npm install -g @beads/bd 2>&1 && { HAS_BD=true; log_ok "bd CLI installed"; } || log_warn "Failed — install manually: npm install -g @beads/bd"
-        fi
-    else
-        log_info "Install manually: npm install -g @beads/bd"
-    fi
-fi
-
 log_info "Deploying orchestration to: $TARGET"
 log_info "Project type: $PROJECT_TYPE"
 
