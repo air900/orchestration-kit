@@ -79,7 +79,7 @@ usage() {
     echo "  --update-skills      Refresh kit content ONLY on an already-deployed project:"
     echo "                       re-copies agents, skills (with refs/), commands, hooks,"
     echo "                       references, and merges settings.json. Skips plugin checks,"
-    echo "                       bd init, orchestration-config. Requires .claude/ to exist."
+    echo "                       orchestration-config. Requires .claude/ to exist."
     echo ""
     echo "After fresh install, run /deploy-orchestration in Claude Code to"
     echo "discover task-specific skills and generate CLAUDE.md."
@@ -101,13 +101,13 @@ UPDATE_MODE=false
 if [[ "$PROJECT_TYPE" == "--update-skills" ]]; then
     UPDATE_MODE=true
     # Safety: --update-skills only makes sense on an already-deployed project.
-    # Fresh install should use atomic/multi to trigger plugin checks + bd init.
+    # Fresh install should use atomic/multi to trigger plugin checks.
     if [ ! -d "$TARGET/.claude" ]; then
         log_error "--update-skills requires an existing deployment (.claude/ not found at $TARGET)"
         log_info "For fresh install, use: $0 $TARGET atomic"
         exit 1
     fi
-    log_info "UPDATE-SKILLS mode: refreshing kit content only (no plugin checks, no bd init)"
+    log_info "UPDATE-SKILLS mode: refreshing kit content only (no plugin checks)"
 elif [[ "$PROJECT_TYPE" != "atomic" && "$PROJECT_TYPE" != "multi" ]]; then
     log_error "Second argument must be one of: atomic | multi | --update-skills (got: $PROJECT_TYPE)"
     exit 1
@@ -465,7 +465,7 @@ Paths refreshed:
 - .claude/settings.json       merged hooks
 
 Custom files with non-kit names are preserved. settings.local.json,
-orchestration-config.json, .beads/, docs/orchestration/ untouched.
+orchestration-config.json, docs/orchestration/ untouched.
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 
@@ -526,7 +526,7 @@ if [ "$UPDATE_MODE" = true ]; then
 echo "  What changed in this run:"
 echo "    - agents/, skills/ (with references/), commands/, hooks/, shared references/"
 echo "    - settings.json hooks merged with kit's latest"
-echo "    - orchestration-config.json and .beads/ left untouched"
+echo "    - orchestration-config.json left untouched"
 echo ""
 if [ "$UPDATE_PUSHED" = true ]; then
 echo "  Git:        committed ($UPDATE_COMMIT_SHA) and pushed to remote."
@@ -555,7 +555,7 @@ echo "       This discovers relevant skills and generates CLAUDE.md."
 echo ""
 echo "  After setup, Superpowers handles the dev loop."
 fi
-echo "  Beads tracks tasks across sessions (bd ready, bd create)."
+echo "  Task discipline reference: see .claude/skills/workflow-gate/SKILL.md"
 echo ""
 echo "  Specialist skills:"
 echo "    /arch-review     — Architecture health check"
