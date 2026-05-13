@@ -399,20 +399,6 @@ fi
 
 rm -f "$NEW_SETTINGS_FILE"
 
-# --- Initialize Beads (skipped in --update-skills mode — already initialised) ---
-if [ "$UPDATE_MODE" = false ]; then
-    if [ "$HAS_BD" = true ] && [ -d "$TARGET/.git" ]; then
-        if [ ! -d "$TARGET/.beads" ]; then
-            log_info "Initializing Beads issue tracker..."
-            (cd "$TARGET" && bd init 2>/dev/null) && log_ok "Beads initialized (.beads/)" || log_warn "Beads init failed — you can run 'bd init' manually"
-        else
-            log_info "Beads already initialized, skipping"
-        fi
-    elif [ "$HAS_BD" = false ]; then
-        log_info "bd CLI not found. Install: npm install -g @beads/bd"
-    fi
-fi
-
 # --- Multi-project structure ---
 if [ "$PROJECT_TYPE" = "multi" ]; then
     log_info "Setting up multi-project structure..."
