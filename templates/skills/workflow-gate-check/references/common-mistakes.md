@@ -27,9 +27,9 @@ Load this file during any Mode when the skill is about to produce its verdict. T
 ## Mode 3 specific
 
 - **Enriching unrelated tasks** — Mode 3's scope filter exists for a reason. Pumping unrelated P1 tasks with noise from this session's context hides future signal.
-- **Dumping conversation into bd notes** — bad form. Extract *knowledge atoms* (one-line findings, mappings, decisions with rationale), not transcripts. If the content is transcript-shaped, commit it to `docs/orchestration/doc-drafts/` and link from the issue.
-- **Fabricating a design decision** — if the conversation is ambiguous about "why was X chosen", ask the user before `bd decision`. A wrong decision record is worse than no record.
+- **Dumping conversation into task notes/comments** — bad form. Extract *knowledge atoms* (one-line findings, mappings, decisions with rationale), not transcripts. If the content is transcript-shaped, commit it to `docs/orchestration/doc-drafts/` and link from the issue.
+- **Fabricating a design decision** — if the conversation is ambiguous about "why was X chosen", ask the user before writing a decision block in handoff file. A wrong decision record is worse than no record.
 - **Silently losing volatile state** — if `S1` artefacts are about to die and you cannot recover them, say so explicitly in the report. Don't pretend.
 - **Force-fitting code vocabulary to non-code domains** — "runtime invariants" for a content task is a smell. Use the domain-appropriate wording (brand voice rule, SEO guardrail, legal boundary) and flag the category (`S4`) the same.
-- **Acting before approval** — Mode 3 Phase 2 requires the user to approve the enrichment plan. Running `bd update` / `bd decision` / `git commit` before approval is a trust violation.
+- **Acting before approval** — Mode 3 Phase 2 requires the user to approve the enrichment plan. Running task edits / handoff-file edits / git commit before approval is a trust violation.
 - **Stopping at "everything looks fine"** — if Phase 1 finds zero gaps on every related task, either (a) no related tasks existed, (b) the scope filter was wrong, or (c) your gap detection was shallow. Re-check before declaring APPROVED.
