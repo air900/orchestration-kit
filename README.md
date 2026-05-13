@@ -1,6 +1,6 @@
 # Orchestration Kit
 
-Lightweight development orchestration for Claude Code. Deploys specialist agents, quality skills, and language hooks to any project — designed to work **alongside Superpowers** (methodology) and **Beads** (task tracking).
+Lightweight development orchestration for Claude Code. Deploys specialist agents, quality skills, and language hooks to any project — designed to work **alongside Superpowers** (methodology) and **Template Bridge** (workflow orchestration).
 
 ## What You Get
 
@@ -12,20 +12,16 @@ Lightweight development orchestration for Claude Code. Deploys specialist agents
 
 ## Architecture
 
-Orchestration Kit follows the **D1 4-layer model** — each layer has a single clear responsibility, glued together by a thin project-local layer on top.
+Orchestration Kit follows the **D1 3-layer model** — each layer has a single clear responsibility, glued together by a thin project-local layer on top.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ L1 — BEADS (operational memory, vertical)                   │
-│   Plugin: steveyegge/beads                                  │
-│   Our overlay: 6-point issue desc, 4-point close reason     │
-├─────────────────────────────────────────────────────────────┤
-│ L2 — TEMPLATE BRIDGE (workflow orchestrator, horizontal)    │
+│ L1 — TEMPLATE BRIDGE (workflow orchestrator)                │
 │   Plugin: maslennikov-ig/template-bridge                    │
-│   Skill: unified-workflow (9-step flow)                     │
+│   Skill: unified-workflow (end-to-end flow)                 │
 │   Bonus: template-catalog + /browse-templates               │
 ├─────────────────────────────────────────────────────────────┤
-│ L3 — SUPERPOWERS (dev-loop skills, used as-is)              │
+│ L2 — SUPERPOWERS (dev-loop skills, used as-is)              │
 │   Plugin: obra/superpowers                                  │
 │   Skills: brainstorming, writing-plans,                     │
 │           test-driven-development,                          │
@@ -33,14 +29,14 @@ Orchestration Kit follows the **D1 4-layer model** — each layer has a single c
 │           finishing-a-development-branch,                   │
 │           using-superpowers (SessionStart 1% rule)          │
 ├─────────────────────────────────────────────────────────────┤
-│ L4 — ORCHESTRATION-KIT (thin glue, project-local)           │
-│   • .claude/commands/workflow-gate.md — NEW slash command   │
-│   • .claude/skills/workflow-gate/ — Beads-discipline ref    │
+│ L3 — ORCHESTRATION-KIT (thin glue, project-local)           │
+│   • .claude/commands/workflow-gate.md — slash command       │
+│   • .claude/skills/workflow-gate/ — task-discipline ref     │
 │   • .claude/settings.json — simplified hooks                │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-Superpowers handles the core dev loop. Template Bridge's `unified-workflow` skill orchestrates it end-to-end. Beads keeps persistent memory across sessions. Orchestration Kit adds the `/workflow-gate` entry point plus **deep specialized analysis** that Superpowers doesn't cover: OWASP security audits, architecture health checks, documentation lifecycle, process improvement.
+Superpowers handles the core dev loop. Template Bridge's `unified-workflow` skill orchestrates it end-to-end. Orchestration Kit adds the `/workflow-gate` entry point plus **deep specialized analysis** that Superpowers doesn't cover: OWASP security audits, architecture health checks, documentation lifecycle, process improvement.
 
 ## Quick Start
 
@@ -54,11 +50,6 @@ claude plugin install superpowers
 # Required — workflow orchestrator (unified-workflow skill + template-catalog)
 claude plugin marketplace add maslennikov-ig/template-bridge
 claude plugin install template-bridge
-
-# Recommended — persistent task tracking (operational memory)
-claude plugin marketplace add steveyegge/beads
-claude plugin install beads
-npm install -g @beads/bd
 ```
 
 ### 2. Deploy orchestration to your project
@@ -129,7 +120,6 @@ Environment overrides (work for all three update paths): `ORCHESTRATION_KIT_REPO
 
 - `.claude/settings.local.json` — your local permissions
 - `.claude/orchestration-config.json` — project artefact paths
-- `.beads/` — issue tracker state
 - `docs/orchestration/` — generated content
 - `CLAUDE.md` — project documentation
 - Any `.claude/skills/<custom-name>/` not shipped by the kit
@@ -174,15 +164,15 @@ User: /workflow-gate fix LINE-CARD-CROSSING P1
   ▼ commands/workflow-gate.md injects task text + quality overlays.
   │
   ▼ template-bridge:unified-workflow runs:
-     1. bd create      (6-point description — our overlay)
+     1. Task record   (6-point description — our overlay; tracker or docs/orchestration/issues/)
      2. superpowers:brainstorming
      3. superpowers:writing-plans
-     4. sub-tasks (bd create + dep add)
+     4. sub-tasks (track in same place as parent)
      5. superpowers:using-git-worktrees (if non-trivial)
      6. TDD via superpowers:test-driven-development
      7. superpowers:verification-before-completion (Iron Law)
      8. superpowers:finishing-a-development-branch
-     9. bd close       (4-point reason incl Verification — our overlay)
+     9. Task close    (4-point reason in commit body or tracker close — our overlay)
 ```
 
 After the core flow you can plug in specialist agents on demand:
@@ -203,9 +193,8 @@ And for end-of-epic documentation: `documenter` → `doc-keeper` → `observer`.
 
 | Компонент | Роль | Когда работает |
 |-----------|------|----------------|
-| **Template Bridge** (`unified-workflow`) | Оркестратор: склеивает Beads + Superpowers в 9 шагов | Всегда — точка входа через `/workflow-gate` |
+| **Template Bridge** (`unified-workflow`) | Оркестратор: склеивает Superpowers в единый flow | Всегда — точка входа через `/workflow-gate` |
 | **Superpowers** | Dev loop: brainstorm, plan, TDD, review, verify | Всегда — основной движок |
-| **Beads** | Задачи, зависимости, история, межсессионный контекст | Всегда — operational memory |
 | **Specialist agents** | Глубокий анализ: архитектура, безопасность, рефакторинг | По запросу |
 | **Template Catalog** | 413+ on-demand специалистов (K8s, Rust, GraphQL...) | Когда нет нужного скилла |
 | **Language hooks** | Auto-lint/format после каждого Edit/Write | Всегда, фоново |
@@ -216,42 +205,41 @@ And for end-of-epic documentation: `documenter` → `doc-keeper` → `observer`.
 **Быстрый фикс** (5 минут, одна сессия):
 ```
 ТЫ: /workflow-gate Кнопка не работает на мобильных, исправь
-→ beads: создаёт задачу
+→ create task record (issue tracker / PR body / docs/orchestration/issues/)
 → superpowers: brainstorm → fix → verify
-→ beads: закрывает задачу
+→ close task with 4-point reason in commit body or tracker close-comment
 → коммит
 ```
 
 **Задача посерьёзнее** (1 сессия):
 ```
 ТЫ: /workflow-gate Карточки накладываются в дереве, нужен зазор между семьями
-→ beads: создаёт bug P1
+→ create task record (bug P1)
 → superpowers: brainstorm → plan → TDD → fix → verify
-→ beads: закрывает с reason
+→ close task with 4-point reason
 ```
 
 **Эпик** (несколько сессий, зависимости):
 ```
 СЕССИЯ 1:
   /workflow-gate Рефакторинг рендеринга дерева
-  → beads: создаёт epic + 3 подзадачи с зависимостями
+  → create task record (epic + 3 sub-tasks)
   → superpowers: brainstorm → plan
-  → bd ready → "Layout алгоритм"
+  → claim "Layout алгоритм"
   → superpowers: TDD → fix → verify
-  → bd close
-  [ сессия закончилась ]
+  → close task with 4-point reason
 
-СЕССИЯ 2 (bd prime авто-восстанавливает контекст):
+СЕССИЯ 2:
   /workflow-gate
-  → bd ready → "Координаты связей"
+  → claim "Координаты связей"
   → superpowers: работает...
-  → bd close
+  → close task with 4-point reason
 
 СЕССИЯ 3:
   /workflow-gate
-  → bd ready → "Адаптив мобильные"
+  → claim "Адаптив мобильные"
   → superpowers: работает...
-  → bd close → epic закрыт
+  → close task → epic закрыт
   → documenter → doc-keeper → observer
 ```
 
@@ -386,102 +374,11 @@ npx skills add owner/repo@skill-name -y
 ln -sf ../../.agents/skills/skill-name .claude/skills/skill-name
 ```
 
-### Task tracking with Beads
+### Cross-session memory — two sources
 
-Beads — Dolt-backed операционная память проекта. Задачи, зависимости, заметки переживают context compaction и восстанавливаются автоматически.
-
-#### Установка (один раз)
-
-```bash
-claude plugin marketplace add steveyegge/beads && claude plugin install beads
-npm install -g @beads/bd
-cd your-project && bd init    # deploy.sh делает это автоматически
-```
-
-#### Когда использовать
-
-| Ситуация | Beads? |
-|----------|--------|
-| Быстрый фикс в одну сессию | Нет — `/workflow-gate <задача>` достаточно |
-| Задача на несколько сессий | Да — `bd prime` восстановит контекст |
-| Эпик из 5+ подзадач | Да — `bd ready` покажет readiness frontier |
-| Нужна история проекта | Да — всё в Dolt-базе |
-| Работа в нескольких терминалах | Да — atomic claim, нет гонок |
-
-#### Lifecycle задачи
-
-```
-Создание                    Работа                      Закрытие
-─────────                   ──────                      ────────
-bd create                   bd update --claim           bd close --reason "..." --claim-next
-  --type bug                bd update --notes "..."       ├── суть решения
-  --priority 1              bd remember "pattern: ..."    ├── root cause
-  --description "6 пунктов" bd dep add (discovered-from)  └── prevention
-  --json
-```
-
-#### Quality Standards (подробно в workflow-gate skill)
-
-**Создание** — 6 обязательных пунктов в description:
-что сломано → где в коде → как воспроизвести → что найдено → контекст → ресурсы
-
-**Во время работы:**
-- `bd update --notes` сразу при находке (не в конце сессии)
-- `bd remember` для конвенций и паттернов (персистентно между сессиями)
-- `bd dep add --type discovered-from` для побочных находок
-- Issue ID в коммитах: `git commit -m "Fix spacing (web-scripts-a3f2)"`
-
-**Закрытие** — 4 обязательных пункта в reason:
-суть решения → root cause → prevention → verification evidence (test output, screenshots, before/after)
-
-**Конец сессии** ("land the plane"):
-обновить notes → оформить находки → `bd remember` → `git push` → `bd close` с 4-point reason
-
-#### Epics
-
-Epic — контейнер подзадач с зависимостями. Думай как constraint graph, не как ordered list:
-
-```
-Epic: "JWT авторизация"
-  ├── Задача: "Миграция таблиц"              ✅ closed
-  ├── Задача: "Middleware верификации"         🔄 in_progress (зависит от таблиц)
-  └── Задача: "Refresh token логика"          ⬜ blocked (ждёт middleware)
-```
-
-| Ситуация | Epic или задача? |
-|----------|-----------------|
-| Фикс одного бага | Задача |
-| Рефакторинг системы | Epic → подзадачи |
-| Новая фича из 3+ частей | Epic → подзадачи |
-
-#### Зависимости — 4 типа
-
-| Тип | Влияет на `bd ready`? | Когда |
-|-----|----------------------|-------|
-| **blocks** | Да — блокирует | Задача B невозможна без A |
-| **parent-child** | Нет | Иерархия epic → subtask |
-| **related** | Нет | Связанные задачи |
-| **discovered-from** | Нет | Провенанс: "нашёл во время работы над X" |
-
-#### Maintenance (регулярно)
-
-```bash
-bd doctor --fix           # Ежедневно — диагностика и авто-фикс
-bd compact --days 30      # Еженедельно — сжатие старых closed issues
-bd upgrade                # Каждые 1-2 недели — обновление bd CLI
-bd stats                  # По необходимости — общее состояние
-```
-
-Не допускать > 200 активных issues. При приближении — `bd compact`.
-
-#### Три источника памяти проекта
-
-| Источник | Что хранит | Пример |
-|----------|-----------|--------|
-| **Git** | Изменения в коде | `git log` — что менялось |
-| **LightRAG** | Решения и причины | "Выбрали D3 потому что нужна интерактивность" |
-| **Beads** | Задачи, прогресс, контекст | "Epic: рефакторинг. 3 задачи, 2 closed, 1 ready" |
-| **bd remember** | Конвенции и паттерны | "test-pattern: baseline pid=5 tmode=2" |
+Between sessions, context lives in two places:
+- **Git history** — every commit, diff, and message is always there
+- `docs/orchestration/conventions.md` (or CLAUDE.md) — cross-session patterns, gotchas, and conventions persisted by the `workflow-gate` skill's "land the plane" phase
 
 ### Template Catalog (on-demand specialists)
 
