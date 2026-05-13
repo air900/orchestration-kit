@@ -150,20 +150,8 @@ if [ "$UPDATE_MODE" = false ]; then
         log_ok "Superpowers plugin found"
     fi
 
-    # Beads (recommended)
-    if ! echo "$PLUGIN_LIST" | grep -q "beads"; then
-        log_warn "Beads plugin not found (recommended for task tracking)"
-        if ask_yes "Install beads?"; then
-            log_info "Adding beads marketplace..."
-            claude plugin marketplace add steveyegge/beads 2>&1 || true
-            log_info "Installing beads plugin..."
-            claude plugin install beads 2>&1 && log_ok "Beads plugin installed" || log_warn "Failed — install manually: claude plugin marketplace add steveyegge/beads && claude plugin install beads"
-        fi
-    else
-        log_ok "Beads plugin found"
-    fi
 
-    # Template Bridge (recommended — connects Superpowers + Beads)
+    # Template Bridge (recommended — connects Superpowers)
     if ! echo "$PLUGIN_LIST" | grep -q "template-bridge"; then
         log_warn "Template Bridge plugin not found (connects Superpowers + Beads into unified flow)"
         if ask_yes "Install template-bridge?"; then
