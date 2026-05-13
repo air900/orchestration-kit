@@ -18,7 +18,7 @@ Always `claude-sonnet-4-6` per [`triviality-classifier.md`](triviality-classifie
 | `{{COMMIT_MESSAGES}}` | Commit messages from this run, joined |
 | `{{CURRENT_MANIFEST}}` | Full content of `docs/MANIFEST.md` if present, or string `<NOT_FOUND>` |
 | `{{DECISION_DISTILLED}}` | The Decision-distilled section from the bundle |
-| `{{BEADS_ISSUE_BODY}}` | Issue body |
+| `{{TASK_SPEC_BODY}}` | Task spec body |
 | `{{USER_LINK_FLAGS}}` | List of user-provided links flagged in Phase 1 as candidates for manifest, with inferred group; or empty |
 
 ## Template
@@ -44,8 +44,8 @@ Current manifest content (or <NOT_FOUND>):
 Decision distilled:
 {{DECISION_DISTILLED}}
 
-Beads issue body:
-{{BEADS_ISSUE_BODY}}
+Task spec body:
+{{TASK_SPEC_BODY}}
 
 User-provided link flags from Phase 1 (may be empty):
 {{USER_LINK_FLAGS}}
@@ -74,14 +74,15 @@ For each changed file matching `runbook*.md` / `docs/research/*.md` /
 
 ### 3. Spec/plan supersession
 For each manifest entry with state `spec-in-progress` or `plan-in-progress`:
-- If the entry's `bd:` field references a Beads ID, and that ID was closed
-  in this run (check Beads body / commit messages for "bd close <id>"
-  or `Closes <id>`), AND a result artifact appeared in same area, propose
-  ARCHIVE with superseded-by pointing to the result.
+- If the entry's linked spec/plan file has `status: done` in its front-matter
+  in this run (check commit messages and PR bodies for closing references —
+  e.g., "Closes #N", "Fixes <task-id>", or status changes in linked spec/plan
+  front-matter to `status: done`), AND a result artifact appeared in same area,
+  propose ARCHIVE with superseded-by pointing to the result.
 
 ### 4. Restructure thresholds
 - Flat mode + active entries exceed 8 OR ≥2 distinguishable task-types
-  visible in commits/Beads tags → propose RESTRUCTURE flat→grouped with
+  visible in commits/task tags → propose RESTRUCTURE flat→grouped with
   proposed group names derived from the task-types you can identify.
 - Grouped mode + active entries fall to ≤5 in total AND only one task-type
   remains → propose RESTRUCTURE grouped→flat.
@@ -114,7 +115,7 @@ alone — false positives here are worse than false negatives.
 ## Hygiene rules (mandatory)
 
 - Never propose deleting an entry; always archive with `superseded-by`.
-- Never invent task-types; group names must come from observed signals (Beads tags, commit prefixes, directory names).
+- Never invent task-types; group names must come from observed signals (task tags, commit prefixes, directory names).
 - Always include `Why:` for every proposal so the architect can judge.
 
 ## Return format (Markdown — multiple proposals OK)

@@ -36,13 +36,12 @@ skip_phases:
 
 model_override:
   # OPTIONAL — override default model selection (see triviality-classifier.md)
-  # Keys: trivial, non_trivial, non_trivial_arch, doc_proposer, knowledge_harvester
+  # Keys: trivial, non_trivial, non_trivial_arch, doc_proposer
   # Values: any model identifier the harness accepts
   trivial: <model-id>
   non_trivial: <model-id>
   non_trivial_arch: <model-id>
   doc_proposer: <model-id>
-  knowledge_harvester: <model-id>
 ```
 
 All four top-level keys are independent — supply only what you need.
@@ -67,8 +66,7 @@ If your project has docs in non-standard locations (e.g., `wiki/` or `internal-d
 
 ### `skip_phases`
 
-If a phase doesn't apply (e.g., the project has no LightRAG and you don't want the harvester to even attempt), list it here. Currently supported:
-- `knowledge-harvest` — skip Phase 8's knowledge-harvester subagent entirely
+If a phase doesn't apply, list it here. Currently supported:
 - `doc-proposer` — skip Phase 8's doc-proposer subagent entirely
 
 Don't use `skip_phases` to hide problems — if the phase should run but is failing, fix the cause. Use this only when the phase is structurally inapplicable.
@@ -100,7 +98,7 @@ non_trivial_signals:
     reason: "data contract — downstream consumers depend on it"
 
 skip_phases:
-  - knowledge-harvest  # this project doesn't use LightRAG
+  - doc-proposer  # this project manages docs manually
 ```
 
 ### Minimal overlay (just one extra signal)

@@ -29,7 +29,7 @@ The manifest is **optional**. If neither scope exists, Phase 0 gracefully degrad
 
 ## Lookup priority (Phase 0)
 
-When the task zone is in or related to a sub-project area (file paths inside `<sub-project>/`, components mentioned in distilled task, Beads tags pointing to sub-project):
+When the task zone is in or related to a sub-project area (file paths inside `<sub-project>/`, components mentioned in distilled task, task tags pointing to sub-project):
 1. Read `<sub-project>/MANIFEST.md` first — primary source
 2. Optionally also read `<project root>/docs/MANIFEST.md` if it exists AND the task has cross-cutting context (touches files outside the sub-project, mentions project-wide concerns)
 3. Fallback to `docs/` scan if no manifest at either scope
@@ -38,7 +38,7 @@ When the task zone is project-wide (root files, multiple sub-projects touched, n
 1. Read `<project root>/docs/MANIFEST.md` first — primary source
 2. Fallback to `docs/` scan
 
-The architect's distilled task spec (Phase 1) is what determines "sub-project vs project-wide" — file paths, mentioned components, and Beads issue context.
+The architect's distilled task spec (Phase 1) is what determines "sub-project vs project-wide" — file paths, mentioned components, and task spec context.
 
 ## Path conventions
 
@@ -110,7 +110,7 @@ The manifest auto-switches based on size and diversity:
 ```
 
 Auto-switching thresholds:
-- Flat → Grouped: when `active` entries exceed 8, OR when the curator identifies ≥ 2 task-types from commits/Beads tags.
+- Flat → Grouped: when `active` entries exceed 8, OR when the curator identifies ≥ 2 task-types from commits/task tags.
 - Grouped → Flat: when `active` entries fall to ≤ 5 AND only one task-type remains.
 
 The doc-curator (Phase 8) proposes the switch; the architect approves it.
@@ -130,14 +130,14 @@ For `archived` entries, the next indented line carries `superseded-by`:
   superseded-by: <path-or-URL>
 ```
 
-For `spec-in-progress` and `plan-in-progress`, the next indented line carries the bd ID it belongs to (so the curator can detect when to auto-archive):
+For `spec-in-progress` and `plan-in-progress`, the linked spec/plan file's own front-matter carries a `status:` field (`spec-in-progress`, `plan-in-progress`, `done`). The next indented line in the manifest carries the owning spec ID or handoff filename (so the curator can detect when to auto-archive):
 
 ```
 - docs/superpowers/specs/<topic>-design.md — design spec | spec-in-progress
-  bd: <project-prefix>-<id>
+  spec: docs/superpowers/specs/<topic>-design.md
 ```
 
-When that bd is closed AND a result artifact appears (runbook / research / new doc cross-referenced from commits), the curator proposes:
+When the curator runs and the front-matter is `done` AND a result artifact appears (runbook / research / new doc cross-referenced from commits), the curator proposes:
 - Move spec/plan entries → `archived` with `superseded-by: <result-doc>`
 - Add result-doc as `active`
 
@@ -185,7 +185,7 @@ When the architect's invocation message contains links/paths to docs:
 | Link is NOT in manifest, irrelevant to task (off-topic, accidental paste) | IGNORE; note in summary "user-provided <path> appears off-topic — skipped" |
 
 The "permanent vs one-shot" inference uses these signals:
-- One-shot: Beads issue is `--type bug`, single-file task, decision-distilled is local fix
+- One-shot: task is a single-file bug fix, decision-distilled is a local fix
 - Permanent: doc adds project-wide knowledge (architecture, runbook section, decision record), not tied to one bug
 
 When uncertain → treat as one-shot (conservative, avoids manifest pollution).
@@ -197,13 +197,13 @@ Curator's auto-checks (each can produce one or more proposals):
 | Trigger | Proposal |
 |---------|----------|
 | Result artifact (`runbook*.md`, `docs/research/*.md`, new `docs/<topic>.md`) was created/modified | ADD as `active` to relevant group |
-| Existing `spec-in-progress` or `plan-in-progress` entry's bd-id is now closed AND a result artifact landed in same area | ARCHIVE that entry with `superseded-by: <result-path>` |
+| Existing `spec-in-progress` or `plan-in-progress` entry's spec/plan front-matter is `status: done` AND a result artifact landed in same area | ARCHIVE that entry with `superseded-by: <result-path>` |
 | `active` entries in any one group/section exceed 8 | RESTRUCTURE — split group into sub-groups |
 | Flat mode hit threshold (>8 entries OR ≥2 task-types) | RESTRUCTURE — convert flat → grouped |
 | Grouped mode shrunk back (≤5 entries, 1 task-type) | RESTRUCTURE — convert grouped → flat |
 | Phase 1 flagged a user-provided link | ADD with reasoning from Phase 1 |
 | Existing `active` entry's path no longer exists in repo | ARCHIVE with note `removed from repo at <commit>` |
-| Existing `active` entry hasn't been referenced in any commit message or Beads body for >90 days AND no result artifact references it | propose ARCHIVE with reason `dormant`; architect can override |
+| Existing `active` entry hasn't been referenced in any commit message or task body for >90 days AND no result artifact references it | propose ARCHIVE with reason `dormant`; architect can override |
 
 Each proposal goes into the run summary as APPROVE-NEEDED. Controller applies approved proposals via `Edit` directly.
 
@@ -212,7 +212,7 @@ Each proposal goes into the run summary as APPROVE-NEEDED. Controller applies ap
 - **Never auto-delete entries.** Archive instead — preserves audit trail.
 - **Never auto-add entries that came from one-shot user references.** Only add if Phase 1 flagged them as "permanent" AND architect approves.
 - **Always include `superseded-by` for archived entries** if the supersession is identifiable; otherwise mark `superseded-by: <reason>` (e.g., `removed from repo` or `dormant`).
-- **Don't fabricate task-types.** Group names must come from real Beads tags or actual file-tree organization, not invented categories.
+- **Don't fabricate task-types.** Group names must come from real task tags or actual file-tree organization, not invented categories.
 
 ## Generic examples (no project-specific bindings)
 

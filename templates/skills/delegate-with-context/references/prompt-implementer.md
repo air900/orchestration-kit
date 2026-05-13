@@ -14,7 +14,7 @@ Specialized agents (`pr-review-toolkit:code-reviewer`, `senior-reviewer`, etc.) 
 |----------|----------------|
 | `{{CONTEXT_BUNDLE}}` | Full bundle from references/context-bundle.md, fully expanded |
 | `{{TASK_SPEC}}` | Distilled task spec (1–2 paragraphs from Phase 1) |
-| `{{BEADS_ID}}` | Issue ID this task is bound to (or "no Beads in project — see fallback in bundle Constraints") |
+| `{{TASK_ID}}` | Task ID this task is bound to (or "no external tracker — see task spec in bundle") |
 | `{{VERIFICATION_HINT}}` | Suggested test/proof command (controller's best guess; subagent may override) |
 
 ## Template
@@ -28,7 +28,7 @@ You are an implementer subagent for /delegate-with-context.
 ## Your task
 {{TASK_SPEC}}
 
-Beads issue: {{BEADS_ID}}
+Task ID: {{TASK_ID}}
 
 ## Methodology — RIGID
 

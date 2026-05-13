@@ -12,7 +12,7 @@ Phase 8 dispatch (parallel with knowledge-harvester). Scans changes, proposes ar
 |----------|----------------|
 | `{{CHANGED_FILES}}` | Path list, one per line |
 | `{{COMMIT_MESSAGES}}` | Commit messages from this run, joined |
-| `{{BEADS_ISSUE_BODY}}` | Issue description / design / notes |
+| `{{TASK_SPEC_BODY}}` | Task spec description / design / notes |
 | `{{DECISION_DISTILLED}}` | The Decision-distilled section from the bundle |
 
 ## Template
@@ -32,8 +32,8 @@ Changed files:
 Commit messages:
 {{COMMIT_MESSAGES}}
 
-Beads issue body:
-{{BEADS_ISSUE_BODY}}
+Task spec body:
+{{TASK_SPEC_BODY}}
 
 Decision distilled (from architect chat):
 {{DECISION_DISTILLED}}

@@ -12,7 +12,7 @@ Phase 6 dispatch. Reviews whether the implementer did EXACTLY what the spec aske
 |----------|----------------|
 | `{{TASK_SPEC}}` | The same task spec the implementer was given |
 | `{{IMPL_COMMITS}}` | Space-separated SHAs from implementer (e.g., `abc1234 def5678`) |
-| `{{BEADS_ID}}` | Issue ID for context |
+| `{{TASK_ID}}` | Task ID for context |
 
 ## Template
 
@@ -39,7 +39,7 @@ Does the implementation do EXACTLY what the spec asked — no more, no less?
   here I also added X" unless explicit follow-up tracking)
 - Tests cover the spec's behavior (the test names should map to spec
   requirements)
-- The Beads issue's "Done when" criteria are all met
+- The task spec's "Done when" criteria are all met
 
 ## Out of scope for this review
 

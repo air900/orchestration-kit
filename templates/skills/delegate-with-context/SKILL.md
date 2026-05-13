@@ -1,6 +1,6 @@
 ---
 name: delegate-with-context
-description: Use when the architect/product owner has finished discussing options in the current session, picked one, and wants to dispatch implementation to subagents WITHOUT polluting the main session context. Distills the chat decision, reconciles Beads issues, builds a full context bundle, dispatches implementer + spec-reviewer + code-quality-reviewer subagents (each with mandatory verification-evidence in status reports), runs end-of-run doc-proposer and knowledge-harvester, and returns a compact summary. Project-portable — picks up conventions from CLAUDE.md and optional overlay.md. Trigger via slash command /delegate-with-context.
+description: Use when the architect/product owner has finished discussing options in the current session, picked one, and wants to dispatch implementation to subagents WITHOUT polluting the main session context. Distills the chat decision, builds a full context bundle, dispatches implementer + spec-reviewer + code-quality-reviewer subagents (each with mandatory verification-evidence in status reports), runs end-of-run doc-proposer and doc-curator, and returns a compact summary. Project-portable — picks up conventions from CLAUDE.md and optional overlay.md. Trigger via slash command /delegate-with-context.
 ---
 
 # delegate-with-context
@@ -72,14 +72,18 @@ Do NOT proceed until the task is unambiguous. Triviality-classifier (Phase 3) wi
 
 **User-provided link analysis** (when the architect's invocation message contains paths/URLs to docs): apply the decision tree from [`references/doc-manifest.md`](references/doc-manifest.md) → "How Phase 1 user-link analysis interacts". Each link is classified as already-in-manifest / one-shot / permanent / irrelevant. Permanent links are flagged for Phase 8 doc-curator. Bundle inclusion happens for everything except `irrelevant`.
 
-### Phase 2 — BEADS-RECONCILE
+### Phase 2 — SPEC-DISTILL
 
-Follow [`references/beads-reconcile.md`](references/beads-reconcile.md):
+The distilled task spec (Phase 1) is now the single source of truth for the
+dispatch. Persist it in the chat context only; do not write it to disk in
+this phase. If the project happens to use an external tracker, the architect
+may, after Phase 9 completes, add a link to the closed PR or commits — that
+is a manual step, not part of this skill.
 
-- `bd search` by keywords from the distilled task
-- If a relevant open issue exists → refine its description / notes / design
-- Otherwise → `bd create` using the inlined 6-point template
-- If `.beads/` is not present in the project → follow the no-Beads fallback documented in beads-reconcile.md
+If the project ships a dedicated `docs/orchestration/issues/` directory
+(per `orchestration-config.json`) AND the dispatch results in a non-trivial
+multi-commit change, the doc-curator subagent in Phase 8 may propose a new
+file there. Do not pre-emptively create one in Phase 2.
 
 ### Phase 3 — CLASSIFY
 
@@ -95,7 +99,7 @@ For `non-trivial single` / `non-trivial + arch-tag` / `parallel-decomposable` mo
 
 ```markdown
 **Mode:** <mode>; reasoning: <which signals fired>
-**Beads:** <create new id-XX with title "..."> OR <refine existing bd-YY>
+**Task spec:** <one-line summary of the distilled task>
 **Implementer agents:** <N> (<parallel|sequential>)
 **Reviewer:** <pr-review-toolkit:code-reviewer | senior-reviewer | general-purpose-fallback>
 OK to proceed? (yes/edit/cancel)
@@ -115,7 +119,7 @@ For each implementer task:
 
 - Use the template from [`references/prompt-implementer.md`](references/prompt-implementer.md)
 - Subagent type: `general-purpose` (specialized agents lack required skill access — see prompt-implementer.md "Subagent type")
-- **Model**: pass the `model` parameter automatically based on the mode from Phase 3 (see [`references/triviality-classifier.md`](references/triviality-classifier.md) → "Model selection"). Trivial → Haiku, non-trivial → Sonnet, arch-tag → Opus. Same logic applies to spec-reviewer (Phase 6) and code-quality reviewer (Phase 7) — match the implementer's mode. Doc-proposer (Phase 8) is always Sonnet; knowledge-harvester (Phase 8) is always Haiku.
+- **Model**: pass the `model` parameter automatically based on the mode from Phase 3 (see [`references/triviality-classifier.md`](references/triviality-classifier.md) → "Model selection"). Trivial → Haiku, non-trivial → Sonnet, arch-tag → Opus. Same logic applies to spec-reviewer (Phase 6) and code-quality reviewer (Phase 7) — match the implementer's mode. Doc-proposer (Phase 8) is always Sonnet.
 - For `parallel-decomposable` mode: **cross-reference check first**. Pseudo-logic:
   ```bash
   for f in zone1_files; do
@@ -141,26 +145,25 @@ Per implementer task: dispatch using [`references/prompt-spec-reviewer.md`](refe
 Per implementer task: dispatch using [`references/prompt-code-reviewer.md`](references/prompt-code-reviewer.md).
 
 - Default reviewer: `pr-review-toolkit:code-reviewer`.
-- Architectural cases (Beads label `architecture` / `design` / `breaking`, OR task touches CLAUDE.md / runbook / `docs/` / `.claude/`): `senior-reviewer`.
+- Architectural cases (task label `architecture` / `design` / `breaking`, OR task touches CLAUDE.md / runbook / `docs/` / `.claude/`): `senior-reviewer`.
 - Fallback (R2 — neither installed): `general-purpose` with read-only addendum.
 - Loop bound: ≤3 iterations.
 - For `parallel-decomposable` mode: after all per-task code-quality reviews APPROVED, run **one** integration-pass code-reviewer dispatch on the combined diff of the parent ref. This catches issues that per-task reviewers cannot see (e.g., conflicting helpers, redundant abstractions). Same loop bound.
 
 ### Phase 8 — END-OF-RUN PIPELINE (parallel)
 
-Single tool-call with three concurrent `Agent()` invocations:
+Single tool-call with two concurrent `Agent()` invocations:
 
 - doc-proposer subagent — [`references/prompt-doc-proposer.md`](references/prompt-doc-proposer.md) — edits to existing doc CONTENT
-- knowledge-harvester subagent — [`references/prompt-knowledge-harvester.md`](references/prompt-knowledge-harvester.md) — LightRAG inserts
 - doc-curator subagent — [`references/prompt-doc-curator.md`](references/prompt-doc-curator.md) — edits to manifest STRUCTURE (add/archive/restructure entries; bootstrap if missing)
 
-All three return summaries (no raw diffs). Proposer and curator proposals are stored for architect review in Phase 9; harvester's inserts are already done.
+Both return summaries (no raw diffs). Proposer and curator proposals are stored for architect review in Phase 9.
 
-The three subagents are independent: proposer touches `*.md` content, curator touches `docs/MANIFEST.md` structure, harvester touches LightRAG. No shared state.
+The two subagents are independent: proposer touches `*.md` content, curator touches `docs/MANIFEST.md` structure. No shared state.
 
 ### Phase 9 — COMPACT SUMMARY
 
-Print to architect chat. The summary has TWO halves: **architect-facing** (what changed, how to use it, what's next) on top, and **audit detail** (commits, verification, beads) on the bottom. The architect should be able to act on the run after reading only the top half.
+Print to architect chat. The summary has TWO halves: **architect-facing** (what changed, how to use it, what's next) on top, and **audit detail** (commits, verification, tasks) on the bottom. The architect should be able to act on the run after reading only the top half.
 
 **Required structure:**
 
@@ -178,7 +181,7 @@ language, not source paths. If versions bumped, mention them.>
 ### ▶ Как этим воспользоваться сейчас (How to use)
 <Numbered list of CONCRETE actions the architect needs to take next.
 Examples: merge a worktree branch, deploy backend, run a test, click a link,
-re-run a script, close a Beads issue. Each step should be copy-paste-runnable
+re-run a script, close the task. Each step should be copy-paste-runnable
 or one-click-clear. If nothing is required (e.g., a doc-only fix landed
 directly on master), say "ничего не требуется — изменение уже применено".
 If a follow-up dispatch is offered, give the exact /delegate-with-context
@@ -196,13 +199,12 @@ would just be noise.>
 
 ---
 
-**Beads:** closed bd-X, bd-Y; opened bd-Z (<reason>); open bd-W (<deploy-then-close>)
+**Tasks:** closed <task-id-1>, <task-id-2>; opened <task-id-3> (<reason>) — or "no external tracker in use"
 **Commits:** <SHA list with one-line subject>; flag worktree branches separately
 **Verification (Iron Law evidence):**
-  - bd-X: <command> → exit <code>, <stdout summary line>
-  - bd-Y: <command> → exit <code>, <stdout summary line>
+  - <task-id-1>: <command> → exit <code>, <stdout summary line>
+  - <task-id-2>: <command> → exit <code>, <stdout summary line>
 **Doc proposals applied:** <N> (or "APPROVE-NEEDED:" if waiting on architect)
-**Knowledge harvest:** <N inserts, M skipped (similarity)> | SKIPPED — no LightRAG
 ```
 
 **The four sections above the `---` line are MANDATORY. Skipping any of them is a contract violation.**
@@ -230,7 +232,7 @@ This is the single most important contract in the skill. Without it, all the loo
 
 If invoked with `--dry-run`:
 
-1. Run Phases 1–4 normally (DISTILL, BEADS-RECONCILE, CLASSIFY, BUILD CONTEXT BUNDLE).
+1. Run Phases 1–4 normally (DISTILL, SPEC-DISTILL, CLASSIFY, BUILD CONTEXT BUNDLE).
 2. For Phase 5 (DISPATCH), instead of calling `Agent()`, **print** the planned implementer prompt(s) to the architect chat — full bundle + task spec, formatted as the actual prompt would look.
 3. Skip Phases 6, 7, 8, 9.
 4. Release the lock file.
@@ -241,7 +243,6 @@ Useful for debugging the classifier, the bundle assembly, and the prompt templat
 
 - [status-contract.md](references/status-contract.md) — Iron Law contract (mandatory)
 - [context-bundle.md](references/context-bundle.md) — bundle structure + size budget + adaptive deepening
-- [beads-reconcile.md](references/beads-reconcile.md) — find-or-create + 6-point template + no-Beads fallback
 - [triviality-classifier.md](references/triviality-classifier.md) — modes + overlay-hook + model selection
 - [doc-manifest.md](references/doc-manifest.md) — Phase 0 manifest schema + lifecycle + decision trees
 - [prompt-implementer.md](references/prompt-implementer.md) — implementer subagent prompt
@@ -249,5 +250,4 @@ Useful for debugging the classifier, the bundle assembly, and the prompt templat
 - [prompt-code-reviewer.md](references/prompt-code-reviewer.md) — code-quality review with R2 fallback
 - [prompt-doc-proposer.md](references/prompt-doc-proposer.md) — architectural doc proposals (content)
 - [prompt-doc-curator.md](references/prompt-doc-curator.md) — manifest structural updates (Phase 8)
-- [prompt-knowledge-harvester.md](references/prompt-knowledge-harvester.md) — Memory Pyramid + dedup
 - [overlay-schema.md](references/overlay-schema.md) — optional per-project YAML signals

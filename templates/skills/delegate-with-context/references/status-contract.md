@@ -114,11 +114,11 @@ status: BLOCKED
 summary: scope is bigger than one task
 blocker:
   category: task-too-large
-  detail: spec asks to refactor anamnesis pipeline + add new endpoint + migrate DB schema in one pass; recommend split into 3 sub-tasks via bd dep add ... --type discovered-from
+  detail: spec asks to refactor anamnesis pipeline + add new endpoint + migrate DB schema in one pass; recommend split into 3 sub-tasks tracked separately (in your tracker or as new files under docs/orchestration/issues/)
 ```
 
 ## Spot-check note (R3 — deferred)
 
 Controller MAY randomly pick a fraction of returned `verification` blocks (e.g., 10–20%) and re-run the reported `command` itself, comparing its own `stdout_tail` against the subagent's. Mismatch flags suspicious agent behavior.
 
-This is a defense against fabricated evidence. Implementation is **deferred to a follow-up Beads issue** — first version of the skill ships without it. Document it here so reviewers know it is a known gap, not an oversight.
+This is a defense against fabricated evidence. Implementation is **deferred to a follow-up task** — first version of the skill ships without it. Document it here so reviewers know it is a known gap, not an oversight.

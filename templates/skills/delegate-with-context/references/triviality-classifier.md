@@ -11,7 +11,6 @@ Phase 3 logic. Decides whether the task is trivial (skip the gate, single dispat
 | Touches `<project>/CLAUDE.md` / `README*.md` / `docs/**/*.md` | path matches in zone | documentation = architectural surface |
 | SQL DDL changes | diff regex: `\b(CREATE|ALTER|DROP)\s+TABLE\b` | long-lived artifact |
 | Touches `.claude/` or `.github/workflows/` | path matches | CC infrastructure / CI — cascade risk |
-| Beads issue is `--type epic` OR `priority ≤ 1` | `bd show` | by policy — gate required |
 | ≥2 independently-doable sub-tasks in the spec | distillation found "and X, and Y, both independent" | parallel-decomposable candidate |
 
 ## Generic trivial signals (ALL must hold)
@@ -19,7 +18,7 @@ Phase 3 logic. Decides whether the task is trivial (skip the gate, single dispat
 - ≤2 files in zone
 - No public API change
 - No architectural-doc changes (CLAUDE.md / README / docs/)
-- Beads issue is `--type task` (not bug, not feature, not epic) AND `priority ≥ 2`
+- Task is not flagged as epic or priority ≤ 1 in external tracker (if any)
 - No `.claude/` / `.github/` / settings / hooks / workflow files touched
 - DISTILL did not find "and X, and Y" — single localized task
 
@@ -33,7 +32,7 @@ Apply the signals; pick the most-restrictive matching mode:
 |------|------------|-------|------------------------|-----------|--------------------|
 | `trivial` | all trivial signals hold; no non-trivial signal | no | 1 | — | `pr-review-toolkit:code-reviewer` |
 | `non-trivial single` | any non-trivial signal AND no parallel-decomposable signal | yes | 1 | — | `pr-review-toolkit:code-reviewer` |
-| `non-trivial + arch-tag` | non-trivial AND arch-signal (CLAUDE/README/docs touch OR Beads label `architecture`/`design`/`breaking`) | yes | 1 | — | `senior-reviewer` |
+| `non-trivial + arch-tag` | non-trivial AND arch-signal (CLAUDE/README/docs touch OR task label `architecture`/`design`/`breaking`) | yes | 1 | — | `senior-reviewer` |
 | `parallel-decomposable` | ≥2 independently-doable sub-tasks AND zones do not overlap (cross-reference check passes) | yes | N (one per sub-task) | yes | per sub-task tag |
 
 **Default when uncertain:** `non-trivial single`. Better one extra gate than one wrong dispatch.
@@ -49,7 +48,6 @@ Pass the `model` parameter to `Agent()` automatically based on the resolved mode
 | Code-quality reviewer | `haiku` | `sonnet` | `opus` (senior-reviewer) | match implementer |
 | Doc-proposer | `sonnet` (always — judgment about arch-relevance) |
 | Doc-curator | `sonnet` (always — judgment about archive vs keep, restructure thresholds, group naming) |
-| Knowledge-harvester | `haiku` (mostly mechanical with dedup checks) |
 
 Concrete model identifiers (current): `claude-haiku-4-5`, `claude-sonnet-4-6`, `claude-opus-4-7`. Use Sonnet by default if a more specific identifier is unavailable in the harness.
 
@@ -58,7 +56,6 @@ Concrete model identifiers (current): `claude-haiku-4-5`, `claude-sonnet-4-6`, `
 - Non-trivial single tasks (multi-file coordination, contract changes) benefit from Sonnet's depth without Opus cost.
 - Architectural and breaking changes get Opus because the cost of a wrong call is much higher than the cost of one Opus dispatch.
 - Doc-proposer is fixed at Sonnet because the filter ("arch-worthy or not?") is a judgment call that Haiku slightly under-handles in practice.
-- Knowledge-harvester uses Haiku because it mostly runs `query_text` similarity checks and writes 1-3 sentence inserts — Sonnet is overkill.
 
 **Override via overlay.md** (optional, see [overlay-schema.md](overlay-schema.md)):
 
@@ -66,7 +63,6 @@ Concrete model identifiers (current): `claude-haiku-4-5`, `claude-sonnet-4-6`, `
 model_override:
   trivial: claude-sonnet-4-6        # this project wants more rigor on trivial
   non_trivial_arch: claude-opus-4-7 # explicit, even if default already opus
-  knowledge_harvester: claude-sonnet-4-6
 ```
 
 ## Project-specific signals via overlay.md

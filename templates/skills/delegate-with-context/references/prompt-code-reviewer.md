@@ -4,7 +4,7 @@ Phase 7 dispatch. Runs AFTER spec-compliance review is APPROVED. Reviews code qu
 
 ## Subagent type — selection logic
 
-| Beads-issue label / scope | Default subagent type |
+| Task label / scope | Default subagent type |
 |---------------------------|------------------------|
 | Default (most cases) | `pr-review-toolkit:code-reviewer` |
 | Label `architecture` / `design` / `breaking` OR task touches CLAUDE.md / runbook / `docs/` / `.claude/` | `senior-reviewer` |

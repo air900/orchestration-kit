@@ -31,7 +31,6 @@ fi
 REQUIRED_REFS=(
   status-contract.md
   context-bundle.md
-  beads-reconcile.md
   triviality-classifier.md
   doc-manifest.md
   prompt-implementer.md
@@ -39,7 +38,6 @@ REQUIRED_REFS=(
   prompt-code-reviewer.md
   prompt-doc-proposer.md
   prompt-doc-curator.md
-  prompt-knowledge-harvester.md
   overlay-schema.md
 )
 for ref in "${REQUIRED_REFS[@]}"; do

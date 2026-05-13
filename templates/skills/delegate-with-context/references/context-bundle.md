@@ -13,7 +13,7 @@ The bundle is a single Markdown document with these nine sections in order:
 ## Project context
 - **Global conventions:** <inline excerpt from ~/.claude/CLAUDE.md, only sections
   relevant to this task — e.g., "Documentation Style: Mandatory TOC" if the task
-  touches docs; "LightRAG memory" if knowledge harvest is in scope. NOT all of it.>
+  touches docs. NOT all of it.>
 - **Project conventions:** <inline the entire local <project>/CLAUDE.md — it is
   short and every section can become relevant>
 - **Project map:** <5-10 key paths only, NOT a full `tree`. Pick by relevance
@@ -25,9 +25,9 @@ The bundle is a single Markdown document with these nine sections in order:
 - `archived` manifest entries are NEVER inlined here
 - Aim: subagent doesn't have to discover file structure; you point it at refs
 
-## Beads issue
-- ID, Title, Description, Design, Notes, Comments — inline in full
-- Dependencies: parent epic, blockers, related (from `bd show`)
+## Task spec / linked task record
+- Task ID (if tracked externally), Title, Description, Design, Notes, Comments — inline in full
+- Dependencies: parent epic, blockers, related (from task spec or linked task record)
 
 ## Recent activity (last 5 commits, adaptive)
 [git log -5 --stat output, plus `git diff HEAD~5..HEAD -- <files in zone>`]
@@ -62,7 +62,7 @@ The bundle is a single Markdown document with these nine sections in order:
 
 ## Definition of done
 - [ ] Failing test exists for the change, and is now green (give command + file)
-- [ ] `bd close <id> --reason="<4-point: scope / how tested / leftover / verification command output>"`
+- [ ] Close the task: commit message body OR PR description OR tracker close-comment carrying the 4-point reason (scope / how tested / leftover / verification command output)
 - [ ] Status report includes complete `verification` block
       (without it, your DONE will be rejected as BLOCKED)
 ```
@@ -70,7 +70,7 @@ The bundle is a single Markdown document with these nine sections in order:
 ## What NOT to include
 
 - **Verbatim rejected branches** from the chat — only the summary line in "Decision distilled". Including full discussion floods the subagent with content that contradicts the chosen path.
-- **Tool output noise** from controller's own session: full `bd list` dumps, `git status` output, search results. The bundle is a curated artifact, not a session transcript.
+- **Tool output noise** from controller's own session: full tracker-state dumps, `git status` output, search results. The bundle is a curated artifact, not a session transcript.
 - **Files outside the task zone** — even if "they're related" or "for context". If the subagent needs them, it returns NEEDS_CONTEXT and you add them deliberately.
 - **Duplicates** between CLAUDE.md and README.md — keep in CLAUDE.md (closer to engineering rules), leave a marker `(see local CLAUDE.md)` where the README has the rule.
 
@@ -84,7 +84,7 @@ The bundle is a single Markdown document with these nine sections in order:
 
 **Truncation priority (from highest = "never trim" to lowest = "trim first"):**
 1. Mission, Decision distilled, Constraints, Definition of done — never trim
-2. Beads issue — never trim
+2. Task spec / linked task record — never trim
 3. Files in scope — never trim (if forced, the task zone is sliced wrong; reconsider Phase 3)
 4. Project conventions (local CLAUDE.md) — never trim
 5. Recent commits — trim diff first, then stat
