@@ -29,22 +29,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bd prime 2>/dev/null || true"
-          },
-          {
-            "type": "command",
-            "command": "echo 'Workflow: /workflow-gate <task> (delegates to template-bridge:unified-workflow). Beads discipline: workflow-gate skill. Verification: superpowers:verification-before-completion (Iron Law).'"
-          }
-        ]
-      }
-    ],
-    "PreCompact": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bd prime 2>/dev/null || true"
+            "command": "echo 'Workflow: /workflow-gate <task> (delegates to template-bridge:unified-workflow). Task discipline: workflow-gate skill. Verification: superpowers:verification-before-completion (Iron Law).'"
           }
         ]
       }
