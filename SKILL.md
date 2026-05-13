@@ -40,18 +40,10 @@ Take the user's description as starting context. Then scan the project:
 4. Note what deploy.sh already set up (check .claude/agents/, .claude/skills/, settings.json)
 ```
 
-Also check Beads status:
-```
-5. Check if .beads/ exists (bd init already run by deploy.sh)
-6. If not — check if bd command is available, offer to run bd init
-7. If bd not available — note in summary, recommend installing
-```
-
 Combine user input + detected info. Output a brief summary:
 ```
 Got it — "{user's description}".
 Detected: {language/framework if found, or "fresh project, no code yet"}
-Beads: {initialized | not installed — run: npm install -g @beads/bd && bd init}
 ```
 
 ### Step 2: Ask Clarifying Questions
@@ -201,29 +193,28 @@ Build CLAUDE.md from all collected information. The content should be specific t
 
 ### Development Methodology (D1)
 
-**Entry point:** `/workflow-gate <task>` — slash command. Delegates to `template-bridge:unified-workflow` and layers our Beads quality overlay on top.
+**Entry point:** `/workflow-gate <task>` — slash command. Delegates to `template-bridge:unified-workflow` and layers our task-discipline reference (`workflow-gate` skill) on top.
 
-Flow (9 steps from unified-workflow):
-1. `bd create` (6-point description — see `workflow-gate` skill § Phase 2)
+Flow (from unified-workflow):
+1. Task record (6-point description — see `workflow-gate` skill § Phase 2 — lives in your tracker or `docs/orchestration/issues/`)
 2. Skill `superpowers:brainstorming`
 3. Skill `superpowers:writing-plans`
-4. Sub-tasks (`bd create` + `bd dep add`)
+4. Sub-tasks (track in same place as parent)
 5. `superpowers:using-git-worktrees` (if non-trivial)
 6. TDD via `superpowers:test-driven-development`
 7. `superpowers:verification-before-completion` — **Iron Law:** no fresh test output → no "tested" claim
 8. `superpowers:finishing-a-development-branch`
-9. `bd close` (4-point reason incl Verification — `workflow-gate` skill § Phase 4)
+9. Task close (4-point reason in commit body, PR description, or tracker close — see `workflow-gate` skill § Phase 4)
 
-**Beads artefacts (descriptions, notes, reasons, remember) are written in English** for token efficiency. User-facing communication stays in the user's language.
+**Task artefacts (descriptions, notes, close reasons) are written in English** for token efficiency. User-facing communication stays in the user's language.
 
 Manual commands:
-- `/beads:create`, `/beads:ready`, `/beads:close` — direct Beads operations
 - Skill `superpowers:brainstorming` — brainstorm without full `/workflow-gate`
 - `/browse-templates` — 413+ on-demand specialist agents (Template Bridge)
 
 **DO NOT use:** `/superpowers:brainstorm` (no `ing`) — deprecated, just prints a notice. Always invoke the skill `superpowers:brainstorming`.
 
-**Workflow summary:** epic → sub-tasks with deps → `bd ready` → claim → work → verify → close → next ready task.
+**Workflow summary:** plan → sub-tasks → work → verify → close → next task.
 
 ### Skills
 
@@ -237,7 +228,7 @@ Manual commands:
 - `/find-skills-my` — Discover and install new skills from registry (custom deep-discovery version; renamed to avoid collision with vercel-labs/skills' own `find-skills`)
 - `/sync-skills` — Detect unregistered skills in `.claude/skills/`
 - `/knowledge-harvest` — Extract insights from sessions to knowledge base
-- `/workflow-gate` — Beads quality-overlay entry (delegates to template-bridge:unified-workflow)
+- `/workflow-gate` — task-discipline entry point (delegates to template-bridge:unified-workflow)
 - `/workflow-gate-check` — Post-task audit (Mode 1) or independent second opinion on a proposed solution (Mode 2). Slash: `/workflow-gate-check` or `/workflow-gate-check 02`
 - `/delegate-with-context` — Chat-to-subagents dispatch gateway. Distills the architect's pick, builds a context bundle (CLAUDE.md + optional overlay + docs manifest), runs implementer + spec-reviewer + code-quality-reviewer with Iron Law evidence, ends with doc-proposer + knowledge-harvester. Use after a discussion or for handoff blobs. `--dry-run` prints planned prompts without dispatching
 
@@ -348,7 +339,6 @@ Config: .claude/orchestration-config.json
 
 Development approach:
   Superpowers  — dev loop (brainstorm → plan → TDD → review → verify)
-  Beads        — task tracking (bd ready → claim → work → close)
   Templates    — on-demand specialists (npx claude-code-templates@latest --agent ...)
   
 Quality checks:
