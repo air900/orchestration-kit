@@ -18,26 +18,25 @@ This file holds tables and extended examples that support Part 3 of `SKILL.md`. 
 
 | Gap | Action |
 |---|---|
-| Missing file:line / page URL / asset path in Resources | `bd update <id> --description` — add to Resources block |
-| `S2` missing design decision | `bd decision "<choice> — rationale: <why>. Rejected: <alternatives and why>."` |
-| `S1` volatile artefact (reference-worthy) | Commit to project's artefact location (see persistence-path table below); add link to Resources in the bd issue |
-| `S3` implicit mapping (short) | `bd update <id> --notes "ENRICHMENT: <mapping>"` |
-| `S3` implicit mapping (long, >20 lines) | Commit to `docs/orchestration/doc-drafts/<issue-id>-<date>.md` and link from issue |
-| `S4` discovered constraint (per-task) | `bd update <id> --notes "CONSTRAINT: <rule>"` |
-| `S4` discovered constraint (cross-session pattern) | Above, additionally `bd remember "<rule>"` |
-| `S5` external reference | Add URL to Resources block in `bd update --description` |
+| Missing file:line / page URL / asset path in Resources | Edit the task record's description — add to Resources block; if no task record exists, create one with the 6-point template |
+| `S1` volatile artefact (reference-worthy) | Commit to project's artefact location (see persistence-path table below); use `orchestration-config.json` `documentation.paths` as source of truth for project-configured locations; link from the handoff file |
+| `S2` missing design decision | Append a `### Decision: <id> — <choice>` block to the handoff file with rationale + rejected alternatives |
+| `S3` implicit mapping (short) | Append a `### Mapping: <topic>` block to the handoff file |
+| `S3` implicit mapping (long, >20 lines) | Commit to `docs/orchestration/handoff/NNN-<topic>-<subtopic>.md` and link from the handoff file |
+| `S4` discovered constraint (per-task) | Append a "CONSTRAINT:" note in the related task record; if cross-session pattern, ALSO append to CLAUDE.md or `docs/orchestration/conventions.md` |
+| `S5` external reference | Add URL to Resources block in the task record's description AND to the handoff file's External references section |
 
 ## Persistence-path auto-detect table
 
-Before deciding where to commit an `S1` artefact, inspect the target project for these signals. Pick the path whose kind matches the artefact's kind.
+Before deciding where to commit an `S1` artefact, inspect the target project for these signals. Pick the path whose kind matches the artefact's kind. If `orchestration-config.json` defines `documentation.paths`, those values take precedence over the auto-detect heuristics below.
 
 | Detection signal | Preferred persistence path |
 |---|---|
-| `tests/` dir + test runner config (`phpunit.xml`, `jest.config.*`, `pytest.ini`, `cargo test`, etc.) | `tests/fixtures/<issue-id>/` |
-| Content project: `assets/` + `.md` outlines | `assets/research/<issue-id>/` or `assets/<site>/research/<issue-id>/` |
-| Infra project: `docs/runbooks/` or ops-focused | `docs/runbooks/<issue-id>-<date>.md` |
-| Any project with `docs/orchestration/doc-drafts/` | `docs/orchestration/doc-drafts/<issue-id>-<date>.md` (default for transcript-style notes) |
-| Generic fallback | `docs/session-artefacts/<YYYY-MM-DD>/<issue-id>-<slug>.<ext>` (create dir if missing) |
+| `tests/` dir + test runner config (`phpunit.xml`, `jest.config.*`, `pytest.ini`, `cargo test`, etc.) | `tests/fixtures/<task-id>/` |
+| Content project: `assets/` + `.md` outlines | `assets/research/<task-id>/` or `assets/<site>/research/<task-id>/` |
+| Infra project: `docs/runbooks/` or ops-focused | `docs/runbooks/<task-id>-<date>.md` |
+| Any project with `docs/orchestration/doc-drafts/` | `docs/orchestration/doc-drafts/<task-id>-<date>.md` (default for transcript-style notes) |
+| Generic fallback | `docs/session-artefacts/<YYYY-MM-DD>/<task-id>-<slug>.<ext>` (create dir if missing) |
 
 If multiple signals apply, pick the one closest in kind to the artefact (test fixture → `tests/fixtures/`; meeting-notes-like text → `doc-drafts/`). State the choice and reasoning in the enrichment plan.
 
@@ -71,21 +70,21 @@ Related open tasks (criterion in brackets):
 
 | Task | Before | Gaps found | Actions taken | After |
 |------|--------|-----------|---------------|-------|
-| aob  | ~70%   | S1 smoke /tmp LOST; S2 Option C rationale; S3 test→fix mapping; D2 bin/install-wp-tests.sh unclear | commit tests/fixtures/aob/smoke-*.php; bd decision "29j Option C …"; bd update --description with assertion-shape table; bd update --notes pointer to wp-cli template | ~95% |
-| ebo  | ~60%   | S3 release→commits mapping absent; R6 Resources incomplete | bd update --description with pre-extracted `git log` per version | ~90% |
+| aob  | ~70%   | S1 smoke /tmp LOST; S2 Option C rationale; S3 test→fix mapping; D2 bin/install-wp-tests.sh unclear | commit tests/fixtures/aob/smoke-*.php; append to handoff file: ### Decision: aob-option-c — chose C because [rationale]; rejected A (deadlock risk), B (over-engineered); edit task record (aob) description to cross-link the handoff file | ~95% |
+| ebo  | ~60%   | S3 release→commits mapping absent; R6 Resources incomplete | edit task record (ebo) description with pre-extracted `git log` per version | ~90% |
 
 ### Artefacts persisted
 - tests/fixtures/aob/smoke-rate-limiter.php (from /tmp, 45 lines, code-project test fixture)
 - tests/fixtures/aob/smoke-encryption.php (from /tmp, 32 lines)
 
 ### Decisions recorded
-- <decision-id> 29j rate-limiter Option C (lock release before sleep, retry on contention).
+- aob-option-c: rate-limiter Option C (lock release before sleep, retry on contention).
   Rejected: A (sync lock, deadlock risk), B (async queue, over-engineered for current scale).
-- <decision-id> ckb salt-migration strategy: in-place with versioned salt.
+- ckb-salt-migration: in-place with versioned salt.
   Rejected: fresh-install only (breaks backwards compatibility).
 
-### Remembered (cross-session)
-- "test-pattern: rate-limiter regression tests use lock-contention two-process harness; see tests/fixtures/aob/"
+### Handoff file written
+- docs/orchestration/handoff/001-v153-security-release-handoff.md
 
 ### Handoff summary — to next session
 v1.53.0 landed with 8 security fixes. Highest-priority follow-up is web-scripts-aob
@@ -98,8 +97,8 @@ v1.53.0 landed with 8 security fixes. Highest-priority follow-up is web-scripts-
 
 ### If verdict != APPROVED
 - Review the `Remaining gaps` list.
-- Either recover what is still recoverable, or record explicit `bd remember` entries
-  acknowledging the loss and next steps.
+- Either recover what is still recoverable, or record explicit notes in CLAUDE.md or
+  docs/orchestration/conventions.md acknowledging the loss and next steps.
 - Re-run /workflow-gate-check 03 after fixing.
 ```
 
@@ -109,10 +108,13 @@ v1.53.0 landed with 8 security fixes. Highest-priority follow-up is web-scripts-
 
 Session closed `aob-audit-backfill`, open tasks `aob-phpunit` and `ebo-changelog`.
 
-- Phase 0: both open tasks are `discovered-from` gxu7 ⇒ criterion (a). Plus `aob-phpunit` shares `tests/` path with current diff ⇒ criterion (b) reinforces.
+- Phase 0: both open tasks are `Discovered during: gxu7` ⇒ criterion (a). Plus `aob-phpunit` shares `tests/` path with current diff ⇒ criterion (b) reinforces.
 - Phase 1 gaps on `aob-phpunit`: S1 (smoke scripts in /tmp/smoke-*.php from this session), S2 (29j Option C chosen in brainstorm, not recorded), S3 (per-fix assertion-shape mapping built in conversation).
-- Phase 2 plan: commit smokes to `tests/fixtures/aob/`, `bd decision` for Option C, `bd update --description` with assertion table.
-- Phase 3 applied. After: 95% completeness; next session can `bd claim aob` and run immediately.
+- Phase 2 plan:
+  - commit smoke fixtures: tests/fixtures/aob/smoke-*.php
+  - append to handoff file: `### Decision: aob-option-c — chose C because [rationale]; rejected A (reason), B (reason)`
+  - edit task record (aob) description to cross-link the handoff file
+- Phase 3 applied. After: 95% completeness; next session can pick up aob and run immediately.
 
 ### Content session walkthrough (text4site avers020 article)
 
@@ -120,7 +122,7 @@ Session closed `avers020-article-n42`, open tasks `avers020-article-n43` (next i
 
 - Phase 0: `avers030-fact-check-n42` is `blocks`→ just-closed (criterion a). `avers020-article-n43` is created in session (c) and shares cluster keyword (d).
 - Phase 1 gaps: S1 (SERP screenshots + competitor URL list gathered this session, not filed), S2 (angle choice "expert-interview" vs "listicle" made after brainstorm, no record), S4 (discovered: audit-reshenie brand voice requires lawyer quote in every legal article — learned mid-session).
-- Phase 2 plan: commit SERP artefacts to `assets/aversgroupp.ru/research/avers020-article-n42/`, `bd decision` for angle choice, `bd remember` for the voice constraint.
+- Phase 2 plan: commit SERP artefacts to `assets/aversgroupp.ru/research/avers020-article-n42/`; append decision for angle choice to handoff file; append brand-voice constraint to CLAUDE.md or `docs/orchestration/conventions.md`.
 - Phase 3 applied. After: 92% completeness.
 
 ### Infrastructure session walkthrough (vpn-manager node rollout)
@@ -129,7 +131,7 @@ Session closed `vpn-s03-upgrade`, open task `vpn-s04-upgrade` (next in sequence)
 
 - Phase 0: `vpn-s04-upgrade` shares runbook path (b).
 - Phase 1 gaps: S1 (docker logs snippets from s03 that exposed a DNS startup race), S2 (decided to stagger rollout 1-by-1 based on s03 low-disk), S4 (DNS startup order: xray-core must start after nextcloud's cert refresh, else SNI mismatch).
-- Phase 2 plan: commit logs to `docs/runbooks/vpn-s04-upgrade-2026-04-17.md`, `bd decision` for rollout strategy, `bd update --notes` for DNS order constraint.
+- Phase 2 plan: commit logs to `docs/runbooks/vpn-s04-upgrade-2026-04-17.md`; append rollout-strategy decision to handoff file; append DNS order constraint note to the task record (vpn-s04-upgrade).
 - Phase 3 applied.
 
 ### Design session walkthrough (mobile-first dashboard)
@@ -138,5 +140,5 @@ Session produced breakpoint variants, open task `dashboard-empty-states`.
 
 - Phase 0: shared asset path, keyword "dashboard" (b+d).
 - Phase 1 gaps: S1 (Figma exploration frames saved as PNGs in /tmp), S2 (chose 320/768/1280 breakpoints not 360/720/1024, no record), S4 (brand palette restricts dashboard to 2 accent colours max).
-- Phase 2: commit PNGs to `assets/designs/dashboard/exploration/`, decision + remember entries.
+- Phase 2: commit PNGs to `assets/designs/dashboard/exploration/`; append breakpoint decision + brand constraint to handoff file.
 - Phase 3 applied.
