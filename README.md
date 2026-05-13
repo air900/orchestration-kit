@@ -253,6 +253,30 @@ CLAUDE: "Для GraphQL есть api-graphql/graphql-performance-optimizer — �
 → Удаляет после задачи
 ```
 
+### Migrating an existing deployment
+
+If you previously installed orchestration-kit when it shipped with Beads / LightRAG integration, your project still carries some legacy state. Run these one-time steps:
+
+```bash
+# 1. Refresh the kit-shipped content (skills, commands, hooks)
+/kit-update --update-skills
+
+# 2. (If you no longer want Beads) Remove the local Beads state and plugin
+rm -rf .beads/
+claude plugin uninstall beads
+
+# 3. Hand-edit .claude/settings.json — remove any leftover hook entry that runs `bd prime`
+#    Check: jq '.hooks.SessionStart, .hooks.PreCompact' .claude/settings.json
+#    The kit no longer ships those entries; `/kit-update` only ADDS hooks, it does not
+#    remove stale ones.
+
+# 4. Regenerate CLAUDE.md to drop Beads-flavoured sections
+/deploy-orchestration <your project description>
+# When prompted about overwriting Claude Automations block, accept.
+```
+
+The `knowledge-harvest` skill currently still requires LightRAG MCP; it remains in the deployed roster but is scheduled for a rewrite that persists findings into project files. If your project does not have LightRAG MCP installed, the skill will return a `SKIPPED — no LightRAG MCP` notice when invoked.
+
 ## Supported Languages
 
 | Language | Detected By | PostToolUse Hooks |
