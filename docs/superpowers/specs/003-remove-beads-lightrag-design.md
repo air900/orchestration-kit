@@ -23,7 +23,7 @@ status: spec-in-progress
 
 ## TL;DR
 
-Beads (operational memory) and LightRAG (knowledge base) are removed from the orchestration-kit core. The four-layer D1 model collapses to three layers (Template Bridge + Superpowers + orchestration-kit glue). Discipline (6-point issue, 4-point close, expert review, dispatch-with-context) is preserved but becomes tracker-agnostic — `bd` calls disappear from skills and commands; Mode 3 of `workflow-gate-check` rewrites volatile-session-state persistence onto files under `docs/orchestration/handoff/`. `deploy.sh` stops installing the beads plugin / bd CLI / running `bd init`; `settings-hooks.json` drops `bd prime` from SessionStart and PreCompact. The `knowledge-harvest` skill is **untouched** (explicit user instruction — will be rewritten in a later cycle to persist findings into project files). The `delegate-with-context` Phase 8 LightRAG subagent is dropped (knowledge-harvester invocation + its prompt-template file deleted). Approximately 22 files touched: 20 edits, 2 deletes; 7 historical/excluded files left as-is. Estimated diff: -700 / +370 lines. Delivered in 3 sequenced stages so each can be reviewed and tested independently.
+Beads (operational memory) and LightRAG (knowledge base) are removed from the orchestration-kit core. The four-layer D1 model collapses to three layers (Template Bridge + Superpowers + orchestration-kit glue). Discipline (6-point issue, 4-point close, expert review, dispatch-with-context) is preserved but becomes tracker-agnostic — `bd` calls disappear from skills and commands; Mode 3 of `workflow-gate-check` rewrites volatile-session-state persistence onto files under `docs/orchestration/handoff/`. `deploy.sh` stops installing the beads plugin / bd CLI / running `bd init`; `settings-hooks.json` drops `bd prime` from SessionStart and PreCompact. The `knowledge-harvest` skill is **untouched** (explicit user instruction — will be rewritten in a later cycle to persist findings into project files). The `delegate-with-context` Phase 8 LightRAG subagent is dropped (knowledge-harvester invocation + its prompt-template file deleted). Approximately 23 files touched: 21 edits, 2 deletes; 7 historical/excluded files left as-is. Estimated diff: -700 / +375 lines. Delivered in 3 sequenced stages so each can be reviewed and tested independently.
 
 ## Diagnosis
 
@@ -138,6 +138,7 @@ The work is staged for review/test isolation. Each stage is one PR or one commit
 | `templates/skills/delegate-with-context/validate.sh` | EDIT: drop `bd` checks | -1 |
 | `templates/commands/workflow-gate.md` | REWRITE: remove "Beads create/close" sections; restate "Quality standards on top" tracker-agnostic; drop `bd init` fallback | -20 / +15 |
 | `templates/commands/workflow-gate-check.md` | EDIT: remove "do NOT call bd close", "bd update notes", "no bd binary" → file-based persistence | -15 / +12 |
+| `templates/orchestration-config.json` | EDIT: add `documentation.paths.handoff = "docs/orchestration/handoff"` and `documentation.enabled.handoff = true` so Mode 3 of `workflow-gate-check` has a configured target | +4 |
 
 ### Stage 3 — Top-level docs
 
@@ -151,7 +152,7 @@ The work is staged for review/test isolation. Each stage is one PR or one commit
 - `templates/skills/knowledge-harvest/` — explicit user instruction. Skill keeps its LightRAG dependency; a future cycle will rewrite it to persist findings into project files. The skill remains in the deployed roster.
 - `templates/agents/*.md` — no beads/lightrag references (`planner`, `security-auditor`, `senior-reviewer`, `refactor`, `documenter`, `doc-keeper`, `observer`).
 - `templates/skills/{arch-review, security-audit, refactor-code, 012-update-docs, find-skills-my, sync-skills, update-external-skills}/` — already clean.
-- `templates/orchestration-config.json` — no beads (only paths config; we will likely add a `handoff` path in a follow-up — see Open questions).
+- `templates/orchestration-config.json` — no beads logic; one path entry is added (`handoff`) but no existing behaviour is removed.
 - `language-hooks/*.json` — clean.
 - `install.sh` — clean (curl wrapper into deploy.sh).
 - `templates/claude-gitignore` — clean.
@@ -167,11 +168,11 @@ The work is staged for review/test isolation. Each stage is one PR or one commit
 | Layer | Files edited | Files deleted | Untouched (by design) | Total touched |
 |---|---|---|---|---|
 | A — deploy/hooks | 2 | 0 | 0 | 2 |
-| B — skills + commands | 16 | 2 | 1 (knowledge-harvest) | 18 |
+| B — skills + commands + config | 17 | 2 | 1 (knowledge-harvest) | 19 |
 | C — top docs | 2 | 0 | 6 (historical) | 2 |
-| **Total** | **20** | **2** | **7** | **22** |
+| **Total** | **21** | **2** | **7** | **23** |
 
-Approximate diff: −700 / +370 lines.
+Approximate diff: −700 / +375 lines.
 
 ## Risks
 
@@ -197,7 +198,7 @@ Approximate diff: −700 / +370 lines.
 
 4. **doc-manifest auto-archive schema.** Replace bd-id link with `status: done` in spec/plan front-matter? **Recommendation:** Yes — this spec already defines its own `status: spec-in-progress` front-matter; we adopt the same convention across all specs/plans the curator tracks. Schema documented in `doc-manifest.md` during Stage 2.
 
-5. **Mode 3 handoff path.** `docs/orchestration/handoff/NNN-<topic>-handoff.md` directly, or under `docs/orchestration/reports/handoff/`? **Recommendation:** top-level `docs/orchestration/handoff/`; add it to `orchestration-config.json` `documentation.paths.handoff` and `documentation.enabled.handoff = true` so projects can disable it.
+5. **Mode 3 handoff path.** `docs/orchestration/handoff/NNN-<topic>-handoff.md` directly, or under `docs/orchestration/reports/handoff/`? **Recommendation:** top-level `docs/orchestration/handoff/`; this is the rationale for the `orchestration-config.json` edit in Stage 2. Projects that want to disable the handoff output set `documentation.enabled.handoff = false`.
 
 These five recommendations are the working defaults the implementation plan will adopt unless the user overrides during plan review.
 
