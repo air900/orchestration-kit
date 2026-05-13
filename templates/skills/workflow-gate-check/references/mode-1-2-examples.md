@@ -11,7 +11,7 @@ This file backs the skeletons in `SKILL.md` Output template section for Modes 1 
 
 ## Mode 1 annotated output — code audit
 
-Example: auditing a just-landed security fix on a WordPress plugin before `bd close`.
+Example: auditing a just-landed security fix on a WordPress plugin before closing the task.
 
 ```
 === WORKFLOW-GATE-CHECK REPORT ===
@@ -22,7 +22,7 @@ Commit(s): a1b2c3d
 ### Verdict: WARNINGS
 
 ### Part 1 — Protocol compliance
-[x] A. Beads description — 6-point (file:line, repro, context, resources)
+[x] A. Task record — 6-point description (file:line, repro, context, resources)
 [ ] B. Close reason — solution + root cause + prevention ticked; verification
       has "tested locally" but no command output snippet (severity: BLOCKED
       for Part 1, downgraded because smoke script lives in /tmp/smoke-ail.php
@@ -69,12 +69,12 @@ would do. Only recommendation is to lock it in with a regression test:
 1. Add test command output snippet (even of the /tmp smoke run) to close reason
    point 4, or wait until aob lands the proper PHPUnit test before closing gxu7.
 2. Update src/plugins/ail/README.md with changelog entry for the sanitizer fix.
-3. Then `bd close gxu7 --claim-next`.
+3. Then close the task (e.g., "Closes #gxu7" in commit body).
 
 ### If verdict != APPROVED
-- Do NOT call bd close yet.
-- Preserve findings: `bd update gxu7 --notes "WORKFLOW-GATE-CHECK: missing
-  verification artefact + README sync. See above."`
+- Do NOT close the task yet.
+- Preserve findings: append note to task gxu7: "WORKFLOW-GATE-CHECK: missing
+  verification artefact + README sync. See above."
 - Re-run /workflow-gate-check after fixing.
 ```
 
@@ -146,7 +146,7 @@ Part 1 grades process, not domain-specific content. But what "evidence" looks li
 
 ### Code session
 
-`bd show` description (6-point):
+Task gxu7 description (6-point):
 - *What:* Null-pointer in user profile cache when user has no avatar.
 - *Where:* `src/cache/profile.ts:142`, function `getUserAvatar`.
 - *How:* `getUserAvatar({ userId: 101 })` returns `undefined.url`.
@@ -158,7 +158,7 @@ Close reason point 4 verification: `npm test -- profile.test.ts` output + new te
 
 ### Content session
 
-`bd show` description (6-point):
+Task record description (6-point):
 - *What:* avers020-article-n42 missing lawyer quote required by brand voice rule.
 - *Where:* `assets/aversgroupp.ru/articles/n42.md`, section "Legal framework", lines 120-145.
 - *How:* Open the article; section is present but lacks required quote block format.
@@ -170,7 +170,7 @@ Close reason point 4 verification: article rendered in staging + link to staging
 
 ### Infrastructure session
 
-`bd show` description:
+Task record description:
 - *What:* s04 VPN node fails SSL renewal after docker compose pull.
 - *Where:* `docs/runbooks/node-upgrade.md`, step 3 (cert-refresh).
 - *How:* `ssh root@s04 && docker compose pull && docker compose up -d` → nextcloud container shows "cert expired" in logs.
@@ -182,7 +182,7 @@ Close reason point 4 verification: upgrade re-run with `depends_on: nextcloud` a
 
 ### Design session
 
-`bd show` description:
+Task record description:
 - *What:* Dashboard empty-state lacks sufficient colour contrast for WCAG AA.
 - *Where:* `assets/designs/dashboard/empty-state.fig` frame "Empty — No activity".
 - *How:* Load the Figma frame; Stark plugin reports 3.9:1 on the secondary text.
