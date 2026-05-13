@@ -3,7 +3,7 @@ name: workflow-gate-check
 description: >
   Manual quality gate with THREE modes, domain-agnostic (code, content, infra, design).
   Mode 1 (POST-TASK AUDIT): verify workflow-gate compliance of a completed task
-  before bd close. Mode 2 (MID-TASK SECOND OPINION): independent expert
+  before closing the task. Mode 2 (MID-TASK SECOND OPINION): independent expert
   assessment of a proposed solution before accepting it. Mode 3 (HANDOFF
   ENRICHMENT): enrich related open tasks so a new session continues at the
   same quality without 30-60 min ramp-up archaeology.
@@ -13,12 +13,12 @@ description: >
   "обогатить контекст", "prepare handoff", "передать в новую сессию".
   Do NOT use for: pre-work planning (use superpowers:brainstorming),
   routine code review (use code-review skill), real-time linting,
-  open-task triage (use bd ready).
+  open-task triage.
 ---
 
 # Workflow Gate Check
 
-**Role:** manual quality gate, user-triggered only. Not automatic. Three modes. The skill is **domain-agnostic** — applies equally to code, content, infrastructure, design, or any other task tracked in Beads.
+**Role:** manual quality gate, user-triggered only. Not automatic. Three modes. The skill is **domain-agnostic** — applies equally to code, content, infrastructure, design, or any other project task.
 
 ## Expert persona — the stance you take
 
@@ -38,14 +38,14 @@ Ask — and answer — each:
 
 ### Mode 3 — Shift-handover-writer persona
 
-**You are the senior member of a team going off-shift, writing the note that lets the incoming member start tomorrow without re-doing investigations.** Value is NOT to dump everything you know. It is to identify what the incoming member NEEDS to know that is NOT already in the tracker, and to **capture it in durable form** (Beads issues, committed artefacts, decision records) before the volatile context (conversation, /tmp, terminal scrollback) dies.
+**You are the senior member of a team going off-shift, writing the note that lets the incoming member start tomorrow without re-doing investigations.** Value is NOT to dump everything you know. It is to identify what the incoming member NEEDS to know that is NOT already in the tracker, and to **capture it in durable form** (task records, committed artefacts, decision records) before the volatile context (conversation, /tmp, terminal scrollback) dies.
 
 Ask — and answer — each:
 
 1. **What do I know right now that is not yet written down?** Design choices in conversation, artefacts in /tmp, mappings I built in my head, constraints I discovered.
 2. **Which of those matter for which open task?** Don't enrich unrelated tasks — only ones downstream of this session's work.
 3. **If a fresh session picks up task X tomorrow, will they re-derive what I already derived?** If yes, that re-derivation is waste you can prevent now.
-4. **Am I preserving the right evidence?** `bd decision` for choices with rationale; `bd update --notes` for learned constraints and mappings; committed file for ephemeral artefacts with ongoing reference value.
+4. **Am I preserving the right evidence?** Decision blocks in the handoff file for choices with rationale; notes in the task record for learned constraints and mappings; committed file for ephemeral artefacts with ongoing reference value.
 5. **Could the incoming member read the enriched task and work at my level?** If they'd still need 30 min of archaeology, you haven't enriched enough.
 
 ### Universal principle
@@ -58,7 +58,7 @@ Resolve the active mode in this strict order:
 
 1. **Slash numeric prefix wins.** `01` → Mode 1; `02` → Mode 2; `03` → Mode 3. Unconditional.
 2. **Auto-detect by evidence.**
-   - Commit with issue ID exists AND close reason drafted → **Mode 1** (post-task audit; run before `bd close`).
+   - Commit with issue ID exists AND close reason drafted → **Mode 1** (post-task audit; run before closing the task).
    - Only a proposal in conversation, no commit yet → **Mode 2** (second opinion before agent implements).
    - Session is wrapping up and related open tasks exist → **Mode 3** (enrich context so a new session can continue without archaeology).
 3. **Ambiguous → ask user:** "Mode 1 (audit landed work), Mode 2 (second opinion on a proposal), or Mode 3 (enrich related open tasks for handoff)?"
@@ -68,9 +68,9 @@ State the chosen mode explicitly at the top of the output — the user must see 
 ## What each mode does
 
 **Mode 1 — POST-TASK AUDIT**
-1. Protocol compliance — full Part 1 checklist (6-point Beads issue, 4-point close reason with verification artefacts, commit conventions, docs sync, land-the-plane).
+1. Protocol compliance — full Part 1 checklist (6-point task record, 4-point close reason with verification artefacts, commit conventions, docs sync, land-the-plane).
 2. Solution quality — Part 2 rubric applied to the **landed diff**.
-3. Output: verdict drives `bd close` decision.
+3. Output: verdict drives close-the-task decision.
 
 **Mode 2 — MID-TASK SECOND OPINION**
 1. Protocol compliance — **SKIPPED** (the task is not finished — there is nothing to audit compliance against yet).
@@ -87,9 +87,9 @@ State the chosen mode explicitly at the top of the output — the user must see 
 
 | Verdict | Mode 1 meaning | Mode 2 meaning | Mode 3 meaning |
 |---|---|---|---|
-| `APPROVED` | Fine to run `bd close` | Accept the proposal, proceed | All related open tasks have ≥90% handoff completeness; fresh session ready |
-| `WARNINGS` | MAY close, save findings to `bd update --notes` first | Accept only after addressing findings | Some gaps remain (user skipped or evidence missing); fresh session will need 15-30 min ramp-up |
-| `BLOCKED` | DO NOT `bd close`, fix issues, re-audit | REJECT proposal as-is — revise substantially or try a different approach | Critical gaps remain; fresh session will waste ≥1 hour or produce lower-quality work; do not end session without resolving |
+| `APPROVED` | Fine to close the task | Accept the proposal, proceed | All related open tasks have ≥90% handoff completeness; fresh session ready |
+| `WARNINGS` | MAY close, append findings to task notes first | Accept only after addressing findings | Some gaps remain (user skipped or evidence missing); fresh session will need 15-30 min ramp-up |
+| `BLOCKED` | DO NOT close the task, fix issues, re-audit | REJECT proposal as-is — revise substantially or try a different approach | Critical gaps remain; fresh session will waste ≥1 hour or produce lower-quality work; do not end session without resolving |
 
 ## Input gathering
 
@@ -97,7 +97,7 @@ Collect in this order. Which items are required depends on mode.
 
 ### Mode 1 — POST-TASK AUDIT (all required)
 
-1. **Task identity** — `bd show <id> --json`. If no ID from user, ask. If no Beads issue exists at all, that IS the first finding.
+1. **Task identity** — read the task record. If no ID from user, ask. If no task record exists at all, that IS the first finding.
 2. **Git evidence** — `git log --oneline -10`, `git show <commit>`, `git diff <commit>^..<commit>`.
 3. **Close reason (draft or saved)** — read it; it is what Part 1 evaluates against.
 4. **Verification artefacts** — if the close reason references a test run or screenshot, locate the actual file or terminal output in session history.
@@ -110,7 +110,7 @@ Skip nothing. An audit with incomplete evidence defaults to `BLOCKED` — the us
 1. **The proposal itself** — the agent's message(s) proposing the fix. If the proposal is vague ("I'll fix X by adding a check"), ask for specifics before auditing.
 2. **Target code context** — which files/functions the proposal would touch. Read them now to ground the rubric.
 3. **Preview diff if available** — if the agent produced a draft patch, apply the rubric to the patch directly. If not, apply it to the *plan* as written.
-4. **Current Beads issue (if any)** — `bd show <id>` gives context for what the fix is supposed to solve. Used only for framing, not for compliance grading.
+4. **Current task record (if any)** — read the task record to get context for what the fix is supposed to solve. Used only for framing, not for compliance grading.
 5. **User's specific doubt** — one sentence: what makes you uncertain about this proposal? Named doubts are strong input to the rubric.
 
 Mode 2 has no `git show <commit>` step — nothing has landed yet. Do NOT fabricate or assume code changes: apply the rubric to what is actually on the table.
@@ -118,13 +118,13 @@ Mode 2 has no `git show <commit>` step — nothing has landed yet. Do NOT fabric
 ### Mode 3 — HANDOFF ENRICHMENT (broader scope)
 
 1. **Session topic identification** — one or two sentences: what did this session actually do? If the user provided `$ARGUMENTS` after `03`, use that as authoritative topic; else derive from just-closed task + git activity.
-2. **Just-closed task context (if any)** — `bd show <id>`, commit shas, close reason. Source of downstream links (discovered-from, blocks).
+2. **Just-closed task context (if any)** — read the task record, commit shas, close reason. Source of downstream links (discovered-from, blocks).
 3. **Related-open-task identification** — run the Phase 0 scope criteria below. Produce explicit list of task IDs; if empty, ask user which open tasks to target.
-4. **Per-task current state** — `bd show <id>` for each identified open task. This is the "before" snapshot against which enrichment is measured.
+4. **Per-task current state** — read the task record for each identified open task. This is the "before" snapshot against which enrichment is measured.
 5. **Session volatile state** — conversation transcript, `/tmp/*` files created this session, terminal outputs, ephemeral notes. This is the SOURCE of enrichment content — what will disappear when the session ends.
 6. **Project domain signals** — detect by presence of `tests/`, `docs/orchestration/`, `assets/`, `docs/runbooks/` etc. Drives the persistence-path choice in Part 3.
 
-Mode 3 reads a LOT but writes nothing until the plan is approved by the user in Phase 2 of Part 3. Do NOT run any `bd update`, `bd decision`, or file commit without explicit user approval.
+Mode 3 reads a LOT but writes nothing until the plan is approved by the user in Phase 2 of Part 3. Do NOT run any task edits, handoff-file edits, or file commits without explicit user approval.
 
 ## Part 1 — Protocol compliance (mechanical) — MODE 1 ONLY
 
@@ -132,15 +132,15 @@ Mode 3 reads a LOT but writes nothing until the plan is approved by the user in 
 
 Tick each item. Each miss has a severity tag.
 
-### A. Beads issue quality
+### A. Task record quality
 
 - `[ ]` Title is descriptive (not "fix bug", not "update") → miss = **WARNING**
-- `[ ]` `--type` and `--priority` set → miss = **WARNING**
+- `[ ]` Type and priority set → miss = **WARNING**
 - `[ ]` Description has all 6 points: (1) what's broken, (2) where in code with file:line, (3) how to reproduce, (4) what's already known, (5) context link, (6) resources — miss of 3+ points = **BLOCKED**, miss of 1-2 = **WARNING**
 - `[ ]` Written in English → miss = **WARNING** (token-budget rule)
 - `[ ]` `discovered-from` link set if this task emerged from a different one → miss = **WARNING**
 
-### B. Close reason (bd close --reason "…")
+### B. Close reason
 
 - `[ ]` Point 1 — **solution**: 1–2 sentences on what was concretely done
 - `[ ]` Point 2 — **root cause**: why the defect existed
@@ -157,10 +157,10 @@ Tick each item. Each miss has a severity tag.
 - `[ ]` Conventional-commit prefix (`feat` / `fix` / `chore` / `docs` / `refactor` / `test`) → miss = **WARNING**
 - `[ ]` Multi-line body for non-trivial changes → miss = **INFO**
 
-### D. Notes & `bd remember`
+### D. Notes & cross-session memory
 
-- `[ ]` Notes updated during work, not batched at the end → miss = **INFO**
-- `[ ]` `bd remember` entries added for any pattern/gotcha/convention worth future sessions → miss = **WARNING**
+- `[ ]` Task notes updated during work, not batched at the end → miss = **INFO**
+- `[ ]` Cross-session patterns/gotchas/conventions persisted to CLAUDE.md or `docs/orchestration/conventions.md` → miss = **WARNING**
 
 ### E. README / docs synchronisation
 
@@ -170,7 +170,7 @@ Tick each item. Each miss has a severity tag.
 ### F. Land the plane
 
 - `[ ]` `git pull --rebase && git push` done → miss = **WARNING** if remote exists
-- `[ ]` Open sibling tasks have `bd update --notes` with current status → miss = **INFO**
+- `[ ]` Open sibling tasks have notes updated with current status → miss = **INFO**
 
 ## Part 2 — Expert judgement (diagnosis → approach → execution)
 
@@ -229,7 +229,18 @@ Present ⇒ lean toward `APPROVED`. Positive quality dimensions, not mere absenc
 
 **In Modes 1 and 2 this whole Part is SKIPPED** — no handoff is being prepared.
 
-Goal: take the volatile knowledge this session built (in conversation, in /tmp, in the author's head) and durably attach it to the related open Beads tasks so a fresh session can continue at the same quality.
+Goal: take the volatile knowledge this session built (in conversation, in /tmp, in the author's head) and persist it as a committed handoff file at `docs/orchestration/handoff/NNN-<session-topic>-handoff.md` (plus updates to related task records and cross-session memory) so a fresh session can continue at the same quality.
+
+The handoff file contains:
+- **Session topic** (one sentence)
+- **Just-closed work** (commit SHAs + brief description)
+- **Related open tasks** (list task IDs / file paths / PR numbers — whatever the project's tracker exposes)
+- **Volatile state preserved** (S1 artefacts; for each, where it now lives)
+- **Decisions recorded** (S2; rationale + alternatives rejected)
+- **Implicit mappings captured** (S3; tables/lists/lattices)
+- **Discovered constraints** (S4; runtime invariants, brand-voice rules, infra dependencies, etc.)
+- **External references** (S5; URLs)
+- **Handoff summary for next session** (2-3 sentences)
 
 Domain-agnostic: the categories below apply whether this is a code session, a content-writing session, an infrastructure change session, or a design session. Examples in each category span all four domains.
 
@@ -237,9 +248,9 @@ Domain-agnostic: the categories below apply whether this is a code session, a co
 
 Do NOT enrich all open tasks. That dilutes signals. Identify **related** ones via the union of these criteria:
 
-- **(a) Graph-adjacent to just-closed task** — direct beads deps of the task closed in this session: `discovered-from`, `blocks`, `blockedBy`, children/siblings.
+- **(a) Graph-adjacent to just-closed task** — for trackers with link types: direct deps (`discovered-from`, `blocks`, `blockedBy`, children/siblings); for plain-text trackers: tasks with a "Discovered during:" line pointing to the just-closed task.
 - **(b) Resource overlap with session's work** — open tasks whose Resources (file paths, page URLs, config paths, design-asset paths) intersect with what this session touched (`git diff`, files mentioned in conversation).
-- **(c) Created during this session** — any `bd create` that happened in this session is by construction part of this session's topic.
+- **(c) Created during this session** — task records created this session are by construction part of this session's topic.
 - **(d) Keyword / label match** — open tasks whose title/labels contain terms from the session topic sentence.
 
 If (a)+(b)+(c) yields an empty set, fall back to (d) only if the user provided an explicit topic in `$ARGUMENTS` after `03`. Otherwise ask the user which open tasks to target.
@@ -269,7 +280,7 @@ Each one, if unresolved, costs the next session time and quality.
   - *infrastructure:* SSH terminal transcripts, `docker logs` snippets, command-output proof of state
   - *design:* exploration sketches, colour/spacing variants tried and rejected
 
-- **`S2` Design decisions made in conversation but not recorded.** A choice was made and a rationale articulated, but no `bd decision` / `bd remember` captures it. The NEXT session will either re-litigate the decision or worse, silently reverse it.
+- **`S2` Design decisions made in conversation but not recorded.** A choice was made and a rationale articulated, but it is not captured in the handoff file. The NEXT session will either re-litigate the decision or worse, silently reverse it.
 
 - **`S3` Implicit mappings / inventories built this session.** The current session knows a lattice (`test-file × fix × assertion-shape`, `release × commits × user-visible-summary`, `node × role × version`, `brand-voice-rule × applicable-section`) but the open task description does not encode it. The next session will re-scan `git log` / re-read commits / re-run inventory to rebuild it.
 
@@ -287,16 +298,19 @@ Tag every gap you find with its code (`S1`–`S5`, or one of the structural lett
 ### Phase 2 — Enrichment plan (propose, await user approval, apply)
 
 Translate each gap into a concrete action. See `references/mode-3-details.md` for:
-- **Gap → Action conversion table** (which `bd` command to use for which `S*` gap)
+- **Gap → Action conversion table** (which action to take for which `S*` gap, referencing the handoff file)
 - **Persistence-path auto-detect table** (where to commit `S1` artefacts based on project structure — `tests/fixtures/` for code, `assets/research/` for content, `docs/runbooks/` for infra, default `docs/orchestration/doc-drafts/`)
 
 Short summary of the mapping:
-- Structural gap in Resources → `bd update --description`
-- `S1` volatile artefact → commit to auto-detected project path + link from issue
-- `S2` design decision → `bd decision "<choice> — rationale — alternatives rejected"`
-- `S3` implicit mapping → short: `bd update --notes`; long (>20 lines): commit to `doc-drafts/`
-- `S4` discovered constraint → `bd update --notes "CONSTRAINT: …"`; cross-session: additional `bd remember`
-- `S5` external reference → add URL to Resources
+
+| Gap | Action |
+|---|---|
+| Missing Resources in a related task | Edit the task record's description; if no record exists, create one with the 6-point template |
+| `S1` volatile artefact | Commit to project's artefact path (use `orchestration-config.json` paths or auto-detect: `tests/fixtures/` for code, `assets/research/` for content, `docs/runbooks/` for infra). Link from the handoff file. |
+| `S2` design decision | Append a `### Decision: <id> — <choice>` block to the handoff file with rationale + rejected alternatives |
+| `S3` implicit mapping (short) | Append a `### Mapping: <topic>` block to the handoff file; if mapping is large (>20 lines), commit it as a separate file under `docs/orchestration/handoff/NNN-<topic>-<subtopic>.md` |
+| `S4` discovered constraint (per-task) | Append a "CONSTRAINT:" note in the related task record; if cross-session pattern, ALSO append to CLAUDE.md or `docs/orchestration/conventions.md` |
+| `S5` external reference | Add the URL to the related task record's Resources list AND to the handoff file's External references section |
 
 #### Approval gate (non-negotiable)
 
@@ -305,24 +319,24 @@ Present the full plan as a table:
 ```
 | Task | Gaps | Proposed actions |
 |------|------|------------------|
-| aob  | S1 x2, S3 | commit smoke scripts to tests/fixtures/aob/; bd update notes with test→fix mapping |
-| ebo  | S3, R6    | bd update description with release→commits mapping |
+| aob  | S1 x2, S3 | commit smoke scripts to tests/fixtures/aob/; append test→fix mapping to handoff file |
+| ebo  | S3, R6    | edit task record (ebo) description with release→commits mapping |
 ```
 
 Then ask: **"Apply this plan as-is, edit it first, or abort?"**
 
-Do NOT apply until the user has answered. Mode 3 is enrichment, not unsupervised editing of the user's tracker.
+Do NOT apply until the user has answered. Mode 3 is enrichment, not unsupervised editing of the project's tracker or files.
 
 ### Phase 3 — Apply + handoff summary
 
 After user approval, execute the actions in this order (idempotent each):
 
-1. Commit artefacts (files first; they become linkable from bd in step 3).
-2. `bd decision` for captured choices (adds stable identifiers for step 3 references).
-3. `bd update --description` / `--notes` for each task (now can reference committed files + decision ids).
-4. `bd remember` for cross-session patterns.
+1. Commit artefacts (files first; they become linkable from the handoff file in step 2).
+2. Write the handoff file itself (`docs/orchestration/handoff/NNN-<session-topic>-handoff.md`).
+3. Edit related task records to add cross-links to the handoff file.
+4. Update CLAUDE.md or `docs/orchestration/conventions.md` for cross-session patterns.
 
-After execution, write the **handoff summary** — 2-3 sentences describing the session topic, what landed, and the one or two tasks the fresh session should start with. This goes into the report (see Output template) AND can optionally go into `bd remember` if the user wants it surfaced at the next `bd prime`.
+After execution, write the **handoff summary** — 2-3 sentences describing the session topic, what landed, and the one or two tasks the fresh session should start with. This goes into the handoff file and into the report (see Output template).
 
 ### Cross-domain examples
 
@@ -333,9 +347,9 @@ Short form: the categories `S1`–`S5` are universal. The *wording* of examples 
 ### Judgement heuristics for the handover writer
 
 - **Enrich related tasks, not all tasks.** Every unrelated enrichment adds noise to the tracker and hides future signal.
-- **Extract knowledge atoms, not conversation transcripts.** `bd update --notes "FINDING: lock released before sleep in rate-limiter"` beats dumping a Claude transcript.
-- **Prefer committed files over inline notes for anything >20 lines.** bd notes field is for short facts; long content lives in docs or fixtures with a link.
-- **Do not guess decisions.** If the conversation is ambiguous about "why was X chosen over Y", ask the user before writing a `bd decision`. A wrong decision record is worse than no record.
+- **Extract knowledge atoms, not conversation transcripts.** A one-line "FINDING: lock released before sleep in rate-limiter" note beats dumping a Claude transcript.
+- **Prefer committed files over inline notes for anything >20 lines.** Task notes are for short facts; long content lives in docs or fixtures with a link.
+- **Do not guess decisions.** If the conversation is ambiguous about "why was X chosen over Y", ask the user before appending a decision block to the handoff file. A wrong decision record is worse than no record.
 - **Test the enrichment against the central question:** "Would the incoming member be able to read the enriched task and work at my level?" If yes → WARNINGS at worst. If no → keep enriching or escalate to BLOCKED.
 - **If volatile state is already lost,** say so explicitly in the report — the user may re-derive it deliberately before ending the session. Don't pretend you recovered something you didn't.
 
@@ -349,9 +363,9 @@ Short form: the categories `S1`–`S5` are universal. The *wording* of examples 
 | Protocol has `INFO`/`WARNING`s only AND 0–1 band-aid signal with mitigation documented | `WARNINGS` |
 | Any protocol item tagged `BLOCKED` OR 2+ band-aid signals OR known regression OR missing verification evidence | `BLOCKED` |
 
-- `APPROVED` → user is free to run `bd close --reason "…" --claim-next`.
-- `WARNINGS` → user MAY close, but should first write findings into `bd update <id> --notes` so they are preserved for future maintainers.
-- `BLOCKED` → DO NOT run `bd close`. Write findings into `bd update <id> --notes`, fix the issues, re-run this audit.
+- `APPROVED` → user is free to close the task.
+- `WARNINGS` → user MAY close, but should first append findings to the task notes so they are preserved for future maintainers.
+- `BLOCKED` → DO NOT close the task. Append findings to the task notes, fix the issues, re-run this audit.
 
 ### Mode 2 — Part 2 only
 
@@ -390,16 +404,16 @@ Skeleton below. Annotated filled examples (code audit for Mode 1, proposal revie
 ```
 === WORKFLOW-GATE-CHECK REPORT ===
 Mode: <1 POST-TASK-AUDIT | 2 MID-TASK-SECOND-OPINION>
-Task: <bd-id or "(no issue)"> — <title>
+Task: <task-id or "(no task record)"> — <title>
 Commit(s): <sha>                     # Mode 1 only
 Proposal source: <agent message|diff> # Mode 2 only
 
 ### Verdict: <BLOCKED | WARNINGS | APPROVED>
 
 ### Part 1 — Protocol compliance    # Mode 1 only; omit in Mode 2
-[x] A. Beads description — 6-point
+[x] A. Task record — 6-point description
 [ ] B. Close reason — verification artefact (severity tag)
-[x] C. Commit includes issue ID
+[x] C. Commit includes task-id
 ... (D, E, F as applicable)
 
 ### Part 2 — Expert judgement
@@ -417,12 +431,12 @@ If I were implementing this fresh, I would:
 - <what this buys that the current fix does not>
 
 ### Action items                     # numbered, concrete, addressable
-Mode 1: action items target the bd issue / tests / docs.
+Mode 1: action items target the task record / tests / docs.
 Mode 2: action items target the proposal (what to revise before re-submit).
 
 ### If verdict != APPROVED
-Mode 1: preserve findings via `bd update <id> --notes "WORKFLOW-GATE-CHECK: …"`;
-        do NOT call bd close; re-run after fixing.
+Mode 1: append findings to task notes "WORKFLOW-GATE-CHECK: …";
+        do NOT close the task; re-run after fixing.
 Mode 2: reply to agent with findings + Alternative path; request revised proposal;
         re-run /workflow-gate-check 02 on the revise.
 ```
@@ -435,7 +449,7 @@ Skeleton below. Fill every placeholder with concrete content from this session. 
 === WORKFLOW-GATE-CHECK REPORT ===
 Mode: 3 HANDOFF-ENRICHMENT
 Session topic: <one sentence>
-Just-closed task: <bd-id or "(none)"> — <title>
+Just-closed task: <task-id or "(none)"> — <title>
 Related open tasks (criterion in brackets):
   - <id> (a|b|c|d: reason)
   - ...
@@ -451,8 +465,11 @@ Related open tasks (criterion in brackets):
 ### Decisions recorded
 - <decision-id> <choice — rationale — rejected alternatives>
 
-### Remembered (cross-session)
-- <bd remember entry if useful beyond this task>
+### Handoff file written
+- docs/orchestration/handoff/<NNN>-<session-topic>-handoff.md
+
+### Cross-session memory updated
+- <entry persisted to CLAUDE.md or docs/orchestration/conventions.md, if any>
 
 ### Handoff summary — to next session
 <2-3 sentences: topic, landed work, first task for fresh session, still-risky gaps>
@@ -461,7 +478,8 @@ Related open tasks (criterion in brackets):
 - <explicit gap + time-cost estimate for next session>
 
 ### If verdict != APPROVED
-- Review `Remaining gaps`; recover what you can or record `bd remember` acknowledging loss.
+- Review `Remaining gaps`; recover what you can or record the loss in CLAUDE.md or
+  docs/orchestration/conventions.md with next steps.
 - Re-run /workflow-gate-check 03 after fixing.
 ```
 
@@ -477,7 +495,7 @@ Three umbrella reminders to keep in mind even without loading the file:
 
 ## Troubleshooting
 
-- **No Beads issue for the task** → this is itself a protocol violation. Verdict starts at `BLOCKED`. In the report, add an action item: "Create retrospective Beads issue with 6-point description covering this work, then re-audit."
+- **No task record for the task** → this is itself a protocol violation. Verdict starts at `BLOCKED`. In the report, add an action item: "Create a retrospective task record with 6-point description covering this work, then re-audit."
 - **Project has no git** → audit what you can from files + transcript; note the limitation in the report. Verdict leans toward `WARNINGS` because git-based evidence is missing.
 - **Verification artefacts referenced but not findable** → `BLOCKED`. Ask user to paste the evidence or re-run the verification in the current session.
 - **Conflicting evidence** (user narrative says X, diff shows Y) → trust the diff. Note the discrepancy in findings.
