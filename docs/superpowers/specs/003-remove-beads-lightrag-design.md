@@ -2,7 +2,7 @@
 name: 003-remove-beads-lightrag-design
 title: Remove Beads & LightRAG from orchestration-kit
 date: 2026-05-13
-status: spec-in-progress
+status: done
 ---
 
 # Remove Beads & LightRAG from orchestration-kit
@@ -196,7 +196,7 @@ Approximate diff: −700 / +375 lines.
 
 3. **Regenerating CLAUDE.md in existing projects.** Three options: (a) `/deploy-orchestration` re-run wipes the `Claude Automations` block; (b) add a `--migrate-claude-md` flag to deploy.sh; (c) users edit manually. **Recommendation:** (a) — `/deploy-orchestration` already prompts before overwriting an existing `Claude Automations` block. Document the workflow in the migration subsection.
 
-4. **doc-manifest auto-archive schema.** Replace bd-id link with `status: done` in spec/plan front-matter? **Recommendation:** Yes — this spec already defines its own `status: spec-in-progress` front-matter; we adopt the same convention across all specs/plans the curator tracks. Schema documented in `doc-manifest.md` during Stage 2.
+4. **doc-manifest auto-archive schema.** Replace bd-id link with `status: done` in spec/plan front-matter? **Recommendation:** Yes — this spec already defines its own `status: done` front-matter; we adopt the same convention across all specs/plans the curator tracks. Schema documented in `doc-manifest.md` during Stage 2.
 
 5. **Mode 3 handoff path.** `docs/orchestration/handoff/NNN-<topic>-handoff.md` directly, or under `docs/orchestration/reports/handoff/`? **Recommendation:** top-level `docs/orchestration/handoff/`; this is the rationale for the `orchestration-config.json` edit in Stage 2. Projects that want to disable the handoff output set `documentation.enabled.handoff = false`.
 

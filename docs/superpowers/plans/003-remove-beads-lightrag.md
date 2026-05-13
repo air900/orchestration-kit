@@ -3,7 +3,7 @@ name: 003-remove-beads-lightrag
 title: Remove Beads & LightRAG implementation plan
 date: 2026-05-13
 spec: docs/superpowers/specs/003-remove-beads-lightrag-design.md
-status: plan-in-progress
+status: done
 ---
 
 # Remove Beads & LightRAG Implementation Plan
@@ -2006,7 +2006,7 @@ Change `status: spec-in-progress` → `status: done`.
 
 - [ ] **Step 2: Update plan status**
 
-Change this plan's own front-matter `status: plan-in-progress` → `status: done`.
+Change this plan's own front-matter `status: done` → `status: done`.
 
 - [ ] **Step 3: Commit**
 
