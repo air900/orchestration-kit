@@ -1,21 +1,23 @@
 ---
-description: Orchestrate task — Beads + Template Bridge unified-workflow + our quality standards
+description: Orchestrate task — Template Bridge unified-workflow + our quality standards
 ---
 
 User's task: $ARGUMENTS
 
 ## Base orchestrator
 
-Follow `template-bridge:unified-workflow` skill. It defines the 9-step flow:
-beads task → brainstorm → plan → sub-tasks → (worktrees) → TDD implement →
-verification-before-completion → finishing-a-development-branch → bd close.
+Follow `template-bridge:unified-workflow` skill. It defines the end-to-end flow:
+task setup → brainstorm → plan → sub-tasks → (worktrees) → TDD implement →
+verification-before-completion → finishing-a-development-branch → task close.
 
 ## Our quality standards on top (from workflow-gate skill)
 
-1. **Beads create** — use 6-point description (see workflow-gate skill § Phase 2):
+1. **Task description** — use the 6-point template (see workflow-gate skill § Phase 2):
    what, where in code, how to reproduce, what's found, context, resources.
+   Lives wherever your project tracks tasks (issue tracker, PR body, or a file
+   under `docs/orchestration/issues/`).
 
-2. **Beads close** — use 4-point reason (see workflow-gate skill § Phase 4):
+2. **Task close** — use the 4-point reason (see workflow-gate skill § Phase 4):
    1) solution, 2) root cause, 3) prevention, 4) **verification evidence**.
    Point 4 MUST include either a fresh test command + its output snippet
    captured in this session, or paths to screenshot/artefact files produced
@@ -30,9 +32,8 @@ verification-before-completion → finishing-a-development-branch → bd close.
 - If Template Bridge is not installed: invoke `superpowers:brainstorming` directly
   and inform the user that `template-bridge:unified-workflow` is the intended
   orchestrator and should be installed.
-- If Beads is not initialised: run `bd init` before any other step.
 - If Superpowers is not installed: the workflow-gate skill still provides the
-  Beads quality reference; warn the user that the dev-loop skills
+  task-discipline reference; warn the user that the dev-loop skills
   (brainstorming, TDD, verification) are missing.
 
 ## Deprecated commands — do NOT use

@@ -6,14 +6,16 @@
       "reports": "docs/orchestration/reports",
       "issues": "docs/orchestration/issues",
       "doc_drafts": "docs/orchestration/doc-drafts",
-      "observer_reports": "docs/orchestration/observer-reports"
+      "observer_reports": "docs/orchestration/observer-reports",
+      "handoff": "docs/orchestration/handoff"
     },
     "enabled": {
       "plans": true,
       "reports": true,
       "issues": true,
       "doc_drafts": true,
-      "observer_reports": true
+      "observer_reports": true,
+      "handoff": true
     }
   }
 }

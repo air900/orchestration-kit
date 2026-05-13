@@ -209,6 +209,7 @@ mkdir -p "$TARGET/docs/orchestration/reports"
 mkdir -p "$TARGET/docs/orchestration/issues"
 mkdir -p "$TARGET/docs/orchestration/doc-drafts"
 mkdir -p "$TARGET/docs/orchestration/observer-reports"
+mkdir -p "$TARGET/docs/orchestration/handoff"
 
 log_ok "Directories created"
 

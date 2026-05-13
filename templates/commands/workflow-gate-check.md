@@ -19,7 +19,7 @@ Raw user input: $ARGUMENTS
 
 Invoke skill `workflow-gate-check`. Follow its procedure end-to-end according to the chosen mode:
 
-- **Mode 1:** gather `bd show` + `git show` + `git diff` + close-reason + verification artefacts; run Part 1 (six compliance checklists) and Part 2 (rubric on the landed diff); emit verdict using the skill's Modes 1 & 2 output template.
+- **Mode 1:** gather the task record + `git show` + `git diff` + close-reason + verification artefacts; run Part 1 (six compliance checklists) and Part 2 (rubric on the landed diff); emit verdict using the skill's Modes 1 & 2 output template.
 - **Mode 2:** gather the agent's proposal text + target-code context + preview diff if any + user's specific doubt; SKIP Part 1; run Part 2 on the proposal; emit verdict using the skill's Modes 1 & 2 output template.
 - **Mode 3:** identify session topic + related open tasks (Part 3 Phase 0 scope criteria); for each task, run Phase 1 gap detection (structural + `S1`–`S5` session-specific); propose Phase 2 enrichment plan; **wait for user approval**; apply Phase 3 actions; emit verdict using the skill's Mode 3 output template.
 
@@ -31,19 +31,19 @@ State the chosen mode explicitly at the top of the report.
 - **Domain-agnostic.** This project could be code, content, infrastructure, design, or something else. Detect the project's nature from its structure (`tests/`, `assets/`, `docs/runbooks/`, etc.) and apply the domain-appropriate persona, examples, and persistence paths.
 - **Modes 1-2: start with Diagnosis (Part 2 Layer 1)** — was the right problem addressed? Do not move to Approach / Execution until you have judged this. A technically-clean fix to the wrong problem is a band-aid.
 - **Modes 1-2: when `BLOCKED`/`WARNINGS`, you owe an Alternative path** — a concrete description of how you would have approached the problem instead, and why it matters.
-- **Mode 3: wait for user approval before applying enrichment actions.** Phase 2 produces a plan; Phase 3 applies it only after explicit user sign-off. Running `bd update` / `bd decision` / `git commit` before approval is a trust violation.
+- **Mode 3: wait for user approval before applying enrichment actions.** Phase 2 produces a plan; Phase 3 applies it only after explicit user sign-off. Running enrichment updates / `git commit` before approval is a trust violation.
 - Do NOT rubber-stamp. The point of this command is an **independent second opinion** (Modes 1-2) or an **independent handoff quality gate** (Mode 3).
 - Read the diff / proposal code / open-task descriptions directly. Do not grade on trust.
-- In Mode 1: do NOT call `bd close` from inside this command. The user decides based on the verdict.
+- In Mode 1: do NOT close the task from inside this command. The user decides based on the verdict.
 - In Mode 2: do NOT start implementing the proposal. The user decides whether to accept.
 - In Mode 3: do NOT close the current session even on `APPROVED` — the user ends the session themselves.
 - If verdict is `BLOCKED`, preserve the findings:
-  - Mode 1: `bd update <id> --notes "WORKFLOW-GATE-CHECK: …"`
+  - Mode 1: Append a "WORKFLOW-GATE-CHECK: …" note to the task record.
   - Mode 2: reply with findings + Alternative path, request revised proposal.
   - Mode 3: surface the list of unrecoverable gaps so the user can decide whether to extend the session.
 
-## If Beads or git is absent
+## If issue tracker or git is absent
 
-- No `bd` binary → audit from files + transcript; lower confidence; verdict leans to `WARNINGS` unless a blocking item is found.
+- No issue tracker integration → audit from task spec + transcript + git; lower confidence; verdict leans to `WARNINGS` unless a blocking item is found.
 - No `.git` → same treatment; note the limitation in the report.
-- No Beads issue for the work being audited (Mode 1) or no related open tasks (Mode 3) → first finding. Mode 1 verdict starts at `BLOCKED`; Mode 3 asks the user which open tasks to target, or exits with an observation that enrichment is not applicable.
+- No task record for the work being audited (Mode 1) or no related open tasks (Mode 3) → first finding. Mode 1 verdict starts at `BLOCKED`; Mode 3 asks the user which open tasks to target, or exits with an observation that enrichment is not applicable.
