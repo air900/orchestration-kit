@@ -35,7 +35,7 @@ test -f SKILL.md && echo "OK deploy-orchestration SKILL.md"
 Expected output (trimmed):
 ```
 doc-keeper.md  documenter.md  observer.md  planner.md  refactor.md  security-auditor.md  senior-reviewer.md
-012-update-docs  arch-review  find-skills  knowledge-harvest  refactor-code  security-audit  sync-skills  workflow-gate
+012-update-docs  arch-review  find-skills  knowledge-harvest  refactor-code  security-audit  sync-skills  wf-gate
 log-commands.sh  .gitignore
 ... 4 .md files ...
 OK settings-hooks.json
@@ -122,7 +122,7 @@ jq '.hooks.SubagentStop // "none"' .claude/settings.json 2>/dev/null | head -5
 echo "=== docs/orchestration tree file count ==="
 find docs/orchestration -type f 2>/dev/null | wc -l
 echo "=== Custom skills (not in kit) ==="
-KIT_SKILLS="orchestrate implement code-review 012-update-docs arch-review refactor-code security-audit workflow-gate sync-skills knowledge-harvest find-skills deploy-orchestration"
+KIT_SKILLS="orchestrate implement code-review 012-update-docs arch-review refactor-code security-audit wf-gate sync-skills knowledge-harvest find-skills deploy-orchestration"
 for skill in $(ls -d .claude/skills/*/ 2>/dev/null | xargs -n1 basename); do
   if ! echo " $KIT_SKILLS " | grep -q " $skill "; then
     echo "  CUSTOM: $skill"
@@ -292,7 +292,7 @@ git diff --stat
 
 ```bash
 echo "=== Custom skills preserved ==="
-KIT_SKILLS="012-update-docs arch-review refactor-code security-audit workflow-gate sync-skills knowledge-harvest find-skills deploy-orchestration"
+KIT_SKILLS="012-update-docs arch-review refactor-code security-audit wf-gate sync-skills knowledge-harvest find-skills deploy-orchestration"
 for skill in $(ls -d .claude/skills/*/ 2>/dev/null | xargs -n1 basename); do
   echo " $KIT_SKILLS " | grep -q " $skill " || echo "  $skill"
 done
@@ -320,7 +320,7 @@ chore(orchestration): migrate from Kit v1 to v2
 Remove v1 pipeline agents (worker/test-runner/reviewer/debugger)
 and skills (orchestrate/implement/code-review); drop SubagentStop
 hooks. Install v2 lightweight orchestration: 7 specialist agents,
-8 kit skills (including workflow-gate, knowledge-harvest, find-skills),
+8 kit skills (including wf-gate, knowledge-harvest, find-skills),
 audit-log Bash hook, Beads init, references/.
 
 Custom skills and agents preserved unchanged.
@@ -621,7 +621,7 @@ cd /root/projects/orchestration-kit
 ```bash
 cd /root/projects/text4site-create-modified
 ALL_SKILLS=$(ls -d .claude/skills/*/ | wc -l)
-KIT_SKILLS_PRESENT=$(ls -d .claude/skills/{012-update-docs,arch-review,find-skills,knowledge-harvest,refactor-code,security-audit,sync-skills,workflow-gate,deploy-orchestration}/ 2>/dev/null | wc -l)
+KIT_SKILLS_PRESENT=$(ls -d .claude/skills/{012-update-docs,arch-review,find-skills,knowledge-harvest,refactor-code,security-audit,sync-skills,wf-gate,deploy-orchestration}/ 2>/dev/null | wc -l)
 CUSTOM_COUNT=$((ALL_SKILLS - KIT_SKILLS_PRESENT))
 echo "Total skills: $ALL_SKILLS (expected 9 kit + ~13 custom = ~22)"
 echo "Kit skills: $KIT_SKILLS_PRESENT (expected 9)"
@@ -630,7 +630,7 @@ echo "--- Custom skill names ---"
 for d in .claude/skills/*/; do
   name=$(basename "$d")
   case "$name" in
-    012-update-docs|arch-review|find-skills|knowledge-harvest|refactor-code|security-audit|sync-skills|workflow-gate|deploy-orchestration) ;;
+    012-update-docs|arch-review|find-skills|knowledge-harvest|refactor-code|security-audit|sync-skills|wf-gate|deploy-orchestration) ;;
     *) echo "  $name" ;;
   esac
 done
@@ -676,7 +676,7 @@ for name in orchestrate implement code-review; do
 done
 echo ""
 echo "=== Expected to OVERWRITE (v2 kit): 012-update-docs, arch-review, ... ==="
-for name in 012-update-docs arch-review find-skills knowledge-harvest refactor-code security-audit sync-skills workflow-gate deploy-orchestration; do
+for name in 012-update-docs arch-review find-skills knowledge-harvest refactor-code security-audit sync-skills wf-gate deploy-orchestration; do
   test -d ".claude/skills/$name" && echo "  WILL OVERWRITE: $name" || echo "  (will be created: $name)"
 done
 echo ""
@@ -684,7 +684,7 @@ echo "=== Expected to PRESERVE (all else) ==="
 for d in .claude/skills/*/; do
   name=$(basename "$d")
   case "$name" in
-    orchestrate|implement|code-review|012-update-docs|arch-review|find-skills|knowledge-harvest|refactor-code|security-audit|sync-skills|workflow-gate|deploy-orchestration) ;;
+    orchestrate|implement|code-review|012-update-docs|arch-review|find-skills|knowledge-harvest|refactor-code|security-audit|sync-skills|wf-gate|deploy-orchestration) ;;
     *) echo "  PRESERVE: $name" ;;
   esac
 done | sort
@@ -695,7 +695,7 @@ echo "Count of PRESERVE list should be ~25 for seo-audit"
 for d in .claude/skills/*/; do
   name=$(basename "$d")
   case "$name" in
-    orchestrate|implement|code-review|012-update-docs|arch-review|find-skills|knowledge-harvest|refactor-code|security-audit|sync-skills|workflow-gate|deploy-orchestration) ;;
+    orchestrate|implement|code-review|012-update-docs|arch-review|find-skills|knowledge-harvest|refactor-code|security-audit|sync-skills|wf-gate|deploy-orchestration) ;;
     *) echo "$name" ;;
   esac
 done | sort > /tmp/seo-audit-pre-preserve.txt
@@ -724,7 +724,7 @@ echo "=== Post-migration PRESERVE list ==="
 for d in .claude/skills/*/; do
   name=$(basename "$d")
   case "$name" in
-    orchestrate|implement|code-review|012-update-docs|arch-review|find-skills|knowledge-harvest|refactor-code|security-audit|sync-skills|workflow-gate|deploy-orchestration) ;;
+    orchestrate|implement|code-review|012-update-docs|arch-review|find-skills|knowledge-harvest|refactor-code|security-audit|sync-skills|wf-gate|deploy-orchestration) ;;
     *) echo "  $name" ;;
   esac
 done | sort > /tmp/seo-audit-post-preserve.txt

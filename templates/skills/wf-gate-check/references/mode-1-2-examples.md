@@ -14,7 +14,7 @@ This file backs the skeletons in `SKILL.md` Output template section for Modes 1 
 Example: auditing a just-landed security fix on a WordPress plugin before closing the task.
 
 ```
-=== WORKFLOW-GATE-CHECK REPORT ===
+=== WF-GATE-CHECK REPORT ===
 Mode: 1 POST-TASK-AUDIT
 Task: web-scripts-gxu7 — Fix ail sanitizer template pollution
 Commit(s): a1b2c3d
@@ -73,9 +73,9 @@ would do. Only recommendation is to lock it in with a regression test:
 
 ### If verdict != APPROVED
 - Do NOT close the task yet.
-- Preserve findings: append note to task gxu7: "WORKFLOW-GATE-CHECK: missing
+- Preserve findings: append note to task gxu7: "WF-GATE-CHECK: missing
   verification artefact + README sync. See above."
-- Re-run /workflow-gate-check after fixing.
+- Re-run /wf-gate-check after fixing.
 ```
 
 ## Mode 2 annotated output — proposal review
@@ -83,7 +83,7 @@ would do. Only recommendation is to lock it in with a regression test:
 Example: second opinion on an agent's proposal to refactor dashboard state management, before code is written.
 
 ```
-=== WORKFLOW-GATE-CHECK REPORT ===
+=== WF-GATE-CHECK REPORT ===
 Mode: 2 MID-TASK-SECOND-OPINION
 Proposal source: agent chat message proposing "wrap each panel in its own
   useContext provider to fix the stale-data bug in the activity feed"
@@ -137,7 +137,7 @@ What this buys us:
 2. Reply to agent: "The bug is a data-freshness issue, not a render-path issue.
    See dashboard-42 user report: data is stale even after context refresh. The
    fix is staleTime / refetchInterval on useActivityFeed, not a context split."
-3. Re-run /workflow-gate-check 02 on the revised proposal.
+3. Re-run /wf-gate-check 02 on the revised proposal.
 ```
 
 ## Cross-domain Part 1 compliance walkthroughs

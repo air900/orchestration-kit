@@ -5,12 +5,12 @@
 
 ## D1 Changes (2026-04-14)
 
-For any existing project that has the old workflow-gate setup:
+For any existing project that has the old wf-gate setup:
 
-1. **Create** `.claude/commands/workflow-gate.md` — copy from
-   `orchestration-kit/templates/commands/workflow-gate.md`.
-2. **Shrink** `.claude/skills/workflow-gate/SKILL.md` — copy from updated
-   `orchestration-kit/templates/skills/workflow-gate/SKILL.md` (Phases
+1. **Create** `.claude/commands/wf-gate.md` — copy from
+   `orchestration-kit/templates/commands/wf-gate.md`.
+2. **Shrink** `.claude/skills/wf-gate/SKILL.md` — copy from updated
+   `orchestration-kit/templates/skills/wf-gate/SKILL.md` (Phases
    2, 3, 3.0, 4, 5, 6 only; no Phase 1 marker content).
 3. **Replace** `.claude/settings.json` hooks section — copy from
    `orchestration-kit/templates/settings-hooks.json` (destructive Bash
@@ -19,14 +19,14 @@ For any existing project that has the old workflow-gate setup:
    root: `rm -f .workflow-active`.
 5. **Update** project `CLAUDE.md` — remove any paragraph describing
    "Edit/Write заблокированы" or the marker lifecycle. Reference the
-   slash command `/workflow-gate` as the entry point and the
-   `workflow-gate` skill as the Beads-discipline reference.
+   slash command `/wf-gate` as the entry point and the
+   `wf-gate` skill as the Beads-discipline reference.
 6. **Verify** Template Bridge plugin is enabled in the user's global
    settings. If not, the agent falls back to `superpowers:brainstorming`
    directly (graceful degradation per design § 3.5).
 
-Reference: `docs/superpowers/specs/2026-04-14-workflow-gate-d1-design.md`
-and `docs/superpowers/plans/2026-04-14-workflow-gate-d1.md`.
+Reference: `docs/superpowers/specs/2026-04-14-wf-gate-d1-design.md`
+and `docs/superpowers/plans/2026-04-14-wf-gate-d1.md`.
 
 ---
 

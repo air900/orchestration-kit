@@ -25,7 +25,7 @@ Additionally, kit has gained one new feature today (2026-04-16): a Bash audit-lo
 **Success criteria (per project):**
 
 1. Exactly 7 kit-agents present in `.claude/agents/` (plus any pre-existing custom agents unchanged)
-2. Kit-skills (`012-update-docs`, `arch-review`, `refactor-code`, `security-audit`, `workflow-gate`, `sync-skills`, `knowledge-harvest`, `find-skills`) updated to v2 contents; v1 skills (`orchestrate/`, `implement/`, `code-review/`) physically absent; every other skill dir preserved byte-for-byte
+2. Kit-skills (`012-update-docs`, `arch-review`, `refactor-code`, `security-audit`, `wf-gate`, `sync-skills`, `knowledge-harvest`, `find-skills`) updated to v2 contents; v1 skills (`orchestrate/`, `implement/`, `code-review/`) physically absent; every other skill dir preserved byte-for-byte
 3. `.claude/settings.json` has no `"SubagentStop"` key; has v2 PreToolUse/PostToolUse/SessionStart/PreCompact hooks; `permissions` array preserved
 4. `.claude/settings.local.json` unchanged
 5. `.claude/orchestration-config.json` unchanged (if was present)
@@ -73,7 +73,7 @@ Additionally, kit has gained one new feature today (2026-04-16): a Bash audit-lo
 
 | Skill | Reason | v2 replacement |
 |---|---|---|
-| `orchestrate/` | Central pipeline orchestrator | Beads (`bd create/ready/close`) + workflow-gate |
+| `orchestrate/` | Central pipeline orchestrator | Beads (`bd create/ready/close`) + wf-gate |
 | `implement/` | Task implementation | Superpowers `brainstorm → plan → TDD` |
 | `code-review/` | PR review workflow | Superpowers `requesting-code-review` |
 
@@ -90,7 +90,7 @@ v1 `settings.json` had 9 SubagentStop matchers (`worker`, `test-runner`, `review
 
 ### 4.5 Added in v2 (new)
 
-- **4 skills:** `workflow-gate`, `sync-skills`, `knowledge-harvest`, `find-skills`
+- **4 skills:** `wf-gate`, `sync-skills`, `knowledge-harvest`, `find-skills`
 - **PreToolUse hooks:** destructive-Bash block, audit-log (new 2026-04-16)
 - **SessionStart hook:** `bd prime`
 - **PreCompact hook:** `bd prime`
@@ -105,7 +105,7 @@ v1 `settings.json` had 9 SubagentStop matchers (`worker`, `test-runner`, `review
 ### 5.1 Never touched
 
 - Any agent file whose name ∉ `{worker, test-runner, reviewer, debugger, planner, security-auditor, documenter, doc-keeper, observer, senior-reviewer, refactor}`
-- Any skill directory whose name ∉ `{orchestrate, implement, code-review, 012-update-docs, arch-review, refactor-code, security-audit, workflow-gate, sync-skills, knowledge-harvest, find-skills, deploy-orchestration}`
+- Any skill directory whose name ∉ `{orchestrate, implement, code-review, 012-update-docs, arch-review, refactor-code, security-audit, wf-gate, sync-skills, knowledge-harvest, find-skills, deploy-orchestration}`
 - `CLAUDE.md` content above and below the "## Claude Automations" section
 - `.claude/settings.local.json` (entire file)
 - `.claude/orchestration-config.json` (skipped by `deploy.sh` if present)

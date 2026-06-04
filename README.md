@@ -30,13 +30,13 @@ Orchestration Kit follows the **D1 3-layer model** — each layer has a single c
 │           using-superpowers (SessionStart 1% rule)          │
 ├─────────────────────────────────────────────────────────────┤
 │ L3 — ORCHESTRATION-KIT (thin glue, project-local)           │
-│   • .claude/commands/workflow-gate.md — slash command       │
-│   • .claude/skills/workflow-gate/ — task-discipline ref     │
+│   • .claude/commands/wf-gate.md — slash command       │
+│   • .claude/skills/wf-gate/ — task-discipline ref     │
 │   • .claude/settings.json — simplified hooks                │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-Superpowers handles the core dev loop. Template Bridge's `unified-workflow` skill orchestrates it end-to-end. Orchestration Kit adds the `/workflow-gate` entry point plus **deep specialized analysis** that Superpowers doesn't cover: OWASP security audits, architecture health checks, documentation lifecycle, process improvement.
+Superpowers handles the core dev loop. Template Bridge's `unified-workflow` skill orchestrates it end-to-end. Orchestration Kit adds the `/wf-gate` entry point plus **deep specialized analysis** that Superpowers doesn't cover: OWASP security audits, architecture health checks, documentation lifecycle, process improvement.
 
 ## Quick Start
 
@@ -151,17 +151,17 @@ This discovers relevant skills for your stack and generates CLAUDE.md.
 
 #### Полный flow разработки
 
-**Точка входа — `/workflow-gate`** перед задачей. Это запускает полный flow:
+**Точка входа — `/wf-gate`** перед задачей. Это запускает полный flow:
 
 ```
-/workflow-gate <описание задачи>
+/wf-gate <описание задачи>
 ```
 
 ```
-User: /workflow-gate fix LINE-CARD-CROSSING P1
+User: /wf-gate fix LINE-CARD-CROSSING P1
   │
   ▼ Claude Code resolves the slash command.
-  ▼ commands/workflow-gate.md injects task text + quality overlays.
+  ▼ commands/wf-gate.md injects task text + quality overlays.
   │
   ▼ template-bridge:unified-workflow runs:
      1. Task record   (6-point description — our overlay; tracker or docs/orchestration/issues/)
@@ -187,13 +187,13 @@ After the core flow you can plug in specialist agents on demand:
 
 And for end-of-epic documentation: `documenter` → `doc-keeper` → `observer`.
 
-> **Enforcement:** The Iron Law lives in `superpowers:verification-before-completion` — no claim of "done" without evidence. `/workflow-gate` is the disciplined entry point that routes you through `unified-workflow`; there is no file-marker or Edit/Write block anymore.
+> **Enforcement:** The Iron Law lives in `superpowers:verification-before-completion` — no claim of "done" without evidence. `/wf-gate` is the disciplined entry point that routes you through `unified-workflow`; there is no file-marker or Edit/Write block anymore.
 
 #### Кто что делает
 
 | Компонент | Роль | Когда работает |
 |-----------|------|----------------|
-| **Template Bridge** (`unified-workflow`) | Оркестратор: склеивает Superpowers в единый flow | Всегда — точка входа через `/workflow-gate` |
+| **Template Bridge** (`unified-workflow`) | Оркестратор: склеивает Superpowers в единый flow | Всегда — точка входа через `/wf-gate` |
 | **Superpowers** | Dev loop: brainstorm, plan, TDD, review, verify | Всегда — основной движок |
 | **Specialist agents** | Глубокий анализ: архитектура, безопасность, рефакторинг | По запросу |
 | **Template Catalog** | 413+ on-demand специалистов (K8s, Rust, GraphQL...) | Когда нет нужного скилла |
@@ -204,7 +204,7 @@ And for end-of-epic documentation: `documenter` → `doc-keeper` → `observer`.
 
 **Быстрый фикс** (5 минут, одна сессия):
 ```
-ТЫ: /workflow-gate Кнопка не работает на мобильных, исправь
+ТЫ: /wf-gate Кнопка не работает на мобильных, исправь
 → create task record (issue tracker / PR body / docs/orchestration/issues/)
 → superpowers: brainstorm → fix → verify
 → close task with 4-point reason in commit body or tracker close-comment
@@ -213,7 +213,7 @@ And for end-of-epic documentation: `documenter` → `doc-keeper` → `observer`.
 
 **Задача посерьёзнее** (1 сессия):
 ```
-ТЫ: /workflow-gate Карточки накладываются в дереве, нужен зазор между семьями
+ТЫ: /wf-gate Карточки накладываются в дереве, нужен зазор между семьями
 → create task record (bug P1)
 → superpowers: brainstorm → plan → TDD → fix → verify
 → close task with 4-point reason
@@ -222,7 +222,7 @@ And for end-of-epic documentation: `documenter` → `doc-keeper` → `observer`.
 **Эпик** (несколько сессий, зависимости):
 ```
 СЕССИЯ 1:
-  /workflow-gate Рефакторинг рендеринга дерева
+  /wf-gate Рефакторинг рендеринга дерева
   → create task record (epic + 3 sub-tasks)
   → superpowers: brainstorm → plan
   → claim "Layout алгоритм"
@@ -230,13 +230,13 @@ And for end-of-epic documentation: `documenter` → `doc-keeper` → `observer`.
   → close task with 4-point reason
 
 СЕССИЯ 2:
-  /workflow-gate
+  /wf-gate
   → claim "Координаты связей"
   → superpowers: работает...
   → close task with 4-point reason
 
 СЕССИЯ 3:
-  /workflow-gate
+  /wf-gate
   → claim "Адаптив мобильные"
   → superpowers: работает...
   → close task → epic закрыт
@@ -402,7 +402,7 @@ ln -sf ../../.agents/skills/skill-name .claude/skills/skill-name
 
 Between sessions, context lives in two places:
 - **Git history** — every commit, diff, and message is always there
-- `docs/orchestration/conventions.md` (or CLAUDE.md) — cross-session patterns, gotchas, and conventions persisted by the `workflow-gate` skill's "land the plane" phase
+- `docs/orchestration/conventions.md` (or CLAUDE.md) — cross-session patterns, gotchas, and conventions persisted by the `wf-gate` skill's "land the plane" phase
 
 ### Template Catalog (on-demand specialists)
 

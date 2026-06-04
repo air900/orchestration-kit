@@ -193,10 +193,10 @@ Build CLAUDE.md from all collected information. The content should be specific t
 
 ### Development Methodology (D1)
 
-**Entry point:** `/workflow-gate <task>` — slash command. Delegates to `template-bridge:unified-workflow` and layers our task-discipline reference (`workflow-gate` skill) on top.
+**Entry point:** `/wf-gate <task>` — slash command. Delegates to `template-bridge:unified-workflow` and layers our task-discipline reference (`wf-gate` skill) on top.
 
 Flow (from unified-workflow):
-1. Task record (6-point description — see `workflow-gate` skill § Phase 2 — lives in your tracker or `docs/orchestration/issues/`)
+1. Task record (6-point description — see `wf-gate` skill § Phase 2 — lives in your tracker or `docs/orchestration/issues/`)
 2. Skill `superpowers:brainstorming`
 3. Skill `superpowers:writing-plans`
 4. Sub-tasks (track in same place as parent)
@@ -204,12 +204,12 @@ Flow (from unified-workflow):
 6. TDD via `superpowers:test-driven-development`
 7. `superpowers:verification-before-completion` — **Iron Law:** no fresh test output → no "tested" claim
 8. `superpowers:finishing-a-development-branch`
-9. Task close (4-point reason in commit body, PR description, or tracker close — see `workflow-gate` skill § Phase 4)
+9. Task close (4-point reason in commit body, PR description, or tracker close — see `wf-gate` skill § Phase 4)
 
 **Task artefacts (descriptions, notes, close reasons) are written in English** for token efficiency. User-facing communication stays in the user's language.
 
 Manual commands:
-- Skill `superpowers:brainstorming` — brainstorm without full `/workflow-gate`
+- Skill `superpowers:brainstorming` — brainstorm without full `/wf-gate`
 - `/browse-templates` — 413+ on-demand specialist agents (Template Bridge)
 
 **DO NOT use:** `/superpowers:brainstorm` (no `ing`) — deprecated, just prints a notice. Always invoke the skill `superpowers:brainstorming`.
@@ -228,8 +228,8 @@ Manual commands:
 - `/find-skills-my` — Discover and install new skills from registry (custom deep-discovery version; renamed to avoid collision with vercel-labs/skills' own `find-skills`)
 - `/sync-skills` — Detect unregistered skills in `.claude/skills/`
 - `/knowledge-harvest` — Extract insights from sessions to knowledge base
-- `/workflow-gate` — task-discipline entry point (delegates to template-bridge:unified-workflow)
-- `/workflow-gate-check` — Post-task audit (Mode 1) or independent second opinion on a proposed solution (Mode 2). Slash: `/workflow-gate-check` or `/workflow-gate-check 02`
+- `/wf-gate` — task-discipline entry point (delegates to template-bridge:unified-workflow)
+- `/wf-gate-check` — Post-task audit (Mode 1) or independent second opinion on a proposed solution (Mode 2). Slash: `/wf-gate-check` or `/wf-gate-check 02`
 - `/delegate-with-context` — Chat-to-subagents dispatch gateway. Distills the architect's pick, builds a context bundle (CLAUDE.md + optional overlay + docs manifest), runs implementer + spec-reviewer + code-quality-reviewer with Iron Law evidence, ends with doc-proposer + doc-curator. Use after a discussion or for handoff blobs. `--dry-run` prints planned prompts without dispatching
 
 {FOR EACH INSTALLED EXTERNAL SKILL:}

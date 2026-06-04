@@ -56,7 +56,7 @@ If a gap in a given session does not fit any domain example above, the categorie
 Skeleton template lives in `SKILL.md`. Below is a filled example for reference:
 
 ```
-=== WORKFLOW-GATE-CHECK REPORT ===
+=== WF-GATE-CHECK REPORT ===
 Mode: 3 HANDOFF-ENRICHMENT
 Session topic: v1.53.0 security release — 8 fixes landed, PHPUnit backfill deferred
 Just-closed task: web-scripts-gxu7 — Security audit backfill
@@ -99,7 +99,7 @@ v1.53.0 landed with 8 security fixes. Highest-priority follow-up is web-scripts-
 - Review the `Remaining gaps` list.
 - Either recover what is still recoverable, or record explicit notes in CLAUDE.md or
   docs/orchestration/conventions.md acknowledging the loss and next steps.
-- Re-run /workflow-gate-check 03 after fixing.
+- Re-run /wf-gate-check 03 after fixing.
 ```
 
 ## Extended examples — domain-specific walkthroughs

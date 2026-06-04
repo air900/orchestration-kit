@@ -1,13 +1,13 @@
 ---
-name: workflow-gate-check
+name: wf-gate-check
 description: >
   Manual quality gate with THREE modes, domain-agnostic (code, content, infra, design).
-  Mode 1 (POST-TASK AUDIT): verify workflow-gate compliance of a completed task
+  Mode 1 (POST-TASK AUDIT): verify wf-gate compliance of a completed task
   before closing the task. Mode 2 (MID-TASK SECOND OPINION): independent expert
   assessment of a proposed solution before accepting it. Mode 3 (HANDOFF
   ENRICHMENT): enrich related open tasks so a new session continues at the
   same quality without 30-60 min ramp-up archaeology.
-  TRIGGER: slash command /workflow-gate-check (append "02" for Mode 2,
+  TRIGGER: slash command /wf-gate-check (append "02" for Mode 2,
   "03" for Mode 3), or phrases "проверь задачу", "проверь решение",
   "second opinion", "сомневаюсь в решении", "было ли это заплатка",
   "обогатить контекст", "prepare handoff", "передать в новую сессию".
@@ -16,7 +16,7 @@ description: >
   open-task triage.
 ---
 
-# Workflow Gate Check
+# WF Gate Check
 
 **Role:** manual quality gate, user-triggered only. Not automatic. Three modes. The skill is **domain-agnostic** — applies equally to code, content, infrastructure, design, or any other project task.
 
@@ -402,7 +402,7 @@ Use this structure exactly. Keep it tight.
 Skeleton below. Annotated filled examples (code audit for Mode 1, proposal review for Mode 2, plus cross-domain walkthroughs) live in `references/mode-1-2-examples.md` — load when you need to calibrate format or work in a domain you are less familiar with.
 
 ```
-=== WORKFLOW-GATE-CHECK REPORT ===
+=== WF-GATE-CHECK REPORT ===
 Mode: <1 POST-TASK-AUDIT | 2 MID-TASK-SECOND-OPINION>
 Task: <task-id or "(no task record)"> — <title>
 Commit(s): <sha>                     # Mode 1 only
@@ -435,10 +435,10 @@ Mode 1: action items target the task record / tests / docs.
 Mode 2: action items target the proposal (what to revise before re-submit).
 
 ### If verdict != APPROVED
-Mode 1: append findings to task notes "WORKFLOW-GATE-CHECK: …";
+Mode 1: append findings to task notes "WF-GATE-CHECK: …";
         do NOT close the task; re-run after fixing.
 Mode 2: reply to agent with findings + Alternative path; request revised proposal;
-        re-run /workflow-gate-check 02 on the revise.
+        re-run /wf-gate-check 02 on the revise.
 ```
 
 ### Mode 3 — template
@@ -446,7 +446,7 @@ Mode 2: reply to agent with findings + Alternative path; request revised proposa
 Skeleton below. Fill every placeholder with concrete content from this session. A filled example lives in `references/mode-3-details.md` under "Mode 3 output template — annotated example".
 
 ```
-=== WORKFLOW-GATE-CHECK REPORT ===
+=== WF-GATE-CHECK REPORT ===
 Mode: 3 HANDOFF-ENRICHMENT
 Session topic: <one sentence>
 Just-closed task: <task-id or "(none)"> — <title>
@@ -480,7 +480,7 @@ Related open tasks (criterion in brackets):
 ### If verdict != APPROVED
 - Review `Remaining gaps`; recover what you can or record the loss in CLAUDE.md or
   docs/orchestration/conventions.md with next steps.
-- Re-run /workflow-gate-check 03 after fixing.
+- Re-run /wf-gate-check 03 after fixing.
 ```
 
 ## Common mistakes

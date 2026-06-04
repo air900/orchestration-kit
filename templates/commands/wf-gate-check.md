@@ -17,7 +17,7 @@ Raw user input: $ARGUMENTS
 
 ## Invoke the audit
 
-Invoke skill `workflow-gate-check`. Follow its procedure end-to-end according to the chosen mode:
+Invoke skill `wf-gate-check`. Follow its procedure end-to-end according to the chosen mode:
 
 - **Mode 1:** gather the task record + `git show` + `git diff` + close-reason + verification artefacts; run Part 1 (six compliance checklists) and Part 2 (rubric on the landed diff); emit verdict using the skill's Modes 1 & 2 output template.
 - **Mode 2:** gather the agent's proposal text + target-code context + preview diff if any + user's specific doubt; SKIP Part 1; run Part 2 on the proposal; emit verdict using the skill's Modes 1 & 2 output template.
@@ -38,7 +38,7 @@ State the chosen mode explicitly at the top of the report.
 - In Mode 2: do NOT start implementing the proposal. The user decides whether to accept.
 - In Mode 3: do NOT close the current session even on `APPROVED` — the user ends the session themselves.
 - If verdict is `BLOCKED`, preserve the findings:
-  - Mode 1: Append a "WORKFLOW-GATE-CHECK: …" note to the task record.
+  - Mode 1: Append a "WF-GATE-CHECK: …" note to the task record.
   - Mode 2: reply with findings + Alternative path, request revised proposal.
   - Mode 3: surface the list of unrecoverable gaps so the user can decide whether to extend the session.
 

@@ -1,4 +1,4 @@
-# Workflow-Gate D1 — Design
+# WF-Gate D1 — Design
 
 **Date:** 2026-04-14
 **Status:** Design approved (sections 1-5), pending spec review.
@@ -11,7 +11,7 @@
 
 Three concrete failures observed in a real web-scripts session log (2026-04-14):
 
-1. **Broken entry-point contract.** User typed `/workflow-gate /superpowers:brainstorm`. Neither triggered the intended skill. `/workflow-gate` is defined as a skill (`SKILL.md`), not as a slash command (`commands/*.md`), so Claude Code does not resolve it. `/superpowers:brainstorm` is deprecated — its command file literally tells the agent "this command is deprecated, tell the user to use the skill instead". The working form is `/superpowers:brainstorming` (skill).
+1. **Broken entry-point contract.** User typed `/wf-gate /superpowers:brainstorm`. Neither triggered the intended skill. `/wf-gate` is defined as a skill (`SKILL.md`), not as a slash command (`commands/*.md`), so Claude Code does not resolve it. `/superpowers:brainstorm` is deprecated — its command file literally tells the agent "this command is deprecated, tell the user to use the skill instead". The working form is `/superpowers:brainstorming` (skill).
 
 2. **PreToolUse hook creates plan-mode deadlock.** The hook `test -f .workflow-active || exit 2` on `Edit|Write|MultiEdit` blocks legitimate plan-mode writes to `/root/.claude/plans/*.md` — a path the agent must write to during plan mode. The agent cannot create `.workflow-active` from within plan mode (it's a non-readonly action), producing a deadlock.
 
@@ -28,7 +28,7 @@ Our `orchestration-kit` was reinventing a workflow that **already exists** in th
 - `superpowers:test-driven-development` enforces RED-GREEN-REFACTOR.
 - `superpowers:using-superpowers` injects the 1% rule at SessionStart.
 
-Our `workflow-gate` skill had grown to duplicate brainstorm/plan/TDD phases inline. This creates conflicting signals (agent sees two workflows) and increases maintenance surface.
+Our `wf-gate` skill had grown to duplicate brainstorm/plan/TDD phases inline. This creates conflicting signals (agent sees two workflows) and increases maintenance surface.
 
 ## 2. Non-goals
 
@@ -61,8 +61,8 @@ Four layers, each with single responsibility:
 │    using-superpowers (SessionStart injection with 1% rule)
 │
 └─ L4 — ORCHESTRATION-KIT — thin glue, project-local
-     • .claude/commands/workflow-gate.md   (NEW)
-     • .claude/skills/workflow-gate/SKILL.md  (SHRINK — Beads-only)
+     • .claude/commands/wf-gate.md   (NEW)
+     • .claude/skills/wf-gate/SKILL.md  (SHRINK — Beads-only)
      • .claude/settings.json  (simplified hooks)
 ```
 
@@ -70,9 +70,9 @@ Beads is vertical (spans all phases); Template Bridge is horizontal (the dev-loo
 
 ### 3.2. Components
 
-#### 3.2.1. `/workflow-gate` slash command — NEW
+#### 3.2.1. `/wf-gate` slash command — NEW
 
-**Path:** `templates/commands/workflow-gate.md` (deployed to `.claude/commands/workflow-gate.md` per project)
+**Path:** `templates/commands/wf-gate.md` (deployed to `.claude/commands/wf-gate.md` per project)
 
 **Contents (exact):**
 
@@ -85,24 +85,24 @@ User's task: $ARGUMENTS
 
 Follow `template-bridge:unified-workflow` skill for the overall flow.
 
-Apply these project standards on top (from `workflow-gate` skill):
+Apply these project standards on top (from `wf-gate` skill):
 
-1. **Beads create** — use 6-point description (see workflow-gate skill § Issue Creation).
-2. **Beads close** — use 4-point reason (see workflow-gate skill § Closing). Point 4 (Verification) MUST include either: a fresh test command + its output snippet captured in this session, or paths to screenshot/artefact files produced during `superpowers:verification-before-completion`. "Tested — works" without artefacts is not acceptable.
+1. **Beads create** — use 6-point description (see wf-gate skill § Issue Creation).
+2. **Beads close** — use 4-point reason (see wf-gate skill § Closing). Point 4 (Verification) MUST include either: a fresh test command + its output snippet captured in this session, or paths to screenshot/artefact files produced during `superpowers:verification-before-completion`. "Tested — works" without artefacts is not acceptable.
 3. **UI changes** — Playwright screenshot at 1920x1080 on affected pages is mandatory before close (recorded as bd remember convention).
 
 If Template Bridge is not installed in this project, fall back to invoking `superpowers:brainstorming` directly; warn user that unified-workflow is the intended orchestrator.
 ```
 
-#### 3.2.2. `workflow-gate` skill — SHRINK
+#### 3.2.2. `wf-gate` skill — SHRINK
 
-**Path:** `templates/skills/workflow-gate/SKILL.md`
+**Path:** `templates/skills/wf-gate/SKILL.md`
 
 **Remove:**
 - Phase 1 "Session Start — Activate gate" (`touch .workflow-active` is obsolete).
 - Phase 1.3 "Launch unified workflow" (now invoked via slash command, no duplication).
 - Phase 5.5 "Снять маркер `rm -f .workflow-active`" (no marker).
-- Any prose framing workflow-gate as "unlock mechanism".
+- Any prose framing wf-gate as "unlock mechanism".
 
 **Keep and refine:**
 - Phase 2 — **Issue Creation Quality Standard** (6-point description). Unchanged.
@@ -116,7 +116,7 @@ If Template Bridge is not installed in this project, fall back to invoking `supe
 - Phase 6 — **Maintenance** (bd doctor, compact, upgrade). Unchanged.
 
 **Add:**
-- Preamble clarifying: "This skill is a reference for **Beads discipline**. Overall workflow orchestration lives in the `/workflow-gate` slash command, which invokes `template-bridge:unified-workflow`."
+- Preamble clarifying: "This skill is a reference for **Beads discipline**. Overall workflow orchestration lives in the `/wf-gate` slash command, which invokes `template-bridge:unified-workflow`."
 
 Expected size reduction: ~40-50% of current content.
 
@@ -142,7 +142,7 @@ Expected size reduction: ~40-50% of current content.
         "matcher": "",
         "hooks": [
           { "type": "command", "command": "bd prime 2>/dev/null || true" },
-          { "type": "command", "command": "echo 'Task workflow: /workflow-gate <task>. Beads discipline: see workflow-gate skill. Verification: superpowers:verification-before-completion (Iron Law).'" }
+          { "type": "command", "command": "echo 'Task workflow: /wf-gate <task>. Beads discipline: see wf-gate skill. Verification: superpowers:verification-before-completion (Iron Law).'" }
         ]
       }
     ],
@@ -164,16 +164,16 @@ Expected size reduction: ~40-50% of current content.
 - "WORKFLOW: Edits BLOCKED" echo (false promise — hook is gone).
 
 **Kept:**
-- Destructive Bash matcher (unrelated to workflow-gate; general safety).
+- Destructive Bash matcher (unrelated to wf-gate; general safety).
 - `bd prime` on SessionStart and PreCompact.
 
 ### 3.3. Data flow
 
 ```
-User types: /workflow-gate fix LINE-CARD-CROSSING P1
+User types: /wf-gate fix LINE-CARD-CROSSING P1
 
   ▼ Claude Code resolves slash command (now exists)
-  ▼ commands/workflow-gate.md loads with $ARGUMENTS
+  ▼ commands/wf-gate.md loads with $ARGUMENTS
   ▼ Agent invoked template-bridge:unified-workflow skill + our standards overlay
 
   ▼ unified-workflow executes:
@@ -193,7 +193,7 @@ User types: /workflow-gate fix LINE-CARD-CROSSING P1
   ▼ Commits: message includes bd ID
 ```
 
-Session resume flow: SessionStart `bd prime` surfaces open issues; agent resumes from `bd show <id>` notes without needing to re-enter `/workflow-gate`.
+Session resume flow: SessionStart `bd prime` surfaces open issues; agent resumes from `bd show <id>` notes without needing to re-enter `/wf-gate`.
 
 ### 3.4. Testing / Verification guarantee
 
@@ -201,7 +201,7 @@ The user's explicit requirement: **tested output delivered, not "tested" claim**
 
 1. **`superpowers:verification-before-completion`** (existing, part of unified-workflow Step 7) — Iron Law: "If you haven't run the verification command in this message, you cannot claim it passes."
 
-2. **Our 4-point close-reason standard** (Phase 4 of workflow-gate skill) — point 4 must cite concrete test output / screenshot paths. Without it, reason is invalid and must be rewritten.
+2. **Our 4-point close-reason standard** (Phase 4 of wf-gate skill) — point 4 must cite concrete test output / screenshot paths. Without it, reason is invalid and must be rewritten.
 
 Both are prose-enforced (skills), not hook-enforced. Hook-level verification of test output is out of scope (would require parsing test frameworks, brittle). The user accepts this limit in exchange for simplicity.
 
@@ -209,19 +209,19 @@ Both are prose-enforced (skills), not hook-enforced. Hook-level verification of 
 
 | Scenario                                        | Behaviour                                                                 |
 |-------------------------------------------------|---------------------------------------------------------------------------|
-| Template Bridge not installed                   | `/workflow-gate` command text includes fallback: invoke `superpowers:brainstorming` directly; warn user |
-| Superpowers not installed                       | workflow-gate skill has minimal inline Beads-discipline reference; workflow degrades to "Beads + ad-hoc" |
-| Beads not initialised (`.beads/` missing)       | `/workflow-gate` first step prompts `bd init`; does not proceed until initialised |
+| Template Bridge not installed                   | `/wf-gate` command text includes fallback: invoke `superpowers:brainstorming` directly; warn user |
+| Superpowers not installed                       | wf-gate skill has minimal inline Beads-discipline reference; workflow degrades to "Beads + ad-hoc" |
+| Beads not initialised (`.beads/` missing)       | `/wf-gate` first step prompts `bd init`; does not proceed until initialised |
 | Playwright not installed for UI project         | Agent proposes install; close may proceed without but 4-point reason flagged invalid by skill |
 | No tests exist for changed code                 | `verification-before-completion` requires creating them (TDD skill); "no tests" not an acceptable reason |
-| Agent attempts `bd close` without evidence      | Close-reason quality standard in workflow-gate skill rejects; agent must rewrite reason with point 4 |
+| Agent attempts `bd close` without evidence      | Close-reason quality standard in wf-gate skill rejects; agent must rewrite reason with point 4 |
 
 ## 4. Migration impact
 
 ### 4.1. Orchestration-kit templates (in-scope for this spec)
 
-- `templates/commands/workflow-gate.md` — new file
-- `templates/skills/workflow-gate/SKILL.md` — content reduction
+- `templates/commands/wf-gate.md` — new file
+- `templates/skills/wf-gate/SKILL.md` — content reduction
 - `templates/settings-hooks.json` — hook simplification
 - `templates/CLAUDE.md` section — update messaging (no "Edit/Write ЗАБЛОКИРОВАНЫ")
 - `README.md` (orchestration-kit) — update architecture diagram and flow description
@@ -230,8 +230,8 @@ Both are prose-enforced (skills), not hook-enforced. Hook-level verification of 
 ### 4.2. Existing projects (out of scope, separate rollout)
 
 `web-scripts` is the immediate candidate (it triggered this redesign). Others: `hr-bot`, `seo-audit`, `frm-client`, `check-parameters-sql-server`, `mtproxy-telegram`. Each requires:
-- Create `.claude/commands/workflow-gate.md` (new file)
-- Shrink `.claude/skills/workflow-gate/SKILL.md` (remove obsolete phases)
+- Create `.claude/commands/wf-gate.md` (new file)
+- Shrink `.claude/skills/wf-gate/SKILL.md` (remove obsolete phases)
 - Patch `.claude/settings.json` (remove Edit/Write matcher and marker lifecycle)
 - Update project CLAUDE.md (Automations section)
 - Verify Template Bridge plugin is enabled
@@ -246,18 +246,18 @@ This rollout is deferred to its own spec/plan.
 | Agent still skips brainstorm under pressure                    | Accepted limit. Superpowers' `using-superpowers` 1% rule + `<HARD-GATE>` in brainstorming remain the best available tools. Not solved by any known technique in 2026. |
 | Template Bridge changes its unified-workflow contract          | Pin to a known version in README; update when Template Bridge releases a major version. |
 | Deprecated `/superpowers:brainstorm` command continues to mislead users | Update all our docs/messages to use skill name `superpowers:brainstorming`. Include a bd remember. |
-| User forgets `/workflow-gate` and edits directly               | No hook block; agent can edit. Relies on SessionStart echo + CLAUDE.md guidance. Accepted trade-off. |
+| User forgets `/wf-gate` and edits directly               | No hook block; agent can edit. Relies on SessionStart echo + CLAUDE.md guidance. Accepted trade-off. |
 
 ## 6. Acceptance criteria
 
 This design is ready for implementation planning when:
 
-1. `/workflow-gate <task>` in a project with Template Bridge installed: Claude Code resolves the slash command, agent reads `commands/workflow-gate.md`, and the agent's next action is to invoke `template-bridge:unified-workflow` skill (not a fabricated workflow).
+1. `/wf-gate <task>` in a project with Template Bridge installed: Claude Code resolves the slash command, agent reads `commands/wf-gate.md`, and the agent's next action is to invoke `template-bridge:unified-workflow` skill (not a fabricated workflow).
 2. No PreToolUse hook block prevents plan-mode writes to `/root/.claude/plans/*.md`.
 3. `.workflow-active` marker does not exist and is never created.
-4. SessionStart hook outputs a single coherent message referencing `/workflow-gate` slash command; no "Edits BLOCKED" text.
-5. `workflow-gate` SKILL.md is Beads-centric only; references unified-workflow for dev-loop.
-6. 4-point close-reason standard (including Verification) is documented in workflow-gate SKILL.md Phase 4.
+4. SessionStart hook outputs a single coherent message referencing `/wf-gate` slash command; no "Edits BLOCKED" text.
+5. `wf-gate` SKILL.md is Beads-centric only; references unified-workflow for dev-loop.
+6. 4-point close-reason standard (including Verification) is documented in wf-gate SKILL.md Phase 4.
 7. Destructive Bash matcher still blocks `rm -rf`, `git push --force`, `git reset --hard`.
 
 ## 7. Out of scope (deferred)
@@ -270,7 +270,7 @@ This design is ready for implementation planning when:
 
 ## 8. Source evidence
 
-- Log excerpt from web-scripts session (2026-04-14, session `8a353475-9ca7-47b0-b85d-bd7d0f706c58`): agent skipped `/superpowers:brainstorm` (deprecated command) and `/workflow-gate` (non-existent slash command), then hit PreToolUse block on plan-mode write.
+- Log excerpt from web-scripts session (2026-04-14, session `8a353475-9ca7-47b0-b85d-bd7d0f706c58`): agent skipped `/superpowers:brainstorm` (deprecated command) and `/wf-gate` (non-existent slash command), then hit PreToolUse block on plan-mode write.
 - `CLAUDE_FILE_PATHS` env var confirmed empty via diagnostic hook on 2026-04-14; stdin JSON (`tool_input.file_path`) is the documented access path.
 - GitHub issues #29709 (Bash bypass), #6876 (SED bypass), #24327 (exit 2 stops agent), #9567 (CLAUDE_FILE_PATHS empty).
 - `obra/superpowers/5.0.7/hooks/hooks.json` — SessionStart async:false injection of `using-superpowers`.

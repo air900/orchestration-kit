@@ -18,11 +18,11 @@ REPLACEMENTS = [
     # 1. Entry-point line (English + Russian) — optional "our/the" and "on top" suffix
     (
         r"Delegates to `template-bridge:unified-workflow`(?: and layers| layers|, layers)\s*(?:our |the )?Beads quality overlay(?: on top)?\.",
-        "Delegates to `template-bridge:unified-workflow` and layers our task-discipline reference (`workflow-gate` skill) on top.",
+        "Delegates to `template-bridge:unified-workflow` and layers our task-discipline reference (`wf-gate` skill) on top.",
     ),
     (
         r"Делегирует\s+`template-bridge:unified-workflow`(?:,| и)\s+(?:накладывает|кладёт сверху)\s+Beads quality overlay\.?",
-        "Делегирует `template-bridge:unified-workflow`, накладывает task-discipline reference (`workflow-gate` skill).",
+        "Делегирует `template-bridge:unified-workflow`, накладывает task-discipline reference (`wf-gate` skill).",
     ),
     # 2. Flow header
     (
@@ -36,11 +36,11 @@ REPLACEMENTS = [
     # 3. Step 1: bd create — English and Russian short variants
     (
         r"^1\. `bd create` \(6-point description — see `workflow-gate` skill § Phase 2\)$",
-        "1. Task record (6-point description — see `workflow-gate` skill § Phase 2 — lives in your tracker or `docs/orchestration/issues/`)",
+        "1. Task record (6-point description — see `wf-gate` skill § Phase 2 — lives in your tracker or `docs/orchestration/issues/`)",
     ),
     (
         r"^1\. `bd create` \(6-point description — `workflow-gate` skill § Phase 2\)$",
-        "1. Task record (6-point description — `workflow-gate` skill § Phase 2 — в трекере проекта или `docs/orchestration/issues/`)",
+        "1. Task record (6-point description — `wf-gate` skill § Phase 2 — в трекере проекта или `docs/orchestration/issues/`)",
     ),
     # 4. Step 4: bd create + bd dep add
     (
@@ -54,11 +54,11 @@ REPLACEMENTS = [
     # 5. Step 9: bd close
     (
         r"^9\. `bd close` \(4-point reason incl Verification — `workflow-gate` skill § Phase 4\)$",
-        "9. Task close (4-point reason in commit body, PR description, or tracker close — see `workflow-gate` skill § Phase 4)",
+        "9. Task close (4-point reason in commit body, PR description, or tracker close — see `wf-gate` skill § Phase 4)",
     ),
     (
         r"^9\. `bd close` \(4-point reason incl Verification — `workflow-gate` skill § Phase 4\)\s*$",
-        "9. Task close (4-point reason в commit body / PR description / tracker close — `workflow-gate` skill § Phase 4)",
+        "9. Task close (4-point reason в commit body / PR description / tracker close — `wf-gate` skill § Phase 4)",
     ),
     # 6. Beads artefacts paragraph — English with optional "are" verb
     (
@@ -96,10 +96,10 @@ REPLACEMENTS = [
         r"\*\*Workflow summary:\*\* epic → sub-tasks с deps → `bd ready` → claim → work → verify → close → next ready task\.",
         "**Workflow summary:** plan → sub-tasks → work → verify → close → next task.",
     ),
-    # 9. Skills list: /workflow-gate description
+    # 9. Skills list: /wf-gate description
     (
         r"^- `/workflow-gate` — Beads quality-overlay entry(?: \(delegates to template-bridge:unified-workflow\))?$",
-        "- `/workflow-gate` — task-discipline overlay entry (delegates to template-bridge:unified-workflow)",
+        "- `/wf-gate` — task-discipline overlay entry (delegates to template-bridge:unified-workflow)",
     ),
     # 10. Hooks section: bd prime line (multiple verb variants)
     (

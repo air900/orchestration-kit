@@ -1,12 +1,12 @@
 ---
-name: workflow-gate
+name: wf-gate
 description: >
   Tracker-agnostic task-discipline reference: 6-point task description, 4-point
   close reason with verification evidence, commit conventions, land-the-plane
   habits. The discipline is independent of any specific tracker (GitHub issues,
   Linear, plain commit messages, project-local task files) — apply the templates
   wherever your project records tasks. Orchestration of the dev loop is the
-  responsibility of slash-command `/workflow-gate` (delegates to
+  responsibility of slash-command `/wf-gate` (delegates to
   `template-bridge:unified-workflow`); this skill is the reference manual that
   the controller and reviewers consult.
   TRIGGER: Consult this skill whenever creating or closing a task in your
@@ -14,16 +14,16 @@ description: >
   standards.
 ---
 
-# Workflow Gate
+# WF Gate
 
 **Role:** Reference for task-discipline in any project.
-**Orchestration:** handled by slash-command `/workflow-gate` (delegates to
+**Orchestration:** handled by slash-command `/wf-gate` (delegates to
 `template-bridge:unified-workflow`). This skill does NOT orchestrate; it
 documents the quality standards that apply to any workflow.
 
 **There is no marker file, no unlock mechanism, no Edit/Write hook block.**
 Those were removed in the D1 redesign (see spec
-`docs/superpowers/specs/2026-04-14-workflow-gate-d1-design.md`).
+`docs/superpowers/specs/2026-04-14-wf-gate-d1-design.md`).
 
 ---
 

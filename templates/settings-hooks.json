@@ -29,7 +29,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo 'Workflow: /workflow-gate <task> (delegates to template-bridge:unified-workflow). Task discipline: workflow-gate skill. Verification: superpowers:verification-before-completion (Iron Law).'"
+            "command": "echo 'Workflow: /wf-gate <task> (delegates to template-bridge:unified-workflow). Task discipline: wf-gate skill. Verification: superpowers:verification-before-completion (Iron Law).'"
           }
         ]
       }

@@ -227,7 +227,7 @@ Beads — относительно новый проект. Стоит пров�
 
 ## 8. РЕАЛИЗОВАННАЯ АРХИТЕКТУРА (обновлено 2026-04-12)
 
-> ⚠️ **Историческая справка.** Раздел описывает pre-D1 модель enforcement (маркер `.workflow-active` + PreToolUse-блокировка Edit/Write). С 2026-04-14 (рефакторинг D1) маркер удалён: `/workflow-gate` переведён в slash-command, а PreToolUse hook ограничен только деструктивным Bash (`rm -rf`, `git push --force`, `git reset --hard`). Актуальная модель — в `README.md` и `migration-plan.md`.
+> ⚠️ **Историческая справка.** Раздел описывает pre-D1 модель enforcement (маркер `.workflow-active` + PreToolUse-блокировка Edit/Write). С 2026-04-14 (рефакторинг D1) маркер удалён: `/wf-gate` переведён в slash-command, а PreToolUse hook ограничен только деструктивным Bash (`rm -rf`, `git push --force`, `git reset --hard`). Актуальная модель — в `README.md` и `migration-plan.md`.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -236,11 +236,11 @@ Beads — относительно новый проект. Стоит пров�
 ├─────────────────────────────────────────────────────────────┤
 │                ORCHESTRATION KIT v2 (локально)               │
 │  7 agents + 8 skills + language hooks + doc workflow          │
-│  workflow-gate + PreToolUse enforcement                       │
+│  wf-gate + PreToolUse enforcement                       │
 ├─────────────────────────────────────────────────────────────┤
 │                     ENFORCEMENT (pre-D1, устарело)            │
 │  PreToolUse hook: Edit/Write BLOCKED без .workflow-active     │
-│  /workflow-gate → touch .workflow-active → unified-workflow   │
+│  /wf-gate → touch .workflow-active → unified-workflow   │
 │  SessionStart: rm .workflow-active + bd prime                 │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -252,11 +252,11 @@ Beads — относительно новый проект. Стоит пров�
 | Plugins | Superpowers | глобальный | brainstorm → plan → TDD → review → verify |
 | Plugins | Beads | глобальный | bd create/ready/close, persistence через compaction |
 | Plugins | Template Bridge | глобальный | unified-workflow + каталог 413+ агентов |
-| Local | workflow-gate | project skill | Создаёт маркер → запускает unified-workflow |
+| Local | wf-gate | project skill | Создаёт маркер → запускает unified-workflow |
 | Local | PreToolUse hook | project settings | Блокирует Edit/Write без маркера |
 | Local | SessionStart hook | project settings | Удаляет маркер + bd prime |
 | Local | 7 specialist agents | project agents | on-demand: planner, security-auditor, senior-reviewer, refactor, documenter, doc-keeper, observer |
-| Local | 8 skills | project skills | arch-review, security-audit, refactor-code, 012-update-docs, find-skills, sync-skills, knowledge-harvest, workflow-gate |
+| Local | 8 skills | project skills | arch-review, security-audit, refactor-code, 012-update-docs, find-skills, sync-skills, knowledge-harvest, wf-gate |
 | Local | Language hooks | project settings | auto-lint/format после Edit/Write |
 | Local | Bash audit log hook | project settings + `.claude/hooks/log-commands.sh` | Лог каждой Bash-команды в `.claude/command-log.txt` (gitignored) |
 | Local | Doc workflow | project agents | documenter → doc-keeper → observer |
@@ -264,10 +264,10 @@ Beads — относительно новый проект. Стоит пров�
 
 ### Flow (pre-D1, устарело)
 
-> ⚠️ Flow ниже — pre-D1. С 2026-04-14 маркер `.workflow-active` удалён, шаги `touch`/`rm` исключены; `/workflow-gate` напрямую запускает Beads-дисциплину.
+> ⚠️ Flow ниже — pre-D1. С 2026-04-14 маркер `.workflow-active` удалён, шаги `touch`/`rm` исключены; `/wf-gate` напрямую запускает Beads-дисциплину.
 
 ```
-/workflow-gate <задача>
+/wf-gate <задача>
   │
   ├─ touch .workflow-active (разблокирует Edit/Write)
   ├─ unified-workflow (Template Bridge)

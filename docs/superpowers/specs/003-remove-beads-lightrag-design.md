@@ -23,11 +23,11 @@ status: done
 
 ## TL;DR
 
-Beads (operational memory) and LightRAG (knowledge base) are removed from the orchestration-kit core. The four-layer D1 model collapses to three layers (Template Bridge + Superpowers + orchestration-kit glue). Discipline (6-point issue, 4-point close, expert review, dispatch-with-context) is preserved but becomes tracker-agnostic — `bd` calls disappear from skills and commands; Mode 3 of `workflow-gate-check` rewrites volatile-session-state persistence onto files under `docs/orchestration/handoff/`. `deploy.sh` stops installing the beads plugin / bd CLI / running `bd init`; `settings-hooks.json` drops `bd prime` from SessionStart and PreCompact. The `knowledge-harvest` skill is **untouched** (explicit user instruction — will be rewritten in a later cycle to persist findings into project files). The `delegate-with-context` Phase 8 LightRAG subagent is dropped (knowledge-harvester invocation + its prompt-template file deleted). Approximately 23 files touched: 21 edits, 2 deletes; 7 historical/excluded files left as-is. Estimated diff: -700 / +375 lines. Delivered in 3 sequenced stages so each can be reviewed and tested independently.
+Beads (operational memory) and LightRAG (knowledge base) are removed from the orchestration-kit core. The four-layer D1 model collapses to three layers (Template Bridge + Superpowers + orchestration-kit glue). Discipline (6-point issue, 4-point close, expert review, dispatch-with-context) is preserved but becomes tracker-agnostic — `bd` calls disappear from skills and commands; Mode 3 of `wf-gate-check` rewrites volatile-session-state persistence onto files under `docs/orchestration/handoff/`. `deploy.sh` stops installing the beads plugin / bd CLI / running `bd init`; `settings-hooks.json` drops `bd prime` from SessionStart and PreCompact. The `knowledge-harvest` skill is **untouched** (explicit user instruction — will be rewritten in a later cycle to persist findings into project files). The `delegate-with-context` Phase 8 LightRAG subagent is dropped (knowledge-harvester invocation + its prompt-template file deleted). Approximately 23 files touched: 21 edits, 2 deletes; 7 historical/excluded files left as-is. Estimated diff: -700 / +375 lines. Delivered in 3 sequenced stages so each can be reviewed and tested independently.
 
 ## Diagnosis
 
-Beads and LightRAG are deeply woven into four skills (`workflow-gate`, `workflow-gate-check`, `delegate-with-context`, `knowledge-harvest`), two commands (`workflow-gate`, `workflow-gate-check`), `deploy.sh`, `settings-hooks.json`, the README architecture diagram, and the generated CLAUDE.md template inside the top-level `SKILL.md`. The dependency is unidirectional: orchestration-kit calls into Beads/LightRAG, never the reverse. A clean removal is therefore possible without breaking external consumers, provided the *discipline* embedded in the skills (6-point issue, 4-point close reason with verification evidence, expert second-opinion rubric, dispatch-with-bundle workflow) is preserved in tracker-agnostic form.
+Beads and LightRAG are deeply woven into four skills (`wf-gate`, `wf-gate-check`, `delegate-with-context`, `knowledge-harvest`), two commands (`wf-gate`, `wf-gate-check`), `deploy.sh`, `settings-hooks.json`, the README architecture diagram, and the generated CLAUDE.md template inside the top-level `SKILL.md`. The dependency is unidirectional: orchestration-kit calls into Beads/LightRAG, never the reverse. A clean removal is therefore possible without breaking external consumers, provided the *discipline* embedded in the skills (6-point issue, 4-point close reason with verification evidence, expert second-opinion rubric, dispatch-with-bundle workflow) is preserved in tracker-agnostic form.
 
 Why now: the user wants the orchestration-kit to be lighter, with fewer mandatory external dependencies. Beads adds an installable plugin + a global npm binary + a `.beads/` directory + a SessionStart/PreCompact hook. LightRAG adds an MCP-server dependency that not every project will have. Removing both narrows the prerequisite list to `superpowers` + `template-bridge`, both already required for the core dev loop.
 
@@ -54,16 +54,16 @@ orchestration-kit (4-layer D1 model)
     ├── README.md ───────────► L1 diagram + Task tracking with Beads section
     │
     ├── skills/
-    │   ├── workflow-gate ★ entire skill = Beads discipline reference
-    │   ├── workflow-gate-check ★ Mode 1 audits bd close; Mode 3 enriches bd
+    │   ├── wf-gate ★ entire skill = Beads discipline reference
+    │   ├── wf-gate-check ★ Mode 1 audits bd close; Mode 3 enriches bd
     │   ├── delegate-with-context ★ Phase 2 BEADS-RECONCILE; Phase 8 → LightRAG
     │   ├── knowledge-harvest ★ LightRAG only            ← LEAVE UNTOUCHED
     │   └── [arch-review, security-audit, refactor-code, 012-update-docs,
     │        find-skills-my, sync-skills, update-external-skills] (clean)
     │
     └── commands/
-        ├── workflow-gate.md ──────► `bd create` + `bd close` steps
-        ├── workflow-gate-check.md ► `bd close` phraseology
+        ├── wf-gate.md ──────► `bd create` + `bd close` steps
+        ├── wf-gate-check.md ► `bd close` phraseology
         └── delegate-with-context.md (clean)
 ```
 
@@ -84,10 +84,10 @@ orchestration-kit (3-layer model)
     ├── README.md ───────────► 3-layer diagram; no Beads section
     │
     ├── skills/
-    │   ├── workflow-gate ★ tracker-agnostic task-discipline reference
+    │   ├── wf-gate ★ tracker-agnostic task-discipline reference
     │   │       (6-point template + 4-point close template usable in
     │   │        any issue tracker, PR body, or commit message)
-    │   ├── workflow-gate-check ★ Mode 1/2 tracker-agnostic;
+    │   ├── wf-gate-check ★ Mode 1/2 tracker-agnostic;
     │   │       Mode 3 persists handoff to docs/orchestration/handoff/
     │   │       NNN-<topic>-handoff.md (file-based, not bd update/decision)
     │   ├── delegate-with-context ★ Phase 2 → SPEC-DISTILL (task-spec is
@@ -97,8 +97,8 @@ orchestration-kit (3-layer model)
     │   └── [others unchanged]
     │
     └── commands/
-        ├── workflow-gate.md ──────► no bd; quality reference language only
-        ├── workflow-gate-check.md ► no bd; file-based Mode 3
+        ├── wf-gate.md ──────► no bd; quality reference language only
+        ├── wf-gate-check.md ► no bd; file-based Mode 3
         └── delegate-with-context.md (unchanged)
 ```
 
@@ -117,11 +117,11 @@ The work is staged for review/test isolation. Each stage is one PR or one commit
 
 | File | Action | Lines (~) |
 |---|---|---|
-| `templates/skills/workflow-gate/SKILL.md` | REWRITE: frontmatter description → "tracker-agnostic task-discipline reference"; "Phase 2/3/4/5/6" → unified "Task discipline" section with 6-point + 4-point templates, no `bd` commands; Rules section purged of `bd` | -100 / +80 |
-| `templates/skills/workflow-gate-check/SKILL.md` | REWRITE: Part 1 reframed (6-point in task description across *any* tracker; 4-point in commit body or close-comment); Mode 3 rewritten to persist handoff to file (`docs/orchestration/handoff/NNN-<topic>-handoff.md`) instead of `bd update/decision/remember`; Troubleshooting purged of bd | -120 / +90 |
-| `templates/skills/workflow-gate-check/references/mode-3-details.md` | REWRITE: Gap→Action mapping table → file-based actions (commit handoff doc + append session log); cross-domain examples updated | -40 / +35 |
-| `templates/skills/workflow-gate-check/references/mode-1-2-examples.md` | EDIT: `bd show description` → "task description"; `bd close` → "commit/PR close" | -15 / +15 |
-| `templates/skills/workflow-gate-check/references/common-mistakes.md` | EDIT: bullets about `bd notes/decision/update` → file-based equivalents | -5 / +5 |
+| `templates/skills/wf-gate/SKILL.md` | REWRITE: frontmatter description → "tracker-agnostic task-discipline reference"; "Phase 2/3/4/5/6" → unified "Task discipline" section with 6-point + 4-point templates, no `bd` commands; Rules section purged of `bd` | -100 / +80 |
+| `templates/skills/wf-gate-check/SKILL.md` | REWRITE: Part 1 reframed (6-point in task description across *any* tracker; 4-point in commit body or close-comment); Mode 3 rewritten to persist handoff to file (`docs/orchestration/handoff/NNN-<topic>-handoff.md`) instead of `bd update/decision/remember`; Troubleshooting purged of bd | -120 / +90 |
+| `templates/skills/wf-gate-check/references/mode-3-details.md` | REWRITE: Gap→Action mapping table → file-based actions (commit handoff doc + append session log); cross-domain examples updated | -40 / +35 |
+| `templates/skills/wf-gate-check/references/mode-1-2-examples.md` | EDIT: `bd show description` → "task description"; `bd close` → "commit/PR close" | -15 / +15 |
+| `templates/skills/wf-gate-check/references/common-mistakes.md` | EDIT: bullets about `bd notes/decision/update` → file-based equivalents | -5 / +5 |
 | `templates/skills/delegate-with-context/SKILL.md` | EDIT: Phase 2 BEADS-RECONCILE → SPEC-DISTILL; Phase 8 — 3→2 subagents (drop knowledge-harvester); References list updated | -20 / +10 |
 | `templates/skills/delegate-with-context/references/beads-reconcile.md` | DELETE | -73 |
 | `templates/skills/delegate-with-context/references/prompt-knowledge-harvester.md` | DELETE | -122 |
@@ -136,9 +136,9 @@ The work is staged for review/test isolation. Each stage is one PR or one commit
 | `templates/skills/delegate-with-context/references/prompt-doc-curator.md` | EDIT: drop "bd close <id>" in Phase 8 detection rules | -7 / +5 |
 | `templates/skills/delegate-with-context/references/overlay-schema.md` | EDIT: drop bd-specific signals if present | -2 / +2 |
 | `templates/skills/delegate-with-context/validate.sh` | EDIT: drop `bd` checks | -1 |
-| `templates/commands/workflow-gate.md` | REWRITE: remove "Beads create/close" sections; restate "Quality standards on top" tracker-agnostic; drop `bd init` fallback | -20 / +15 |
-| `templates/commands/workflow-gate-check.md` | EDIT: remove "do NOT call bd close", "bd update notes", "no bd binary" → file-based persistence | -15 / +12 |
-| `templates/orchestration-config.json` | EDIT: add `documentation.paths.handoff = "docs/orchestration/handoff"` and `documentation.enabled.handoff = true` so Mode 3 of `workflow-gate-check` has a configured target | +4 |
+| `templates/commands/wf-gate.md` | REWRITE: remove "Beads create/close" sections; restate "Quality standards on top" tracker-agnostic; drop `bd init` fallback | -20 / +15 |
+| `templates/commands/wf-gate-check.md` | EDIT: remove "do NOT call bd close", "bd update notes", "no bd binary" → file-based persistence | -15 / +12 |
+| `templates/orchestration-config.json` | EDIT: add `documentation.paths.handoff = "docs/orchestration/handoff"` and `documentation.enabled.handoff = true` so Mode 3 of `wf-gate-check` has a configured target | +4 |
 
 ### Stage 3 — Top-level docs
 
@@ -161,7 +161,7 @@ The work is staged for review/test isolation. Each stage is one PR or one commit
 - The Iron Law (verification-before-completion) remains central: every `DONE` claim still requires fresh test output / screenshots / artefacts. Only the *persistence target* (formerly `bd close --reason`) changes — the evidence itself is unchanged.
 - The 6-point issue template + 4-point close template — the *concepts* remain; they become tracker-agnostic templates the user pastes into whichever tracker (or PR body, or commit message) the project uses.
 - `/delegate-with-context` mechanics (DISTILL → CLASSIFY → DISPATCH → SPEC-REVIEW → CODE-QUALITY-REVIEW → DOC-PROPOSE/CURATE → SUMMARY) — preserved. Only Phase 2 and Phase 8 are slimmed.
-- `/workflow-gate` entry point remains a slash command that delegates to `template-bridge:unified-workflow`. It no longer prescribes `bd create` / `bd close` — those steps in unified-workflow become "task-tracker steps (project-specific)".
+- `/wf-gate` entry point remains a slash command that delegates to `template-bridge:unified-workflow`. It no longer prescribes `bd create` / `bd close` — those steps in unified-workflow become "task-tracker steps (project-specific)".
 
 ## File scope
 
@@ -183,8 +183,8 @@ Approximate diff: −700 / +375 lines.
 | `delegate-with-context/references/doc-manifest.md` auto-archive logic uses "bd closed" as a trigger; without bd this signal is missing | Medium | Medium | Replace trigger with `status: done` in the spec/plan file's own front-matter. Schema change documented in this spec; doc-manifest.md gets a small redesign as part of Stage 2. |
 | Mode 3 file-based handoff may collide with existing `docs/orchestration/handoff/` if a project already uses that directory | Low | Low | Skill checks existence and follows global NNN- prefix rule; collision improbable since orchestration-config.json today doesn't ship a `handoff` path |
 | Existing projects with active Beads will lose context-recovery via `bd prime` at session start / pre-compact | Medium | Low | Intentional — user explicitly requested removal. Documented in migration notes. Projects that *want* to keep Beads can roll back the hooks in their own settings.json. |
-| `workflow-gate-check/references/mode-1-2-examples.md` contains literal `bd-id` strings (e.g., `gxu7`) embedded in narrative examples; partial edits may leave references that confuse readers | Medium | Low | Spec self-review checklist includes a final `grep -nE '\bbd-?[a-z0-9]+\b'` sweep of the touched files. |
-| No automated regression tests for skills — manual verification only | Medium | Medium | After Stage 2, run a manual smoke: `/workflow-gate <test-task>` in a clean fixture project, `/workflow-gate-check 01`, `/delegate-with-context --dry-run`. Document results in the implementation plan. |
+| `wf-gate-check/references/mode-1-2-examples.md` contains literal `bd-id` strings (e.g., `gxu7`) embedded in narrative examples; partial edits may leave references that confuse readers | Medium | Low | Spec self-review checklist includes a final `grep -nE '\bbd-?[a-z0-9]+\b'` sweep of the touched files. |
+| No automated regression tests for skills — manual verification only | Medium | Medium | After Stage 2, run a manual smoke: `/wf-gate <test-task>` in a clean fixture project, `/wf-gate-check 01`, `/delegate-with-context --dry-run`. Document results in the implementation plan. |
 | `knowledge-harvest` skill remains LightRAG-coupled and stays in deployed roster — users may try to use it and get errors | Low | Low | Add a one-line "Known limitations" subsection in README explaining that `/knowledge-harvest` currently requires LightRAG MCP and will be rewritten. Skill description itself remains accurate (it already says `mcp__lightrag__*`). |
 | Diff is large (~22 files, -700/+370) — review fatigue | Medium | Low | Three-stage delivery (A → B → C) gives reviewers focused windows. Stage A is mechanical removal (~70 lines), Stage B is the rewrite-heavy chunk, Stage C is documentation. |
 
@@ -220,9 +220,9 @@ After each stage:
 - Re-run on an already-deployed project (`./deploy.sh /path --update-skills`) — settings.json updated correctly per the decision on open-question #1.
 
 **Stage 2 verification.** Manual smoke in a representative project:
-- `/workflow-gate "test task"` — flow proceeds without `bd` mentions.
-- `/workflow-gate-check 01` against a fresh commit — Part 1 (compliance) and Part 2 (rubric) produce a verdict; no `bd close` instructions.
-- `/workflow-gate-check 03` after a session — produces a handoff file at `docs/orchestration/handoff/NNN-<topic>-handoff.md`, awaits user approval, then commits.
+- `/wf-gate "test task"` — flow proceeds without `bd` mentions.
+- `/wf-gate-check 01` against a fresh commit — Part 1 (compliance) and Part 2 (rubric) produce a verdict; no `bd close` instructions.
+- `/wf-gate-check 03` after a session — produces a handoff file at `docs/orchestration/handoff/NNN-<topic>-handoff.md`, awaits user approval, then commits.
 - `/delegate-with-context --dry-run` on a small task — Phase 1/2 distil produces a task spec; Phase 8 plans 2 subagents (doc-proposer + doc-curator), not 3.
 - `grep -rni -E 'beads|lightrag|\bbd \b' templates/ deploy.sh README.md SKILL.md` — only `knowledge-harvest/` LightRAG calls remain.
 

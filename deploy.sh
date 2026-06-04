@@ -213,6 +213,25 @@ mkdir -p "$TARGET/docs/orchestration/handoff"
 
 log_ok "Directories created"
 
+# --- Global (user-level) skill/command config ---
+# The wf-gate pair lives globally in ~/.claude so a single canonical copy
+# serves every project. deploy.sh installs them to ~/.claude and never copies
+# them project-local; stale local copies (incl. legacy workflow-gate names)
+# are removed on every run.
+GLOBAL_SKILLS=("wf-gate" "wf-gate-check")
+GLOBAL_CMDS=("wf-gate.md" "wf-gate-check.md")
+GLOBAL_SKILLS_DIR="$HOME/.claude/skills"
+GLOBAL_CMDS_DIR="$HOME/.claude/commands"
+LEGACY_LOCAL_SKILLS=("workflow-gate" "workflow-gate-check")
+LEGACY_LOCAL_CMDS=("workflow-gate.md" "workflow-gate-check.md")
+
+in_list() {
+    local needle="$1"; shift
+    local x
+    for x in "$@"; do [ "$x" = "$needle" ] && return 0; done
+    return 1
+}
+
 # --- Copy agents ---
 log_info "Copying agents..."
 AGENTS_COPIED=0
@@ -232,6 +251,10 @@ log_info "Copying skills..."
 SKILLS_COPIED=0
 for skill_dir in "$TEMPLATES/skills/"*/; do
     skill_name=$(basename "$skill_dir")
+    # wf-gate pair is installed globally (below), never project-local.
+    if in_list "$skill_name" "${GLOBAL_SKILLS[@]}"; then
+        continue
+    fi
     dest="$TARGET/.claude/skills/$skill_name"
     if [ -e "$dest" ] || [ -L "$dest" ]; then
         # Remove existing dest (dir, file, or symlink) before copy.
@@ -248,6 +271,28 @@ for skill_dir in "$TEMPLATES/skills/"*/; do
 done
 log_ok "Copied $SKILLS_COPIED skills"
 
+# --- Install global skills (wf-gate pair) ---
+log_info "Installing global skills (~/.claude/skills)..."
+mkdir -p "$GLOBAL_SKILLS_DIR"
+GLOBAL_SKILLS_INSTALLED=0
+for gs in "${GLOBAL_SKILLS[@]}"; do
+    src="$TEMPLATES/skills/$gs"
+    [ -d "$src" ] || continue
+    dest="$GLOBAL_SKILLS_DIR/$gs"
+    rm -rf "$dest"          # idempotent: overwrite any prior global copy
+    cp -r "$src" "$dest"
+    GLOBAL_SKILLS_INSTALLED=$((GLOBAL_SKILLS_INSTALLED + 1))
+done
+log_ok "Installed $GLOBAL_SKILLS_INSTALLED global skills"
+
+# Remove stale project-local copies (current + legacy workflow-gate names).
+for stale in "${GLOBAL_SKILLS[@]}" "${LEGACY_LOCAL_SKILLS[@]}"; do
+    if [ -e "$TARGET/.claude/skills/$stale" ] || [ -L "$TARGET/.claude/skills/$stale" ]; then
+        log_warn "Removing stale project-local skill (now global): $stale"
+        rm -rf "$TARGET/.claude/skills/$stale"
+    fi
+done
+
 # --- Copy shared references ---
 log_info "Copying shared references..."
 if [ -d "$TEMPLATES/references" ]; then
@@ -258,7 +303,7 @@ if [ -d "$TEMPLATES/references" ]; then
 fi
 
 # --- Copy slash commands ---
-# Kit-owned slash commands (e.g., /workflow-gate, /workflow-gate-check).
+# Kit-owned slash commands (e.g., /wf-gate, /wf-gate-check).
 # Only kit-template names are copied — any pre-existing command files in the
 # target project with other names are left untouched.
 log_info "Copying slash commands..."
@@ -268,6 +313,10 @@ if [ -d "$TEMPLATES/commands" ]; then
     for cmd_file in "$TEMPLATES/commands/"*.md; do
         [ -e "$cmd_file" ] || continue
         cmd_name=$(basename "$cmd_file")
+        # wf-gate pair commands are installed globally (below), never project-local.
+        if in_list "$cmd_name" "${GLOBAL_CMDS[@]}"; then
+            continue
+        fi
         dest="$TARGET/.claude/commands/$cmd_name"
         if [ -f "$dest" ]; then
             log_warn "Command already exists, overwriting: $cmd_name"
@@ -277,6 +326,26 @@ if [ -d "$TEMPLATES/commands" ]; then
     done
     log_ok "Copied $CMDS_COPIED slash commands"
 fi
+
+# --- Install global slash commands (wf-gate pair) ---
+log_info "Installing global slash commands (~/.claude/commands)..."
+mkdir -p "$GLOBAL_CMDS_DIR"
+GLOBAL_CMDS_INSTALLED=0
+for gc in "${GLOBAL_CMDS[@]}"; do
+    src="$TEMPLATES/commands/$gc"
+    [ -f "$src" ] || continue
+    cp "$src" "$GLOBAL_CMDS_DIR/$gc"
+    GLOBAL_CMDS_INSTALLED=$((GLOBAL_CMDS_INSTALLED + 1))
+done
+log_ok "Installed $GLOBAL_CMDS_INSTALLED global slash commands"
+
+# Remove stale project-local command copies (current + legacy workflow-gate names).
+for stale in "${GLOBAL_CMDS[@]}" "${LEGACY_LOCAL_CMDS[@]}"; do
+    if [ -e "$TARGET/.claude/commands/$stale" ]; then
+        log_warn "Removing stale project-local command (now global): $stale"
+        rm -f "$TARGET/.claude/commands/$stale"
+    fi
+done
 
 # --- Copy hook scripts ---
 log_info "Installing hook scripts..."
@@ -556,7 +625,7 @@ echo "       This discovers relevant skills and generates CLAUDE.md."
 echo ""
 echo "  After setup, Superpowers handles the dev loop."
 fi
-echo "  Task discipline reference: see .claude/skills/workflow-gate/SKILL.md"
+echo "  Task discipline reference: see ~/.claude/skills/wf-gate/SKILL.md (global)"
 echo ""
 echo "  Specialist skills:"
 echo "    /arch-review     — Architecture health check"

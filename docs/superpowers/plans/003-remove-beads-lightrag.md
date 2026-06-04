@@ -12,7 +12,7 @@ status: done
 
 **Goal:** Remove Beads (operational memory) and LightRAG (KB) from orchestration-kit; preserve discipline (6-pt issue, 4-pt close, expert review, dispatch-with-context) in tracker-agnostic form. Leave `knowledge-harvest` skill untouched.
 
-**Architecture:** Three sequenced stages — (A) deploy.sh + settings-hooks.json mechanical removal, (B) rewrite of `workflow-gate`, `workflow-gate-check` (Mode 3 → file-based handoff), `delegate-with-context` (drop Phase 8 LightRAG harvester), plus their references + `orchestration-config.json` getting a `handoff` path + the two slash-command files, (C) top-level README and deploy-orchestration SKILL.md rewritten to reflect 3-layer model. Each stage is independently reviewable and verifiable.
+**Architecture:** Three sequenced stages — (A) deploy.sh + settings-hooks.json mechanical removal, (B) rewrite of `wf-gate`, `wf-gate-check` (Mode 3 → file-based handoff), `delegate-with-context` (drop Phase 8 LightRAG harvester), plus their references + `orchestration-config.json` getting a `handoff` path + the two slash-command files, (C) top-level README and deploy-orchestration SKILL.md rewritten to reflect 3-layer model. Each stage is independently reviewable and verifiable.
 
 **Tech Stack:** Bash, JSON (jq merge logic), Markdown skills/commands, no runtime code.
 
@@ -41,10 +41,10 @@ status: done
 ```
 chore(deploy): drop beads plugin install + bd init from deploy.sh
 chore(hooks): remove bd prime from SessionStart and PreCompact
-refactor(workflow-gate): rewrite skill as tracker-agnostic task-discipline reference
-refactor(workflow-gate-check): mode 3 persists handoff to docs/orchestration/handoff/
+refactor(wf-gate): rewrite skill as tracker-agnostic task-discipline reference
+refactor(wf-gate-check): mode 3 persists handoff to docs/orchestration/handoff/
 refactor(delegate-with-context): drop Phase 2 BEADS-RECONCILE and Phase 8 LightRAG harvester
-refactor(commands): drop bd phrasing from workflow-gate, workflow-gate-check
+refactor(commands): drop bd phrasing from wf-gate, wf-gate-check
 chore(config): add handoff path to orchestration-config.json
 docs(readme): 4-layer → 3-layer model; remove Beads tracking section
 docs(skill): drop Beads block from generated CLAUDE.md template
@@ -53,15 +53,15 @@ docs(skill): drop Beads block from generated CLAUDE.md template
 **Baseline grep counts** (recorded at plan-writing time, 2026-05-13):
 
 ```
-README.md:51         templates/skills/workflow-gate/SKILL.md:35
-SKILL.md:14          templates/skills/workflow-gate-check/SKILL.md:49
-deploy.sh:31         templates/skills/workflow-gate-check/references/mode-3-details.md:14
-                     templates/skills/workflow-gate-check/references/mode-1-2-examples.md:9
-                     templates/skills/workflow-gate-check/references/common-mistakes.md:3
+README.md:51         templates/skills/wf-gate/SKILL.md:35
+SKILL.md:14          templates/skills/wf-gate-check/SKILL.md:49
+deploy.sh:31         templates/skills/wf-gate-check/references/mode-3-details.md:14
+                     templates/skills/wf-gate-check/references/mode-1-2-examples.md:9
+                     templates/skills/wf-gate-check/references/common-mistakes.md:3
                      templates/skills/delegate-with-context/SKILL.md:16
                      templates/skills/delegate-with-context/references/*.md (multiple, ~60 total)
-                     templates/commands/workflow-gate.md:7
-                     templates/commands/workflow-gate-check.md:6
+                     templates/commands/wf-gate.md:7
+                     templates/commands/wf-gate-check.md:6
                      templates/settings-hooks.json:3
 ```
 
@@ -79,11 +79,11 @@ Each task's verification step references these baselines.
 | 1 | `templates/settings-hooks.json` | EDIT (2 deletes + 1 echo rewrite) |
 | 2A | `templates/skills/delegate-with-context/references/beads-reconcile.md` | DELETE |
 | 2A | `templates/skills/delegate-with-context/references/prompt-knowledge-harvester.md` | DELETE |
-| 2B | `templates/skills/workflow-gate/SKILL.md` | REWRITE |
-| 2C | `templates/skills/workflow-gate-check/SKILL.md` | REWRITE (Part 1 reframe + Mode 3 file-based) |
-| 2C | `templates/skills/workflow-gate-check/references/mode-3-details.md` | REWRITE (Gap→Action file-based) |
-| 2C | `templates/skills/workflow-gate-check/references/mode-1-2-examples.md` | EDIT |
-| 2C | `templates/skills/workflow-gate-check/references/common-mistakes.md` | EDIT |
+| 2B | `templates/skills/wf-gate/SKILL.md` | REWRITE |
+| 2C | `templates/skills/wf-gate-check/SKILL.md` | REWRITE (Part 1 reframe + Mode 3 file-based) |
+| 2C | `templates/skills/wf-gate-check/references/mode-3-details.md` | REWRITE (Gap→Action file-based) |
+| 2C | `templates/skills/wf-gate-check/references/mode-1-2-examples.md` | EDIT |
+| 2C | `templates/skills/wf-gate-check/references/common-mistakes.md` | EDIT |
 | 2D | `templates/skills/delegate-with-context/SKILL.md` | EDIT (Phase 2 + Phase 8 + Refs list) |
 | 2D | `templates/skills/delegate-with-context/references/context-bundle.md` | EDIT |
 | 2D | `templates/skills/delegate-with-context/references/triviality-classifier.md` | EDIT |
@@ -96,8 +96,8 @@ Each task's verification step references these baselines.
 | 2D | `templates/skills/delegate-with-context/references/prompt-doc-curator.md` | EDIT |
 | 2D | `templates/skills/delegate-with-context/references/overlay-schema.md` | EDIT |
 | 2D | `templates/skills/delegate-with-context/validate.sh` | EDIT |
-| 2E | `templates/commands/workflow-gate.md` | REWRITE |
-| 2E | `templates/commands/workflow-gate-check.md` | EDIT |
+| 2E | `templates/commands/wf-gate.md` | REWRITE |
+| 2E | `templates/commands/wf-gate-check.md` | EDIT |
 | 2E | `templates/orchestration-config.json` | EDIT (+handoff path) |
 | 3 | `README.md` | REWRITE |
 | 3 | `SKILL.md` (top-level, deploy-orchestration) | REWRITE |
@@ -303,7 +303,7 @@ Replace `"  Beads tracks tasks across sessions (bd ready, bd create)."` with a b
 
 New:
 ```bash
-echo "  Task discipline reference: see .claude/skills/workflow-gate/SKILL.md"
+echo "  Task discipline reference: see .claude/skills/wf-gate/SKILL.md"
 ```
 
 Replace `"    - orchestration-config.json and .beads/ left untouched"` with:
@@ -382,7 +382,7 @@ New content for `templates/settings-hooks.json`:
         "hooks": [
           {
             "type": "command",
-            "command": "echo 'Workflow: /workflow-gate <task> (delegates to template-bridge:unified-workflow). Task discipline: workflow-gate skill. Verification: superpowers:verification-before-completion (Iron Law).'"
+            "command": "echo 'Workflow: /wf-gate <task> (delegates to template-bridge:unified-workflow). Task discipline: wf-gate skill. Verification: superpowers:verification-before-completion (Iron Law).'"
           }
         ]
       }
@@ -535,17 +535,17 @@ git commit -m "refactor(delegate-with-context): drop beads-reconcile + LightRAG 
 
 ---
 
-### Stage 2B — `workflow-gate` skill rewrite
+### Stage 2B — `wf-gate` skill rewrite
 
-#### Task 10: Rewrite `templates/skills/workflow-gate/SKILL.md`
+#### Task 10: Rewrite `templates/skills/wf-gate/SKILL.md`
 
-**Files:** Modify `templates/skills/workflow-gate/SKILL.md` (full rewrite)
+**Files:** Modify `templates/skills/wf-gate/SKILL.md` (full rewrite)
 
 - [ ] **Step 1: Baseline**
 
 ```bash
-wc -l templates/skills/workflow-gate/SKILL.md
-grep -cE '\bbd \b|beads' templates/skills/workflow-gate/SKILL.md
+wc -l templates/skills/wf-gate/SKILL.md
+grep -cE '\bbd \b|beads' templates/skills/wf-gate/SKILL.md
 ```
 
 Expected: 226 lines, ~35 matches.
@@ -556,14 +556,14 @@ Replace the entire file with:
 
 ````markdown
 ---
-name: workflow-gate
+name: wf-gate
 description: >
   Tracker-agnostic task-discipline reference: 6-point task description, 4-point
   close reason with verification evidence, commit conventions, land-the-plane
   habits. The discipline is independent of any specific tracker (GitHub issues,
   Linear, plain commit messages, project-local task files) — apply the templates
   wherever your project records tasks. Orchestration of the dev loop is the
-  responsibility of slash-command `/workflow-gate` (delegates to
+  responsibility of slash-command `/wf-gate` (delegates to
   `template-bridge:unified-workflow`); this skill is the reference manual that
   the controller and reviewers consult.
   TRIGGER: Consult this skill whenever creating or closing a task in your
@@ -571,16 +571,16 @@ description: >
   standards.
 ---
 
-# Workflow Gate
+# WF Gate
 
 **Role:** Reference for task-discipline in any project.
-**Orchestration:** handled by slash-command `/workflow-gate` (delegates to
+**Orchestration:** handled by slash-command `/wf-gate` (delegates to
 `template-bridge:unified-workflow`). This skill does NOT orchestrate; it
 documents the quality standards that apply to any workflow.
 
 **There is no marker file, no unlock mechanism, no Edit/Write hook block.**
 Those were removed in the D1 redesign (see spec
-`docs/superpowers/specs/2026-04-14-workflow-gate-d1-design.md`).
+`docs/superpowers/specs/2026-04-14-wf-gate-d1-design.md`).
 
 ---
 
@@ -769,13 +769,13 @@ The session is NOT complete until ALL of these are done:
 - [ ] **Step 3: Verify**
 
 ```bash
-grep -cE '\bbd \b|beads' templates/skills/workflow-gate/SKILL.md
+grep -cE '\bbd \b|beads' templates/skills/wf-gate/SKILL.md
 ```
 
 Expected: 0 matches.
 
 ```bash
-wc -l templates/skills/workflow-gate/SKILL.md
+wc -l templates/skills/wf-gate/SKILL.md
 ```
 
 Expected: ~150 lines (down from 226).
@@ -783,17 +783,17 @@ Expected: ~150 lines (down from 226).
 - [ ] **Step 4: Commit**
 
 ```bash
-git add templates/skills/workflow-gate/SKILL.md
-git commit -m "refactor(workflow-gate): rewrite as tracker-agnostic task-discipline reference"
+git add templates/skills/wf-gate/SKILL.md
+git commit -m "refactor(wf-gate): rewrite as tracker-agnostic task-discipline reference"
 ```
 
 ---
 
-### Stage 2C — `workflow-gate-check` rewrite (Mode 3 file-based)
+### Stage 2C — `wf-gate-check` rewrite (Mode 3 file-based)
 
-#### Task 11: Rewrite `templates/skills/workflow-gate-check/SKILL.md`
+#### Task 11: Rewrite `templates/skills/wf-gate-check/SKILL.md`
 
-**Files:** Modify `templates/skills/workflow-gate-check/SKILL.md` (large refactor)
+**Files:** Modify `templates/skills/wf-gate-check/SKILL.md` (large refactor)
 
 This is the most intricate edit in the plan. The skill has Part 1 (compliance), Part 2 (judgement), Part 3 (handoff). Beads coupling is in:
 
@@ -809,7 +809,7 @@ This is the most intricate edit in the plan. The skill has Part 1 (compliance), 
 - [ ] **Step 1: Baseline**
 
 ```bash
-grep -cE '\bbd \b|beads' templates/skills/workflow-gate-check/SKILL.md
+grep -cE '\bbd \b|beads' templates/skills/wf-gate-check/SKILL.md
 ```
 
 Expected: ~49 matches.
@@ -879,13 +879,13 @@ The **Phase 0 scope criterion** stays the same conceptually but adapts:
 - [ ] **Step 3: Verify**
 
 ```bash
-grep -cE '\bbd \b|beads|@beads/bd' templates/skills/workflow-gate-check/SKILL.md
+grep -cE '\bbd \b|beads|@beads/bd' templates/skills/wf-gate-check/SKILL.md
 ```
 
 Expected: 0 matches.
 
 ```bash
-grep -c 'task record\|handoff file\|handoff doc' templates/skills/workflow-gate-check/SKILL.md
+grep -c 'task record\|handoff file\|handoff doc' templates/skills/wf-gate-check/SKILL.md
 ```
 
 Expected: ≥10 matches (confirms replacements landed).
@@ -901,18 +901,18 @@ Open the file in a viewer. Scan headings — Part 1 → Part 2 → Part 3 → Ve
 - [ ] **Step 5: Commit**
 
 ```bash
-git add templates/skills/workflow-gate-check/SKILL.md
-git commit -m "refactor(workflow-gate-check): rewrite Mode 3 to file-based handoff; tracker-agnostic Part 1"
+git add templates/skills/wf-gate-check/SKILL.md
+git commit -m "refactor(wf-gate-check): rewrite Mode 3 to file-based handoff; tracker-agnostic Part 1"
 ```
 
 #### Task 12: Rewrite `references/mode-3-details.md`
 
-**Files:** Modify `templates/skills/workflow-gate-check/references/mode-3-details.md`
+**Files:** Modify `templates/skills/wf-gate-check/references/mode-3-details.md`
 
 - [ ] **Step 1: Baseline**
 
 ```bash
-grep -cE '\bbd \b|beads' templates/skills/workflow-gate-check/references/mode-3-details.md
+grep -cE '\bbd \b|beads' templates/skills/wf-gate-check/references/mode-3-details.md
 ```
 
 Expected: ~14 matches.
@@ -932,7 +932,7 @@ Apply the same substitution table as Task 11 Step 2 globally within this file. A
 - [ ] **Step 3: Verify**
 
 ```bash
-grep -cE '\bbd \b|beads' templates/skills/workflow-gate-check/references/mode-3-details.md
+grep -cE '\bbd \b|beads' templates/skills/wf-gate-check/references/mode-3-details.md
 ```
 
 Expected: 0 matches.
@@ -940,18 +940,18 @@ Expected: 0 matches.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add templates/skills/workflow-gate-check/references/mode-3-details.md
-git commit -m "refactor(workflow-gate-check): rewrite mode-3-details for file-based handoff"
+git add templates/skills/wf-gate-check/references/mode-3-details.md
+git commit -m "refactor(wf-gate-check): rewrite mode-3-details for file-based handoff"
 ```
 
 #### Task 13: Edit `references/mode-1-2-examples.md`
 
-**Files:** Modify `templates/skills/workflow-gate-check/references/mode-1-2-examples.md`
+**Files:** Modify `templates/skills/wf-gate-check/references/mode-1-2-examples.md`
 
 - [ ] **Step 1: Baseline**
 
 ```bash
-grep -cE '\bbd \b|beads' templates/skills/workflow-gate-check/references/mode-1-2-examples.md
+grep -cE '\bbd \b|beads' templates/skills/wf-gate-check/references/mode-1-2-examples.md
 ```
 
 Expected: ~9 matches.
@@ -965,7 +965,7 @@ Apply the Task 11 substitution table. Specifically:
 - [ ] **Step 3: Verify**
 
 ```bash
-grep -cE '\bbd \b|beads' templates/skills/workflow-gate-check/references/mode-1-2-examples.md
+grep -cE '\bbd \b|beads' templates/skills/wf-gate-check/references/mode-1-2-examples.md
 ```
 
 Expected: 0 matches.
@@ -973,18 +973,18 @@ Expected: 0 matches.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add templates/skills/workflow-gate-check/references/mode-1-2-examples.md
-git commit -m "refactor(workflow-gate-check): drop bd phrasing from examples"
+git add templates/skills/wf-gate-check/references/mode-1-2-examples.md
+git commit -m "refactor(wf-gate-check): drop bd phrasing from examples"
 ```
 
 #### Task 14: Edit `references/common-mistakes.md`
 
-**Files:** Modify `templates/skills/workflow-gate-check/references/common-mistakes.md`
+**Files:** Modify `templates/skills/wf-gate-check/references/common-mistakes.md`
 
 - [ ] **Step 1: Baseline**
 
 ```bash
-grep -cE '\bbd \b|beads' templates/skills/workflow-gate-check/references/common-mistakes.md
+grep -cE '\bbd \b|beads' templates/skills/wf-gate-check/references/common-mistakes.md
 ```
 
 Expected: ~3 matches (lines 30, 31, 34).
@@ -998,7 +998,7 @@ Expected: ~3 matches (lines 30, 31, 34).
 - [ ] **Step 3: Verify**
 
 ```bash
-grep -cE '\bbd \b|beads' templates/skills/workflow-gate-check/references/common-mistakes.md
+grep -cE '\bbd \b|beads' templates/skills/wf-gate-check/references/common-mistakes.md
 ```
 
 Expected: 0 matches.
@@ -1006,8 +1006,8 @@ Expected: 0 matches.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add templates/skills/workflow-gate-check/references/common-mistakes.md
-git commit -m "refactor(workflow-gate-check): drop bd phrasing from common-mistakes"
+git add templates/skills/wf-gate-check/references/common-mistakes.md
+git commit -m "refactor(wf-gate-check): drop bd phrasing from common-mistakes"
 ```
 
 ---
@@ -1313,15 +1313,15 @@ git commit -m "refactor(delegate-with-context): drop Phase 2 BEADS-RECONCILE + P
 
 ### Stage 2E — Commands and config
 
-#### Task 23: Rewrite `templates/commands/workflow-gate.md`
+#### Task 23: Rewrite `templates/commands/wf-gate.md`
 
-**Files:** Modify `templates/commands/workflow-gate.md`
+**Files:** Modify `templates/commands/wf-gate.md`
 
 - [ ] **Step 1: Baseline**
 
 ```bash
-wc -l templates/commands/workflow-gate.md
-grep -cE 'beads|\bbd ' templates/commands/workflow-gate.md
+wc -l templates/commands/wf-gate.md
+grep -cE 'beads|\bbd ' templates/commands/wf-gate.md
 ```
 
 Expected: 42 lines, ~7 matches.
@@ -1343,14 +1343,14 @@ Follow `template-bridge:unified-workflow` skill. It defines the end-to-end flow:
 task setup → brainstorm → plan → sub-tasks → (worktrees) → TDD implement →
 verification-before-completion → finishing-a-development-branch → task close.
 
-## Our quality standards on top (from workflow-gate skill)
+## Our quality standards on top (from wf-gate skill)
 
-1. **Task description** — use the 6-point template (see workflow-gate skill § Phase 2):
+1. **Task description** — use the 6-point template (see wf-gate skill § Phase 2):
    what, where in code, how to reproduce, what's found, context, resources.
    Lives wherever your project tracks tasks (issue tracker, PR body, or a file
    under `docs/orchestration/issues/`).
 
-2. **Task close** — use the 4-point reason (see workflow-gate skill § Phase 4):
+2. **Task close** — use the 4-point reason (see wf-gate skill § Phase 4):
    1) solution, 2) root cause, 3) prevention, 4) **verification evidence**.
    Point 4 MUST include either a fresh test command + its output snippet
    captured in this session, or paths to screenshot/artefact files produced
@@ -1365,7 +1365,7 @@ verification-before-completion → finishing-a-development-branch → task close
 - If Template Bridge is not installed: invoke `superpowers:brainstorming` directly
   and inform the user that `template-bridge:unified-workflow` is the intended
   orchestrator and should be installed.
-- If Superpowers is not installed: the workflow-gate skill still provides the
+- If Superpowers is not installed: the wf-gate skill still provides the
   task-discipline reference; warn the user that the dev-loop skills
   (brainstorming, TDD, verification) are missing.
 
@@ -1378,21 +1378,21 @@ verification-before-completion → finishing-a-development-branch → task close
 - [ ] **Step 3: Verify**
 
 ```bash
-grep -cE 'beads|\bbd ' templates/commands/workflow-gate.md
+grep -cE 'beads|\bbd ' templates/commands/wf-gate.md
 ```
 
 Expected: 0 matches.
 
 - [ ] **Step 4: Commit (defer to Task 25)**
 
-#### Task 24: Edit `templates/commands/workflow-gate-check.md`
+#### Task 24: Edit `templates/commands/wf-gate-check.md`
 
-**Files:** Modify `templates/commands/workflow-gate-check.md`
+**Files:** Modify `templates/commands/wf-gate-check.md`
 
 - [ ] **Step 1: Baseline**
 
 ```bash
-grep -cE 'beads|\bbd ' templates/commands/workflow-gate-check.md
+grep -cE 'beads|\bbd ' templates/commands/wf-gate-check.md
 ```
 
 Expected: ~6 matches.
@@ -1401,7 +1401,7 @@ Expected: ~6 matches.
 
 Apply the substitution table from Task 11 across the file. Key replacements:
 - `gather \`bd show\` + \`git show\` + \`git diff\` + close-reason` → `gather the task record + \`git show\` + \`git diff\` + close-reason`
-- `Run \`bd update <id> --notes "WORKFLOW-GATE-CHECK: …"\`` → `Append a "WORKFLOW-GATE-CHECK: …" note to the task record`
+- `Run \`bd update <id> --notes "WF-GATE-CHECK: …"\`` → `Append a "WF-GATE-CHECK: …" note to the task record`
 - `do NOT call \`bd close\`` → `do NOT close the task`
 - `No \`bd\` binary → audit from files + transcript` → `No issue tracker integration → audit from task spec + transcript + git`
 - `No Beads issue for the work being audited` → `No task record for the work being audited`
@@ -1410,7 +1410,7 @@ Apply the substitution table from Task 11 across the file. Key replacements:
 - [ ] **Step 3: Verify**
 
 ```bash
-grep -cE 'beads|\bbd ' templates/commands/workflow-gate-check.md
+grep -cE 'beads|\bbd ' templates/commands/wf-gate-check.md
 ```
 
 Expected: 0 matches.
@@ -1511,7 +1511,7 @@ git commit -m "refactor(commands,config): drop bd phrasing; add handoff path to 
 - [ ] **Step 1: Cross-skill grep sweep**
 
 ```bash
-grep -rnE 'beads|BEADS|lightrag|LightRAG|\bbd ' templates/skills/workflow-gate templates/skills/workflow-gate-check templates/skills/delegate-with-context templates/commands templates/orchestration-config.json
+grep -rnE 'beads|BEADS|lightrag|LightRAG|\bbd ' templates/skills/wf-gate templates/skills/wf-gate-check templates/skills/delegate-with-context templates/commands templates/orchestration-config.json
 ```
 
 Expected: 0 matches.
@@ -1535,8 +1535,8 @@ Expected: `handoff/` directory exists (created from the orchestration-config + d
 - [ ] **Step 3: Skill renders**
 
 ```bash
-head -20 /tmp/fixture-prj/.claude/skills/workflow-gate/SKILL.md
-head -20 /tmp/fixture-prj/.claude/skills/workflow-gate-check/SKILL.md
+head -20 /tmp/fixture-prj/.claude/skills/wf-gate/SKILL.md
+head -20 /tmp/fixture-prj/.claude/skills/wf-gate-check/SKILL.md
 head -20 /tmp/fixture-prj/.claude/skills/delegate-with-context/SKILL.md
 ```
 
@@ -1596,8 +1596,8 @@ Old (lines 17-41):
 │           using-superpowers (SessionStart 1% rule)          │
 ├─────────────────────────────────────────────────────────────┤
 │ L4 — ORCHESTRATION-KIT (thin glue, project-local)           │
-│   • .claude/commands/workflow-gate.md — NEW slash command   │
-│   • .claude/skills/workflow-gate/ — Beads-discipline ref    │
+│   • .claude/commands/wf-gate.md — NEW slash command   │
+│   • .claude/skills/wf-gate/ — Beads-discipline ref    │
 │   • .claude/settings.json — simplified hooks                │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -1619,8 +1619,8 @@ New:
 │           using-superpowers (SessionStart 1% rule)          │
 ├─────────────────────────────────────────────────────────────┤
 │ L3 — ORCHESTRATION-KIT (thin glue, project-local)           │
-│   • .claude/commands/workflow-gate.md — slash command       │
-│   • .claude/skills/workflow-gate/ — task-discipline ref     │
+│   • .claude/commands/wf-gate.md — slash command       │
+│   • .claude/skills/wf-gate/ — task-discipline ref     │
 │   • .claude/settings.json — simplified hooks                │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -1754,19 +1754,19 @@ Old (Step 5's generated CLAUDE.md content for Development Methodology):
 ```
 ### Development Methodology (D1)
 
-**Entry point:** `/workflow-gate <task>` — slash command. Delegates to `template-bridge:unified-workflow` and layers our Beads quality overlay on top.
+**Entry point:** `/wf-gate <task>` — slash command. Delegates to `template-bridge:unified-workflow` and layers our Beads quality overlay on top.
 
 Flow (9 steps from unified-workflow):
-1. `bd create` (6-point description — see `workflow-gate` skill § Phase 2)
+1. `bd create` (6-point description — see `wf-gate` skill § Phase 2)
 2. Skill `superpowers:brainstorming`
 ...
-9. `bd close` (4-point reason incl Verification — `workflow-gate` skill § Phase 4)
+9. `bd close` (4-point reason incl Verification — `wf-gate` skill § Phase 4)
 
 **Beads artefacts (descriptions, notes, reasons, remember) are written in English** for token efficiency. User-facing communication stays in the user's language.
 
 Manual commands:
 - `/beads:create`, `/beads:ready`, `/beads:close` — direct Beads operations
-- Skill `superpowers:brainstorming` — brainstorm without full `/workflow-gate`
+- Skill `superpowers:brainstorming` — brainstorm without full `/wf-gate`
 - `/browse-templates` — 413+ on-demand specialist agents (Template Bridge)
 
 **DO NOT use:** `/superpowers:brainstorm` (no `ing`) — deprecated, just prints a notice. Always invoke the skill `superpowers:brainstorming`.
@@ -1778,10 +1778,10 @@ New:
 ```
 ### Development Methodology (D1)
 
-**Entry point:** `/workflow-gate <task>` — slash command. Delegates to `template-bridge:unified-workflow` and layers our task-discipline reference (`workflow-gate` skill) on top.
+**Entry point:** `/wf-gate <task>` — slash command. Delegates to `template-bridge:unified-workflow` and layers our task-discipline reference (`wf-gate` skill) on top.
 
 Flow (from unified-workflow):
-1. Task record (6-point description — see `workflow-gate` skill § Phase 2 — lives in your tracker or `docs/orchestration/issues/`)
+1. Task record (6-point description — see `wf-gate` skill § Phase 2 — lives in your tracker or `docs/orchestration/issues/`)
 2. Skill `superpowers:brainstorming`
 3. Skill `superpowers:writing-plans`
 4. Sub-tasks (track in same place as parent)
@@ -1789,12 +1789,12 @@ Flow (from unified-workflow):
 6. TDD via `superpowers:test-driven-development`
 7. `superpowers:verification-before-completion` — **Iron Law:** no fresh test output → no "tested" claim
 8. `superpowers:finishing-a-development-branch`
-9. Task close (4-point reason in commit body, PR description, or tracker close — see `workflow-gate` skill § Phase 4)
+9. Task close (4-point reason in commit body, PR description, or tracker close — see `wf-gate` skill § Phase 4)
 
 **Task artefacts (descriptions, notes, close reasons) are written in English** for token efficiency. User-facing communication stays in the user's language.
 
 Manual commands:
-- Skill `superpowers:brainstorming` — brainstorm without full `/workflow-gate`
+- Skill `superpowers:brainstorming` — brainstorm without full `/wf-gate`
 - `/browse-templates` — 413+ on-demand specialist agents (Template Bridge)
 
 **DO NOT use:** `/superpowers:brainstorm` (no `ing`) — deprecated, just prints a notice. Always invoke the skill `superpowers:brainstorming`.
@@ -1953,11 +1953,11 @@ rm -rf /tmp/wgc-fixture && mkdir -p /tmp/wgc-fixture && (cd /tmp/wgc-fixture && 
 ./deploy.sh /tmp/wgc-fixture atomic
 ```
 
-- [ ] **Step 2: Trigger `/workflow-gate` in Claude Code**
+- [ ] **Step 2: Trigger `/wf-gate` in Claude Code**
 
 Manual: open `/tmp/wgc-fixture` in Claude Code, run:
 ```
-/workflow-gate fix some typo
+/wf-gate fix some typo
 ```
 
 Expected behavior:
@@ -1965,11 +1965,11 @@ Expected behavior:
 - No `bd create` / `bd close` instructions appear.
 - The 6-point + 4-point templates reference "task record" or "PR body" / "commit body".
 
-- [ ] **Step 3: Trigger `/workflow-gate-check 03` after a fake session**
+- [ ] **Step 3: Trigger `/wf-gate-check 03` after a fake session**
 
 Manual: make some commits in the fixture, then:
 ```
-/workflow-gate-check 03
+/wf-gate-check 03
 ```
 
 Expected:
