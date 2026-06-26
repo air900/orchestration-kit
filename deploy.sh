@@ -150,23 +150,11 @@ if [ "$UPDATE_MODE" = false ]; then
         log_ok "Superpowers plugin found"
     fi
 
-
-    # Template Bridge (recommended — connects Superpowers)
-    if ! echo "$PLUGIN_LIST" | grep -q "template-bridge"; then
-        log_warn "Template Bridge plugin not found (connects Superpowers into unified flow)"
-        if ask_yes "Install template-bridge?"; then
-            log_info "Adding template-bridge marketplace..."
-            claude plugin marketplace add maslennikov-ig/template-bridge 2>&1 || true
-            log_info "Installing template-bridge plugin..."
-            claude plugin install template-bridge 2>&1 && log_ok "Template Bridge installed" || log_warn "Failed — install manually: claude plugin marketplace add maslennikov-ig/template-bridge && claude plugin install template-bridge"
-        fi
-    else
-        log_ok "Template Bridge plugin found"
-    fi
+    # Note: /wf-gate is self-contained (drives superpowers skills directly) —
+    # no template-bridge / unified-workflow plugin is required.
   else
-    log_warn "claude CLI not found — install plugins manually after setup:"
+    log_warn "claude CLI not found — install the one prerequisite manually after setup:"
     echo "  claude plugin install superpowers"
-    echo "  claude plugin marketplace add maslennikov-ig/template-bridge && claude plugin install template-bridge"
     echo ""
   fi
 fi
