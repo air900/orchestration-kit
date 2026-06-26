@@ -1,16 +1,18 @@
 ---
 name: knowledge-harvest
 description: >
-  Analyze all conversation sessions for the current project, cross-reference with LightRAG knowledge base,
-  and propose new or updated entries. Use when the user says "knowledge harvest", "что записать в базу",
-  "проанализируй диалоги", "what should we save", "harvest knowledge", or at the end of a long work session.
-  Do NOT use for searching existing knowledge (use query_text directly) or for saving a single explicit fact
-  (use insert_text directly).
+  Analyze all conversation sessions for the current project, cross-reference with the project knowledge log
+  (`.remember/harvest.md`), and propose new or updated entries. Use when the user says "knowledge harvest",
+  "что записать в базу", "проанализируй диалоги", "what should we save", "harvest knowledge", or at the end of a
+  long work session. Do NOT use for searching existing knowledge (read `.remember/harvest.md` directly) or for
+  saving a single explicit fact (append to it directly).
 ---
 
 # Knowledge Harvest
 
-Scan project knowledge for the current project, compare with what LightRAG already knows, and propose additions/updates. Never save without explicit user approval.
+Scan project knowledge for the current project, compare with what the project knowledge log already holds, and propose additions/updates. Never save without explicit user approval.
+
+**Store:** the project-local knowledge log at `{PWD}/.remember/harvest.md` — a single append-mostly markdown file of curated, dated, deduplicated findings. It lives in the `.remember/` system but is **NOT** one of the files the remember SessionStart hook auto-injects (now.md / recent.md / archive.md / core-memories.md), so it grows without bloating every session's context — it is read on demand (when harvesting, or when the user asks "what do we know about X"). This is deliberate: the always-loaded `memory/MEMORY.md` index would overflow if harvest dumped many entries into it; `.remember/harvest.md` is the on-demand store instead. Plain file, read and written directly — no external service or MCP.
 
 ## Source Selection
 
@@ -32,7 +34,7 @@ Harvest pulls from three source types. Each yields a qualitatively different lay
 
 **Why this order matters:** Sessions set the frame. Code/docs show intended state. Git log shows reality. Reversing makes git-findings look like trivia (you don't know the architecture yet) and code-findings look like decoration (you don't know which patterns were hard-won).
 
-**How to run three sources in one session:** Complete Workflow Steps 1-7 fully for source 1 (including approval and save to LightRAG). Then announce "Переходим ко второму источнику: code + docs" (match user language) and restart Workflow at Step 1 for source 2. Same for source 3. Each source gets its own proposal batch and approval — do NOT bundle all 3 sources into one giant proposal list; the user needs to approve incrementally, and context accumulates between sources (source 2 can reference what was saved from source 1). After all three — give a combined summary (total items saved, grouped by source).
+**How to run three sources in one session:** Complete Workflow Steps 1-7 fully for source 1 (including approval and save to `.remember/harvest.md`). Then announce "Переходим ко второму источнику: code + docs" (match user language) and restart Workflow at Step 1 for source 2. Same for source 3. Each source gets its own proposal batch and approval — do NOT bundle all 3 sources into one giant proposal list; the user needs to approve incrementally, and context accumulates between sources (source 2 can reference what was saved from source 1). After all three — give a combined summary (total items saved, grouped by source).
 
 ### Single-source override
 
@@ -52,7 +54,7 @@ In single-source mode — run only the named source, skip the other two, and say
 - **Code + docs:** Read `CLAUDE.md`, `.claude/rules/*`, `docs/**/*.md`, and large self-documenting scripts — look for `END_HEADER` markers, `# SECTION N` banners, `# INVENTORY:` blocks, anti-pattern lists, data-structure comments. Target: explicit pattern declarations that a future session would miss without reading the file.
 - **Git log:** `git log --all --pretty=format:"%h %ad %s" --date=short` + `git log | grep -iE "fix.*(order|race|subshell|silent|stdin|escap|heredoc|quote|timeout|retry)"`. For each interesting commit: `git show <hash>` to read the full context (commit message explains root cause). Strong signal: 3+ commits fixing similar-sounding issues — that's a bug CLASS, not a one-off.
 
-Each source runs the same Workflow below (Steps 1-7: show → extract → cross-reference with LightRAG → propose → wait for approval → save). Only the extraction method in Steps 1-2 differs.
+Each source runs the same Workflow below (Steps 1-7: show → extract → cross-reference with the knowledge log → propose → wait for approval → save). Only the extraction method in Steps 1-2 differs.
 
 ## Workflow
 
@@ -124,18 +126,18 @@ Beyond facts and decisions, actively look for **process improvement patterns** �
 
 Focus on **conceptual, reusable lessons** — not specific to one bug or one file, but applicable to any similar situation in the future.
 
-### Step 3: Query LightRAG for Existing Knowledge
+### Step 3: Read the Knowledge Log for Existing Knowledge
 
-Run 2-3 MCP `query_text` calls (mode: `hybrid`) with queries derived from the session topics. Example queries:
-- Project name + "architecture deployment update"
-- Project name + "decisions preferences lessons"
-- Project name + "procedures configuration setup"
+The store is `{PWD}/.remember/harvest.md`.
 
-Collect all referenced file names from the results — these are the existing knowledge entries.
+- Read it (or `grep` it for the session topics) to see what's already captured — this is the dedup source.
+- If `.remember/harvest.md` does not exist yet, the log is empty — every finding is NEW (the file is created on first save).
+
+Do NOT load the whole file into context if it is large; grep for the relevant topics/titles instead.
 
 ### Step 4: Cross-Reference and Identify Gaps
 
-Compare session content against existing LightRAG entries. Classify each potential finding:
+Compare session content against existing log entries. Classify each potential finding:
 
 #### Memory Pyramid (priority order)
 
@@ -150,7 +152,7 @@ Compare session content against existing LightRAG entries. Classify each potenti
 
 #### Action types
 
-- **NEW** — topic not covered in LightRAG at all
+- **NEW** — topic not covered in the knowledge log at all
 - **UPDATE** — existing entry has outdated or incomplete information. Show what was vs what is now
 - **SKIP** — already covered accurately, or derivable from code/git
 
@@ -162,8 +164,7 @@ Format each proposal as a numbered item. Use the appropriate template based on t
 
 ```
 ### N. ACTION: title
-**File:** lesson-{slug}.txt
-**Priority:** Process lessons
+**Type:** Process lesson
 **Урок:** Conceptual, reusable insight (1-2 sentences). Not specific to one file/bug — applicable broadly.
 **Проблема:** What went wrong in this specific session.
 **Причина:** Root cause — why the problem occurred.
@@ -176,11 +177,10 @@ Process lessons are the **most valuable** harvest output. They improve the entir
 
 ```
 ### N. ACTION: title
-**File:** proposed-filename.txt
-**Priority:** Decisions / Lessons / Facts / Preferences / Docs
+**Type:** Decision / Lesson / Fact / Preference / Doc
 **What:** 1-2 sentence description of what will be saved
 **Why:** Why this matters for future sessions
-**Existing:** [if UPDATE] what's currently in LightRAG entry X
+**Existing:** [if UPDATE] what the current log entry says
 ```
 
 Group by priority: Process lessons first, then Decisions, then others. Within each group: NEW first, then UPDATE. Include a SKIP summary at the end showing what was considered but excluded, and why.
@@ -200,31 +200,32 @@ Accepted formats:
 
 ### Step 7: Save Approved Items
 
-For each approved item, call MCP `insert_text` with:
-- `text`: The knowledge entry, prefixed with `[YYYY-MM-DD]`
-- `file_source`: The proposed filename from Step 5
+Append (or update in place) entries in `{PWD}/.remember/harvest.md`. Create the file with an `# Knowledge Log` header if it does not exist. Each entry:
 
-Format rules for the text:
-
-**For Process Lessons** (Priority 1) — use this structure:
 ```
-[YYYY-MM-DD] Lesson: {title}. {Conceptual insight — reusable, not specific to one file}.
-Problem: {what went wrong}. Cause: {root cause}.
-Prevention: {concrete action to avoid recurrence}.
+## [YYYY-MM-DD] {Title}  · {type: process-lesson | decision | lesson | fact | preference | doc}
+{body}
 ```
-Each process lesson = 3-5 sentences covering all four parts. The prevention line is the most valuable — it's the actionable takeaway.
 
-**For all other types** (Priority 2-6):
+**Body — Process Lessons** (Priority 1) — 3-5 sentences covering all four parts:
+```
+{Conceptual insight — reusable, not specific to one file}.
+**Problem:** {what went wrong}. **Cause:** {root cause}.
+**Prevention:** {concrete action to avoid recurrence}.
+```
+The prevention line is the most valuable — it's the actionable takeaway.
+
+**Body — all other types** (Priority 2-6):
 - 1-3 sentences maximum
 - Include project name when applicable
 - Include the reason/context ("because...", "to prevent...")
 
 **Common rules:**
-- Use absolute dates, not relative ("2026-04-10", not "today")
+- Absolute dates, not relative ("2026-04-10", not "today")
 - No raw code, logs, or large data dumps
-- `file_source` must match the `File:` field from Step 5
+- For an UPDATE: edit the existing entry in place (don't append a duplicate)
 
-Report results: how many saved, any failures.
+Report results: how many appended/updated.
 
 ## What NOT to Propose
 
@@ -233,10 +234,10 @@ Never propose saving:
 - Debugging steps or fix recipes (the fix is in the code; the commit message has the context)
 - Temporary state or in-progress work details
 - Anything already in CLAUDE.md files
-- Duplicate of an existing LightRAG entry that's still accurate
+- Duplicate of an existing log entry that's still accurate
 - Version numbers, specific UUIDs, secrets, ephemeral config values
 
-**Nuance for code/git harvest modes:** when explicitly harvesting from code/docs or git log (see Source Selection), the "derivable from codebase" exclusion does NOT apply. The whole point is to lift *conceptual patterns* out of files into LightRAG, where they become available to future sessions without reading the repo. In these modes, propose:
+**Nuance for code/git harvest modes:** when explicitly harvesting from code/docs or git log (see Source Selection), the "derivable from codebase" exclusion does NOT apply. The whole point is to lift *conceptual patterns* out of files into the knowledge log, where they become available to future sessions without reading the repo. In these modes, propose:
 - Self-documented patterns from `END_HEADER`/`INVENTORY` blocks and rules files (only the *reusable* abstraction, not project-specific function names)
 - Repeating commit clusters as process lessons ("X bug class happened 4 times, root cause was Y")
 - Architectural decisions visible only in code comments or commit message bodies
@@ -251,5 +252,5 @@ Match the user's language. If sessions are in Russian, propose entries in Russia
 
 - **No sessions found:** Report "No conversation history for this project" and suggest the user run from the correct project directory
 - **Sessions too large (>500 user messages total):** Focus on the most recent 3 sessions. Note that older sessions were skipped
-- **LightRAG unavailable:** Report the error and offer to output proposals as a markdown list instead, for manual insertion later
+- **`.remember/harvest.md` missing:** Create it (with an `# Knowledge Log` header) on first save — not an error, just an empty log
 - **Mixed projects in sessions:** If sessions discuss multiple projects, only propose entries relevant to the current project (by PWD)

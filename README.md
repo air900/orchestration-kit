@@ -278,7 +278,7 @@ claude plugin uninstall beads
 # When prompted about overwriting Claude Automations block, accept.
 ```
 
-The `knowledge-harvest` skill currently still requires LightRAG MCP; it remains in the deployed roster but is scheduled for a rewrite that persists findings into project files. If your project does not have LightRAG MCP installed, the skill will return a `SKIPPED — no LightRAG MCP` notice when invoked.
+The `knowledge-harvest` skill persists findings to the project knowledge log `.remember/harvest.md` — a plain, on-demand file. No external service or MCP is required.
 
 ## Supported Languages
 
