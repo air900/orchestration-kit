@@ -160,7 +160,7 @@ User: /wf-gate fix LINE-CARD-CROSSING P1
   ▼ Claude Code resolves the slash command.
   ▼ commands/wf-gate.md injects task text + quality overlays.
   │
-  ▼ template-bridge:unified-workflow runs:
+  ▼ /wf-gate runs the dev-loop flow (self-contained):
      1. Task record   (6-point description — our overlay; tracker or docs/orchestration/issues/)
      2. superpowers:brainstorming
      3. superpowers:writing-plans
@@ -184,16 +184,16 @@ After the core flow you can plug in specialist agents on demand:
 
 And for end-of-epic documentation: `documenter` → `doc-keeper` → `observer`.
 
-> **Enforcement:** The Iron Law lives in `superpowers:verification-before-completion` — no claim of "done" without evidence. `/wf-gate` is the disciplined entry point that routes you through `unified-workflow`; there is no file-marker or Edit/Write block anymore.
+> **Enforcement:** The Iron Law lives in `superpowers:verification-before-completion` — no claim of "done" without evidence. `/wf-gate` is the disciplined entry point that routes you through the self-contained dev-loop flow; there is no file-marker or Edit/Write block anymore.
 
 #### Кто что делает
 
 | Компонент | Роль | Когда работает |
 |-----------|------|----------------|
-| **Template Bridge** (`unified-workflow`) | Оркестратор: склеивает Superpowers в единый flow | Всегда — точка входа через `/wf-gate` |
+| **`/wf-gate`** (self-contained) | Оркестратор: гонит Superpowers-скиллы в единый flow | Всегда — точка входа |
 | **Superpowers** | Dev loop: brainstorm, plan, TDD, review, verify | Всегда — основной движок |
 | **Specialist agents** | Глубокий анализ: архитектура, безопасность, рефакторинг | По запросу |
-| **Template Catalog** | 413+ on-demand специалистов (K8s, Rust, GraphQL...) | Когда нет нужного скилла |
+| **npx claude-code-templates** | 413+ on-demand специалистов (K8s, Rust, GraphQL...) | Когда нет нужного скилла |
 | **Language hooks** | Auto-lint/format после каждого Edit/Write | Всегда, фоново |
 | **Doc workflow** | documenter → doc-keeper → observer | После крупных задач |
 
