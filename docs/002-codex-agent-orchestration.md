@@ -109,11 +109,11 @@ Do not broaden ... unless explicitly requested by the parent agent.
 ```bash
 mkdir -p ~/.codex/agents
 cp ~/projects/orchestration-kit/templates/codex-agents/{backend-engineer,frontend-engineer,test-engineer,debugger,infra-engineer,code-reviewer,code-scout}.toml ~/.codex/agents/
-# config.toml.example и AGENTS.md.example НЕ копировать как .toml — это сниппеты
+# config.toml.example НЕ копировать как .toml — это сниппет
 ```
 
 1. Влей `[agents]` из `config.toml.example` в `~/.codex/config.toml` — он задаёт лимиты параллельности субагентов и не должен затирать существующие настройки.
-2. Содержимое `AGENTS.md.example` положи в `AGENTS.md` репо (или `~/.codex/AGENTS.md`) — это политика делегирования для текущего чата-координатора.
+2. Держи проектные инструкции в `CLAUDE.md`; `AGENTS.md` должен быть относительным symlink на него: `ln -s CLAUDE.md AGENTS.md`.
 3. Дальше работаешь как обычно: даёшь главной сессии многошаговую задачу — она планирует и **явно** спавнит воркеров. Хочешь конкретного — проси по имени («delegate to backend-engineer»).
 
 ## Безопасность и оговорки

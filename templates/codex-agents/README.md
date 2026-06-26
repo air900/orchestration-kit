@@ -17,7 +17,6 @@ Full rationale, model-selection reasoning, ready-pack comparison, and caveats:
 | `infra-engineer.toml` | Docker/nginx/systemd/deploy | gpt-5.4 | medium | workspace-write |
 | `code-reviewer.toml` | Review a diff (read-only) | gpt-5.4 | high | read-only |
 | `config.toml.example` | Sets Codex sub-agent concurrency | — | — | — |
-| `AGENTS.md.example` | Delegation policy for the current chat | — | — | — |
 
 ## Install
 
@@ -28,13 +27,20 @@ cp backend-engineer.toml frontend-engineer.toml test-engineer.toml \
    ~/.codex/agents/
 
 # merge the [agents] block from config.toml.example into ~/.codex/config.toml
-# drop AGENTS.md.example content into your repo's AGENTS.md
+# keep project instructions in CLAUDE.md; AGENTS.md should be a symlink to CLAUDE.md
 ```
 
 Scope: `~/.codex/agents/` = global (every project); `<repo>/.codex/agents/` = that repo only.
 The `cp` above installs them **global**. Custom agents beat built-ins of the same name;
 personal-vs-project precedence for the same name isn't documented — keep the generic set
 global and add only project-specific agents under the repo (or use distinct names).
+
+Project instructions live in `CLAUDE.md`. `AGENTS.md` is only a compatibility symlink:
+
+```bash
+rm -f AGENTS.md
+ln -s CLAUDE.md AGENTS.md
+```
 
 ## How it runs
 

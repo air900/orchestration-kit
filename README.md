@@ -75,6 +75,7 @@ rm -rf /tmp/orch-kit
 Fresh install also checks `~/.codex/agents/` and updates the kit-owned Codex worker roster globally. After the initial install, each project gets:
 - `.claude/scripts/deploy.sh` — backend for kit-content refresh (self-bootstraps templates from GitHub on every run)
 - `.claude/commands/kit-update.md` — unified slash command (two flags)
+- `AGENTS.md -> CLAUDE.md` — when `CLAUDE.md` already exists; otherwise Phase 2 creates it after generating `CLAUDE.md`
 
 No kit clone needed at runtime.
 
@@ -93,7 +94,7 @@ Both modes auto-commit + auto-push on real drift, with explicit path staging (ne
 
 Claude reads `.claude/commands/kit-update.md` and invokes `.claude/scripts/deploy.sh . --update-skills`:
 - Detects no local `templates/` alongside; `git clone --depth 1` of the kit into /tmp (or tarball fallback if git missing).
-- Re-copies kit content: `.claude/agents/`, `.claude/skills/` (with `references/`), `.claude/commands/`, `.claude/hooks/`, `.claude/references/`; refreshes the kit-owned global Codex workers in `~/.codex/agents/`; merges `.claude/settings.json` hooks and the `[agents]` block in `~/.codex/config.toml`.
+- Re-copies kit content: `.claude/agents/`, `.claude/skills/` (with `references/`), `.claude/commands/`, `.claude/hooks/`, `.claude/references/`; refreshes the kit-owned global Codex workers in `~/.codex/agents/`; ensures `AGENTS.md -> CLAUDE.md` when `CLAUDE.md` exists; merges `.claude/settings.json` hooks and the `[agents]` block in `~/.codex/config.toml`.
 - For **skill directories**: `rm -rf` + `cp -r` (handles 5→3 references case).
 - For **single files**: overwrite same-name only; custom-named files untouched.
 - Cleans up tmp clone on exit.
@@ -123,7 +124,7 @@ Environment overrides (work for all three update paths): `ORCHESTRATION_KIT_REPO
 - Non-kit files in `~/.codex/agents/`; only the seven kit-owned worker TOML files are overwritten
 - `.claude/orchestration-config.json` — project artefact paths
 - `docs/orchestration/` — generated content
-- `CLAUDE.md` — project documentation
+- `CLAUDE.md` — project documentation; `AGENTS.md` is only a symlink to it
 - Any `.claude/skills/<custom-name>/` not shipped by the kit
 - Any unrelated uncommitted changes in the target
 

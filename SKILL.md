@@ -321,6 +321,14 @@ If CLAUDE.md exists:
 If CLAUDE.md does not exist:
 1. Create it with the full generated content from Step 5
 
+After creating or updating CLAUDE.md:
+1. Replace AGENTS.md with a relative symlink to CLAUDE.md:
+   ```bash
+   rm -f AGENTS.md
+   ln -s CLAUDE.md AGENTS.md
+   ```
+2. Verify with `ls -l AGENTS.md CLAUDE.md`.
+
 ### Step 7: Output Summary
 
 ```
@@ -335,6 +343,7 @@ External skills: {count} ({list names})
 Specialist agents: 7 (planner, security-auditor, senior-reviewer, refactor, documenter, doc-keeper, observer)
 
 CLAUDE.md: {created | updated}
+AGENTS.md: symlink to CLAUDE.md
 Config: .claude/orchestration-config.json
 
 Development approach:

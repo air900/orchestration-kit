@@ -332,6 +332,25 @@ install_codex_global_agents() {
     log_ok "Installed/updated $installed global Codex agents"
 }
 
+ensure_agents_md_symlink() {
+    local claude_md="$TARGET/CLAUDE.md"
+    local agents_md="$TARGET/AGENTS.md"
+
+    if [ ! -e "$claude_md" ] && [ ! -L "$claude_md" ]; then
+        log_info "CLAUDE.md not found; AGENTS.md symlink will be created after CLAUDE.md generation"
+        return 0
+    fi
+
+    if [ -L "$agents_md" ] && [ "$(readlink "$agents_md")" = "CLAUDE.md" ]; then
+        log_info "AGENTS.md already points to CLAUDE.md"
+        return 0
+    fi
+
+    rm -f "$agents_md"
+    ln -s "CLAUDE.md" "$agents_md"
+    log_ok "Ensured AGENTS.md -> CLAUDE.md"
+}
+
 # --- Copy agents ---
 log_info "Copying agents..."
 AGENTS_COPIED=0
@@ -491,6 +510,9 @@ log_ok "Deploy-orchestration skill installed"
 # find-skills-my is now included in templates/skills/ and deployed with other skills above
 # (renamed from find-skills to avoid collision with vercel-labs/skills' find-skills)
 
+# --- Ensure Codex reads the same project rules as Claude ---
+ensure_agents_md_symlink
+
 # --- Copy orchestration config ---
 log_info "Setting up orchestration config..."
 if [ -f "$TARGET/.claude/orchestration-config.json" ]; then
@@ -617,7 +639,8 @@ if [ "$UPDATE_MODE" = true ] && [ -d "$TARGET/.git" ]; then
         # Stage only kit-owned paths (never git add -A — user may have unrelated
         # uncommitted work that should not land in our auto-commit).
         git add .claude/agents .claude/skills .claude/references .claude/commands \
-                .claude/hooks .claude/scripts .claude/.gitignore .claude/settings.json 2>/dev/null || true
+                .claude/hooks .claude/scripts .claude/.gitignore .claude/settings.json \
+                AGENTS.md 2>/dev/null || true
 
         if git diff --cached --quiet; then
             log_info "No kit-content drift; nothing to commit."
@@ -637,6 +660,7 @@ Paths refreshed:
 - .claude/hooks/              kit hooks (log-commands.sh etc.)
 - .claude/.gitignore          audit-log exclusion
 - .claude/settings.json       merged hooks
+- AGENTS.md                   symlink to CLAUDE.md when CLAUDE.md exists
 
 Custom files with non-kit names are preserved. settings.local.json,
 orchestration-config.json, docs/orchestration/ untouched.
@@ -701,6 +725,7 @@ if [ "$UPDATE_MODE" = true ]; then
 echo "  What changed in this run:"
 echo "    - .claude agents/, skills/ (with references/), commands/, hooks/, shared references/"
 echo "    - ~/.codex/agents refreshed from kit's Codex worker roster"
+echo "    - AGENTS.md points to CLAUDE.md when CLAUDE.md exists"
 echo "    - settings.json hooks merged with kit's latest"
 echo "    - orchestration-config.json left untouched"
 echo ""
