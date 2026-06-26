@@ -225,11 +225,117 @@ GLOBAL_CMDS_DIR="$HOME/.claude/commands"
 LEGACY_LOCAL_SKILLS=("workflow-gate" "workflow-gate-check")
 LEGACY_LOCAL_CMDS=("workflow-gate.md" "workflow-gate-check.md")
 
+# Codex agents are user-level by design: one canonical worker roster for all projects.
+CODEX_GLOBAL_AGENTS=(
+    "backend-engineer"
+    "code-reviewer"
+    "code-scout"
+    "debugger"
+    "frontend-engineer"
+    "infra-engineer"
+    "test-engineer"
+)
+CODEX_AGENTS_DIR="$HOME/.codex/agents"
+CODEX_CONFIG_FILE="$HOME/.codex/config.toml"
+
 in_list() {
     local needle="$1"; shift
     local x
     for x in "$@"; do [ "$x" = "$needle" ] && return 0; done
     return 1
+}
+
+ensure_codex_agents_config() {
+    mkdir -p "$(dirname "$CODEX_CONFIG_FILE")"
+    if command -v python3 &>/dev/null; then
+        CODEX_CONFIG_FILE="$CODEX_CONFIG_FILE" python3 - <<'PY'
+from pathlib import Path
+import os
+
+path = Path(os.environ["CODEX_CONFIG_FILE"])
+text = path.read_text() if path.exists() else ""
+lines = text.splitlines()
+
+if not lines:
+    lines = ["[agents]", "max_threads = 16", "max_depth = 5"]
+elif "[agents]" not in lines:
+    if lines[-1].strip():
+        lines.append("")
+    lines.extend(["[agents]", "max_threads = 16", "max_depth = 5"])
+else:
+    out = []
+    in_agents = False
+    saw_threads = False
+    saw_depth = False
+    inserted = False
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            if in_agents and not inserted:
+                if not saw_threads:
+                    out.append("max_threads = 16")
+                if not saw_depth:
+                    out.append("max_depth = 5")
+                inserted = True
+            in_agents = stripped == "[agents]"
+        if in_agents and stripped.startswith("max_threads"):
+            out.append("max_threads = 16")
+            saw_threads = True
+            continue
+        if in_agents and stripped.startswith("max_depth"):
+            out.append("max_depth = 5")
+            saw_depth = True
+            continue
+        out.append(line)
+    if in_agents and not inserted:
+        if not saw_threads:
+            out.append("max_threads = 16")
+        if not saw_depth:
+            out.append("max_depth = 5")
+    lines = out
+
+path.write_text("\n".join(lines) + "\n")
+PY
+    else
+        log_warn "python3 not found; cannot safely merge ~/.codex/config.toml [agents] settings"
+        if [ ! -f "$CODEX_CONFIG_FILE" ] || ! grep -qxF "[agents]" "$CODEX_CONFIG_FILE"; then
+            { echo ""; echo "[agents]"; echo "max_threads = 16"; echo "max_depth = 5"; } >> "$CODEX_CONFIG_FILE"
+            log_ok "Appended Codex [agents] settings to $CODEX_CONFIG_FILE"
+        fi
+    fi
+}
+
+install_codex_global_agents() {
+    local src_dir="$TEMPLATES/codex-agents"
+    if [ ! -d "$src_dir" ]; then
+        log_warn "Codex agent templates not found: $src_dir"
+        return 0
+    fi
+
+    log_info "Installing global Codex agents (~/.codex/agents)..."
+    mkdir -p "$CODEX_AGENTS_DIR"
+    local installed=0
+    local agent
+    for agent in "${CODEX_GLOBAL_AGENTS[@]}"; do
+        local src="$src_dir/$agent.toml"
+        local dest="$CODEX_AGENTS_DIR/$agent.toml"
+        if [ ! -f "$src" ]; then
+            log_warn "Missing Codex agent template: $agent.toml"
+            continue
+        fi
+        cp "$src" "$dest"
+        installed=$((installed + 1))
+    done
+
+    # Earlier kit drafts shipped an orchestrator.toml. The supported policy is
+    # current-chat coordinator + scoped workers, so remove that kit-owned stale file.
+    if [ -f "$CODEX_AGENTS_DIR/orchestrator.toml" ] && grep -qxF 'name = "orchestrator"' "$CODEX_AGENTS_DIR/orchestrator.toml"; then
+        rm -f "$CODEX_AGENTS_DIR/orchestrator.toml"
+        log_warn "Removed stale global Codex agent: orchestrator.toml"
+    fi
+
+    ensure_codex_agents_config
+    log_ok "Installed/updated $installed global Codex agents"
 }
 
 # --- Copy agents ---
@@ -245,6 +351,9 @@ for agent_file in "$TEMPLATES/agents/"*.md; do
     AGENTS_COPIED=$((AGENTS_COPIED + 1))
 done
 log_ok "Copied $AGENTS_COPIED agents"
+
+# --- Install global Codex agents ---
+install_codex_global_agents
 
 # --- Copy skills ---
 log_info "Copying skills..."
@@ -526,7 +635,8 @@ if [ "$UPDATE_MODE" = true ] && [ -d "$TARGET/.git" ]; then
 Auto-synced by: deploy.sh --update-skills from orchestration-kit ${KIT_SHA}
 
 Paths refreshed:
-- .claude/agents/             kit agent roster
+- .claude/agents/             kit Claude agent roster
+- ~/.codex/agents/            kit Codex worker roster (global)
 - .claude/skills/             kit skills (directories with references/)
 - .claude/commands/           kit slash commands
 - .claude/references/         kit shared references
@@ -588,13 +698,15 @@ echo ""
 echo "  Target:     $TARGET"
 echo "  Type:       $PROJECT_TYPE"
 echo "  Language:   $LANG"
-echo "  Agents:     $AGENTS_COPIED"
-echo "  Skills:     $SKILLS_COPIED + deploy-orchestration"
+echo "  Claude agents: $AGENTS_COPIED"
+echo "  Codex agents:  ${#CODEX_GLOBAL_AGENTS[@]} global"
+echo "  Skills:        $SKILLS_COPIED + deploy-orchestration"
 echo ""
 
 if [ "$UPDATE_MODE" = true ]; then
 echo "  What changed in this run:"
-echo "    - agents/, skills/ (with references/), commands/, hooks/, shared references/"
+echo "    - .claude agents/, skills/ (with references/), commands/, hooks/, shared references/"
+echo "    - ~/.codex/agents refreshed from kit's Codex worker roster"
 echo "    - settings.json hooks merged with kit's latest"
 echo "    - orchestration-config.json left untouched"
 echo ""

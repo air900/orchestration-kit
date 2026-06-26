@@ -4,7 +4,8 @@ Lightweight development orchestration for Claude Code. Deploys specialist agents
 
 ## What You Get
 
-- **7 specialist agents** — planner, security-auditor, senior-reviewer, refactor, documenter, doc-keeper, observer
+- **7 Claude specialist agents** — planner, security-auditor, senior-reviewer, refactor, documenter, doc-keeper, observer
+- **7 global Codex scoped workers** — backend-engineer, frontend-engineer, test-engineer, debugger, infra-engineer, code-reviewer, code-scout
 - **8 skills** — `/arch-review`, `/security-audit`, `/refactor-code`, `/012-update-docs`, `/find-skills-my`, `/sync-skills`, `/knowledge-harvest`, `/delegate-with-context`
 - **Language hooks** — auto-lint/format after every edit (TypeScript, Python, Go, Rust, JavaScript)
 - **Safety guard** — PreToolUse hook blocking `rm -rf`, `git push --force`, `git reset --hard`
@@ -71,7 +72,7 @@ git clone --depth 1 https://github.com/air900/orchestration-kit.git /tmp/orch-ki
 rm -rf /tmp/orch-kit
 ```
 
-After the initial install, each project gets:
+Fresh install also checks `~/.codex/agents/` and updates the kit-owned Codex worker roster globally. After the initial install, each project gets:
 - `.claude/scripts/deploy.sh` — backend for kit-content refresh (self-bootstraps templates from GitHub on every run)
 - `.claude/commands/kit-update.md` — unified slash command (two flags)
 
@@ -92,7 +93,7 @@ Both modes auto-commit + auto-push on real drift, with explicit path staging (ne
 
 Claude reads `.claude/commands/kit-update.md` and invokes `.claude/scripts/deploy.sh . --update-skills`:
 - Detects no local `templates/` alongside; `git clone --depth 1` of the kit into /tmp (or tarball fallback if git missing).
-- Re-copies kit content: `.claude/agents/`, `.claude/skills/` (with `references/`), `.claude/commands/`, `.claude/hooks/`, `.claude/references/`; merges `.claude/settings.json` hooks.
+- Re-copies kit content: `.claude/agents/`, `.claude/skills/` (with `references/`), `.claude/commands/`, `.claude/hooks/`, `.claude/references/`; refreshes the kit-owned global Codex workers in `~/.codex/agents/`; merges `.claude/settings.json` hooks and the `[agents]` block in `~/.codex/config.toml`.
 - For **skill directories**: `rm -rf` + `cp -r` (handles 5→3 references case).
 - For **single files**: overwrite same-name only; custom-named files untouched.
 - Cleans up tmp clone on exit.
@@ -119,6 +120,7 @@ Environment overrides (work for all three update paths): `ORCHESTRATION_KIT_REPO
 ### What these layers do NOT touch
 
 - `.claude/settings.local.json` — your local permissions
+- Non-kit files in `~/.codex/agents/`; only the seven kit-owned worker TOML files are overwritten
 - `.claude/orchestration-config.json` — project artefact paths
 - `docs/orchestration/` — generated content
 - `CLAUDE.md` — project documentation
@@ -135,7 +137,7 @@ for p in project-a project-b project-c; do
 done
 ```
 
-Each iteration auto-commits + pushes in its own project; final state is every project synced to the current kit HEAD.
+Each iteration auto-commits + pushes project-local drift in its own project and refreshes the global Codex worker roster on the host; final state is every project synced to the current kit HEAD.
 
 ### 3. Interactive setup (in Claude Code)
 

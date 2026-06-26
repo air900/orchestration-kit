@@ -1,0 +1,14 @@
+# ~/.codex/config.toml — Codex sub-agent concurrency settings.
+# Merge this [agents] block into your existing global config; do not replace
+# unrelated settings such as project trust, service tier, or TUI options.
+
+[agents]
+max_threads = 16
+max_depth = 5
+
+# Worker definitions live in:
+#   ~/.codex/agents/*.toml        (personal/global — available in every project)
+#   <repo>/.codex/agents/*.toml   (project-scoped — only that repo)
+# Custom agents beat a built-in of the same name. Personal-vs-project precedence for the
+# SAME name is not documented — prefer distinct names, or keep the generic set global and
+# add only project-specific agents in the repo.
