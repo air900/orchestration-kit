@@ -1,6 +1,6 @@
 # Codex agent set — current-chat coordinator + scoped workers
 
-Starter `~/.codex/agents/*.toml` worker set for OpenAI Codex CLI. The main Codex chat remains the coordinator; there is no separate `orchestrator.toml` agent in this roster.
+Starter `~/.codex/agents/*.toml` worker set for OpenAI Codex CLI. The main Codex chat remains the coordinator.
 
 Full rationale, model-selection reasoning, ready-pack comparison, and caveats:
 **`../../docs/002-codex-agent-orchestration.md`**.

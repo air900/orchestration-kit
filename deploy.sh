@@ -327,12 +327,6 @@ install_codex_global_agents() {
         installed=$((installed + 1))
     done
 
-    # Earlier kit drafts shipped an orchestrator.toml. The supported policy is
-    # current-chat coordinator + scoped workers, so remove that kit-owned stale file.
-    if [ -f "$CODEX_AGENTS_DIR/orchestrator.toml" ] && grep -qxF 'name = "orchestrator"' "$CODEX_AGENTS_DIR/orchestrator.toml"; then
-        rm -f "$CODEX_AGENTS_DIR/orchestrator.toml"
-        log_warn "Removed stale global Codex agent: orchestrator.toml"
-    fi
 
     ensure_codex_agents_config
     log_ok "Installed/updated $installed global Codex agents"
