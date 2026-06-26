@@ -1,14 +1,26 @@
 ---
-description: Orchestrate task — Template Bridge unified-workflow + our quality standards
+description: Orchestrate a task — self-contained dev-loop (superpowers skills) + our quality standards
 ---
 
 User's task: $ARGUMENTS
 
-## Base orchestrator
+## Orchestration flow (self-contained)
 
-Follow `template-bridge:unified-workflow` skill. It defines the end-to-end flow:
-task setup → brainstorm → plan → sub-tasks → (worktrees) → TDD implement →
-verification-before-completion → finishing-a-development-branch → task close.
+Drive the end-to-end dev loop with the superpowers skills directly — no external
+orchestrator plugin required:
+
+1. **Task record** — 6-point description (see `wf-gate` skill § Phase 2) in your
+   project tracker, PR body, or a file under `docs/orchestration/issues/`.
+2. **Brainstorm** — `superpowers:brainstorming` (design before code).
+3. **Plan** — `superpowers:writing-plans` (decompose into 2-5 min tasks).
+4. **Sub-tasks** — record concrete sub-tasks in the same place; note blockers inline.
+5. **Isolate** — `superpowers:using-git-worktrees` for non-trivial work.
+6. **Implement** — for each sub-task: `superpowers:test-driven-development`
+   (RED → verify fail → GREEN → verify pass → REFACTOR), commit after each green,
+   `superpowers:requesting-code-review`, then close the sub-task.
+7. **Verify** — `superpowers:verification-before-completion`.
+8. **Finish** — `superpowers:finishing-a-development-branch`.
+9. **Close** — 4-point reason (see `wf-gate` skill § Phase 4).
 
 ## Our quality standards on top (from wf-gate skill)
 
@@ -27,14 +39,20 @@ verification-before-completion → finishing-a-development-branch → task close
 3. **UI changes** — Playwright screenshot at 1920x1080 on affected pages is
    mandatory before close.
 
-## Fallbacks
+## On-demand specialists
 
-- If Template Bridge is not installed: invoke `superpowers:brainstorming` directly
-  and inform the user that `template-bridge:unified-workflow` is the intended
-  orchestrator and should be installed.
-- If Superpowers is not installed: the wf-gate skill still provides the
-  task-discipline reference; warn the user that the dev-loop skills
-  (brainstorming, TDD, verification) are missing.
+When a task needs expertise not covered by installed skills or agents, pull a
+specialist from claude-code-templates (413+ agents across 26 categories):
+
+```bash
+npx claude-code-templates@latest --agent <category/name> --yes
+```
+
+## Fallback
+
+- If Superpowers is not installed: this wf-gate skill still provides the
+  task-discipline reference (6-point description, 4-point close); warn the user
+  that the dev-loop skills (brainstorming, TDD, verification) are missing.
 
 ## Deprecated commands — do NOT use
 

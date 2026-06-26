@@ -6,8 +6,8 @@ description: >
   habits. The discipline is independent of any specific tracker (GitHub issues,
   Linear, plain commit messages, project-local task files) — apply the templates
   wherever your project records tasks. Orchestration of the dev loop is the
-  responsibility of slash-command `/wf-gate` (delegates to
-  `template-bridge:unified-workflow`); this skill is the reference manual that
+  responsibility of the self-contained slash-command `/wf-gate` (which drives the
+  superpowers dev-loop skills directly); this skill is the reference manual that
   the controller and reviewers consult.
   TRIGGER: Consult this skill whenever creating or closing a task in your
   project's tracker, or whenever uncertain about task-description quality
@@ -17,8 +17,8 @@ description: >
 # WF Gate
 
 **Role:** Reference for task-discipline in any project.
-**Orchestration:** handled by slash-command `/wf-gate` (delegates to
-`template-bridge:unified-workflow`). This skill does NOT orchestrate; it
+**Orchestration:** handled by the self-contained slash-command `/wf-gate` (drives
+the superpowers dev-loop skills directly). This skill does NOT orchestrate; it
 documents the quality standards that apply to any workflow.
 
 **There is no marker file, no unlock mechanism, no Edit/Write hook block.**
