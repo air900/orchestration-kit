@@ -13,16 +13,11 @@ Lightweight development orchestration for Claude Code. Deploys specialist agents
 
 ## Architecture
 
-Orchestration Kit follows the **D1 3-layer model** — each layer has a single clear responsibility, glued together by a thin project-local layer on top.
+Orchestration Kit follows a **2-layer model** — each layer has a single clear responsibility, glued together by a thin project-local layer on top.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ L1 — TEMPLATE BRIDGE (workflow orchestrator)                │
-│   Plugin: maslennikov-ig/template-bridge                    │
-│   Skill: unified-workflow (end-to-end flow)                 │
-│   Bonus: template-catalog + /browse-templates               │
-├─────────────────────────────────────────────────────────────┤
-│ L2 — SUPERPOWERS (dev-loop skills, used as-is)              │
+│ L1 — SUPERPOWERS (dev-loop skills, used as-is)              │
 │   Plugin: obra/superpowers                                  │
 │   Skills: brainstorming, writing-plans,                     │
 │           test-driven-development,                          │
@@ -30,28 +25,27 @@ Orchestration Kit follows the **D1 3-layer model** — each layer has a single c
 │           finishing-a-development-branch,                   │
 │           using-superpowers (SessionStart 1% rule)          │
 ├─────────────────────────────────────────────────────────────┤
-│ L3 — ORCHESTRATION-KIT (thin glue, project-local)           │
-│   • .claude/commands/wf-gate.md — slash command       │
-│   • .claude/skills/wf-gate/ — task-discipline ref     │
-│   • .claude/settings.json — simplified hooks                │
+│ L2 — ORCHESTRATION-KIT (self-contained glue + entry point)  │
+│   • commands/wf-gate.md — self-contained orchestrator       │
+│     drives the Superpowers skills end-to-end (no plugin)    │
+│   • skills/wf-gate/ — task-discipline reference             │
+│   • settings.json — simplified hooks                        │
+│   • on-demand: npx claude-code-templates (413+ agents)      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-Superpowers handles the core dev loop. Template Bridge's `unified-workflow` skill orchestrates it end-to-end. Orchestration Kit adds the `/wf-gate` entry point plus **deep specialized analysis** that Superpowers doesn't cover: OWASP security audits, architecture health checks, documentation lifecycle, process improvement.
+Superpowers handles the core dev loop. The self-contained `/wf-gate` command orchestrates it end-to-end — it drives the Superpowers skills directly, no orchestrator plugin required. Orchestration Kit adds the `/wf-gate` entry point plus **deep specialized analysis** that Superpowers doesn't cover: OWASP security audits, architecture health checks, documentation lifecycle, process improvement.
 
 ## Quick Start
 
 ### 1. Prerequisites
 
-Install plugins (once, used by all projects):
+Install the one prerequisite plugin (once, used by all projects):
 ```bash
 # Required — development methodology (dev-loop skills)
 claude plugin install superpowers
-
-# Required — workflow orchestrator (unified-workflow skill + template-catalog)
-claude plugin marketplace add maslennikov-ig/template-bridge
-claude plugin install template-bridge
 ```
+`/wf-gate` is self-contained (drives the Superpowers skills directly) — no orchestrator plugin is needed. On-demand specialists come from `npx claude-code-templates@latest` when a task needs one.
 
 ### 2. Deploy orchestration to your project
 
