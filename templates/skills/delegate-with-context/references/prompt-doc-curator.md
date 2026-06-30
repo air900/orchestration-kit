@@ -8,7 +8,7 @@ Phase 8 dispatch (parallel with doc-proposer). Reviews the project's `docs/MANIF
 
 ## Model
 
-Always `claude-sonnet-4-6` per [`triviality-classifier.md`](triviality-classifier.md) → "Model selection". Curation is judgment-bound (archive vs keep, restructure thresholds, group naming) — Haiku slightly under-handles in practice.
+Always `claude-sonnet-5` per [`triviality-classifier.md`](triviality-classifier.md) → "Model selection". Curation is judgment-bound (archive vs keep, restructure thresholds, group naming) — Haiku slightly under-handles in practice.
 
 ## Template variables
 

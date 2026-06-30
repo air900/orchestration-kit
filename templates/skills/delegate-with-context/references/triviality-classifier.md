@@ -49,7 +49,7 @@ Pass the `model` parameter to `Agent()` automatically based on the resolved mode
 | Doc-proposer | `sonnet` (always — judgment about arch-relevance) |
 | Doc-curator | `sonnet` (always — judgment about archive vs keep, restructure thresholds, group naming) |
 
-Concrete model identifiers (current): `claude-haiku-4-5`, `claude-sonnet-4-6`, `claude-opus-4-7`. Use Sonnet by default if a more specific identifier is unavailable in the harness.
+Concrete model identifiers (current): `claude-haiku-4-5`, `claude-sonnet-5`, `claude-opus-4-7`. Use Sonnet by default if a more specific identifier is unavailable in the harness.
 
 **Why these defaults:**
 - Trivial work (≤2 files, no API change, mechanical edits) does not need Opus or Sonnet — Haiku handles it cheaply and fast.
@@ -61,7 +61,7 @@ Concrete model identifiers (current): `claude-haiku-4-5`, `claude-sonnet-4-6`, `
 
 ```yaml
 model_override:
-  trivial: claude-sonnet-4-6        # this project wants more rigor on trivial
+  trivial: claude-sonnet-5        # this project wants more rigor on trivial
   non_trivial_arch: claude-opus-4-7 # explicit, even if default already opus
 ```
 
