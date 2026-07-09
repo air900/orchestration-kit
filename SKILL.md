@@ -193,9 +193,9 @@ Build CLAUDE.md from all collected information. The content should be specific t
 
 ### Development Methodology (D1)
 
-**Entry point:** `/wf-gate <task>` — slash command. Delegates to `template-bridge:unified-workflow` and layers our task-discipline reference (`wf-gate` skill) on top.
+**Entry point:** `/wf-gate <task>` — slash command. Self-contained orchestrator: drives the superpowers dev-loop skills under the `wf-gate` task-discipline standards.
 
-Flow (from unified-workflow):
+Flow (wf-gate command):
 1. Task record (6-point description — see `wf-gate` skill § Phase 2 — lives in your tracker or `docs/orchestration/issues/`)
 2. Skill `superpowers:brainstorming`
 3. Skill `superpowers:writing-plans`
@@ -210,7 +210,7 @@ Flow (from unified-workflow):
 
 Manual commands:
 - Skill `superpowers:brainstorming` — brainstorm without full `/wf-gate`
-- `/browse-templates` — 413+ on-demand specialist agents (Template Bridge)
+- `npx claude-code-templates@latest --agent <cat>/<name>` — 413+ on-demand specialist agents (claude-code-templates)
 
 **DO NOT use:** `/superpowers:brainstorm` (no `ing`) — deprecated, just prints a notice. Always invoke the skill `superpowers:brainstorming`.
 
@@ -228,7 +228,7 @@ Manual commands:
 - `/find-skills-my` — Discover and install new skills from registry (custom deep-discovery version; renamed to avoid collision with vercel-labs/skills' own `find-skills`)
 - `/sync-skills` — Detect unregistered skills in `.claude/skills/`
 - `/knowledge-harvest` — Extract insights from sessions to knowledge base
-- `/wf-gate` — task-discipline entry point (delegates to template-bridge:unified-workflow)
+- `/wf-gate` — task-discipline entry point (self-contained: superpowers + wf-gate standards)
 - `/wf-gate-check` — Post-task audit (Mode 1) or independent second opinion on a proposed solution (Mode 2). Slash: `/wf-gate-check` or `/wf-gate-check 02`
 - `/delegate-with-context` — Chat-to-subagents dispatch gateway. Distills the architect's pick, builds a context bundle (CLAUDE.md + optional overlay + docs manifest), runs implementer + spec-reviewer + code-quality-reviewer with Iron Law evidence, ends with doc-proposer + doc-curator. Use after a discussion or for handoff blobs. `--dry-run` prints planned prompts without dispatching
 

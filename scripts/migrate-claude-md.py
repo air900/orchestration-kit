@@ -18,16 +18,16 @@ REPLACEMENTS = [
     # 1. Entry-point line (English + Russian) — optional "our/the" and "on top" suffix
     (
         r"Delegates to `template-bridge:unified-workflow`(?: and layers| layers|, layers)\s*(?:our |the )?Beads quality overlay(?: on top)?\.",
-        "Delegates to `template-bridge:unified-workflow` and layers our task-discipline reference (`wf-gate` skill) on top.",
+        "Self-contained orchestrator: drives the superpowers dev-loop skills under the `wf-gate` task-discipline standards.",
     ),
     (
         r"Делегирует\s+`template-bridge:unified-workflow`(?:,| и)\s+(?:накладывает|кладёт сверху)\s+Beads quality overlay\.?",
-        "Делегирует `template-bridge:unified-workflow`, накладывает task-discipline reference (`wf-gate` skill).",
+        "Self-contained orchestrator: superpowers dev-loop + task-discipline reference (`wf-gate` skill).",
     ),
     # 2. Flow header
     (
         r"^Flow \(9 steps from unified-workflow\):$",
-        "Flow (from unified-workflow):",
+        "Flow (wf-gate command):",
     ),
     (
         r"^Flow \(9 шагов unified-workflow\):?$",
@@ -99,7 +99,7 @@ REPLACEMENTS = [
     # 9. Skills list: /wf-gate description
     (
         r"^- `/workflow-gate` — Beads quality-overlay entry(?: \(delegates to template-bridge:unified-workflow\))?$",
-        "- `/wf-gate` — task-discipline overlay entry (delegates to template-bridge:unified-workflow)",
+        "- `/wf-gate` — task-discipline overlay entry (self-contained: superpowers + wf-gate standards)",
     ),
     # 10. Hooks section: bd prime line (multiple verb variants)
     (

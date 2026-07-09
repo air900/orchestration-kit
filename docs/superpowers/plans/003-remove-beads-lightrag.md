@@ -382,7 +382,7 @@ New content for `templates/settings-hooks.json`:
         "hooks": [
           {
             "type": "command",
-            "command": "echo 'Workflow: /wf-gate <task> (delegates to template-bridge:unified-workflow). Task discipline: wf-gate skill. Verification: superpowers:verification-before-completion (Iron Law).'"
+            "command": "echo 'Workflow: /wf-gate <task> (self-contained: superpowers + wf-gate standards). Task discipline: wf-gate skill. Verification: superpowers:verification-before-completion (Iron Law).'"
           }
         ]
       }
@@ -1767,7 +1767,7 @@ Flow (9 steps from unified-workflow):
 Manual commands:
 - `/beads:create`, `/beads:ready`, `/beads:close` — direct Beads operations
 - Skill `superpowers:brainstorming` — brainstorm without full `/wf-gate`
-- `/browse-templates` — 413+ on-demand specialist agents (Template Bridge)
+- `npx claude-code-templates@latest --agent <cat>/<name>` — 413+ on-demand specialist agents (claude-code-templates)
 
 **DO NOT use:** `/superpowers:brainstorm` (no `ing`) — deprecated, just prints a notice. Always invoke the skill `superpowers:brainstorming`.
 
@@ -1778,9 +1778,9 @@ New:
 ```
 ### Development Methodology (D1)
 
-**Entry point:** `/wf-gate <task>` — slash command. Delegates to `template-bridge:unified-workflow` and layers our task-discipline reference (`wf-gate` skill) on top.
+**Entry point:** `/wf-gate <task>` — slash command. Self-contained orchestrator: drives the superpowers dev-loop skills under the `wf-gate` task-discipline standards.
 
-Flow (from unified-workflow):
+Flow (wf-gate command):
 1. Task record (6-point description — see `wf-gate` skill § Phase 2 — lives in your tracker or `docs/orchestration/issues/`)
 2. Skill `superpowers:brainstorming`
 3. Skill `superpowers:writing-plans`
@@ -1795,7 +1795,7 @@ Flow (from unified-workflow):
 
 Manual commands:
 - Skill `superpowers:brainstorming` — brainstorm without full `/wf-gate`
-- `/browse-templates` — 413+ on-demand specialist agents (Template Bridge)
+- `npx claude-code-templates@latest --agent <cat>/<name>` — 413+ on-demand specialist agents (claude-code-templates)
 
 **DO NOT use:** `/superpowers:brainstorm` (no `ing`) — deprecated, just prints a notice. Always invoke the skill `superpowers:brainstorming`.
 
