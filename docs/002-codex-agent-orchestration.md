@@ -10,17 +10,17 @@
 - [Выбор моделей: ручной, авто-роутинга нет](#выбор-моделей-ручной-авто-роутинга-нет)
 - [Готовые наборы агентов: что есть у сообщества и OpenAI](#готовые-наборы-агентов-что-есть-у-сообщества-и-openai)
 - [Схема файла агента (проверено по первоисточнику)](#схема-файла-агента-проверено-по-первоисточнику)
-- [Мой набор под стек: 5.5 оркестратор + 5.4 воркеры](#мой-набор-под-стек-55-оркестратор--54-воркеры)
+- [Мой набор под стек: GPT-5.6 Sol координатор + Terra/Luna воркеры](#мой-набор-под-стек-gpt-56-sol-координатор--terraluna-воркеры)
 - [Установка и использование](#установка-и-использование)
 - [Безопасность и оговорки](#безопасность-и-оговорки)
 - [Источники](#источники)
 
 ## TL;DR
 
-- **Оркестрация в Codex есть**, но это не автономный диспетчер: главная сессия (модель `gpt-5.5`) — оркестратор, **которым ты управляешь**. Codex спавнит субагента **только когда ты явно просишь**, и **сам модели агентам не подбирает** — модель пинуется в файле агента.
+- **Оркестрация в Codex есть**, но это не автономный диспетчер: главная сессия (модель `gpt-5.6-sol`) — оркестратор, **которым ты управляешь**. Codex спавнит субагента **только когда ты явно просишь**, и **сам модели агентам не подбирает** — модель пинуется в файле агента.
 - **«Набор агентов И моделей»** = папка `~/.codex/agents/*.toml`, где в каждом worker-файле зашиты `model`, `model_reasoning_effort`, `sandbox_mode`, `developer_instructions`. Текущий чат остаётся координатором.
 - **OpenAI готовой большой библиотеки агентов не даёт** — только механизм + доки + sample-конфиги. У сообщества наборы есть; достовернее всех `wshobson/agents` (мульти-харнес) и Codex-нативный `VoltAgent/awesome-codex-subagents` (но у последнего engagement-метрики пахнут накруткой — см. таблицу).
-- **Готовый набор под мой стек лежит рядом:** [`../templates/codex-agents/`](../templates/codex-agents/) — 6 scoped workers (5.4) + 1 скаут (5.4-mini). Текущий чат на основной модели остаётся координатором. Схема проверена по реальному файлу VoltAgent и репозиторию `openai/codex`.
+- **Готовый набор под мой стек лежит рядом:** [`../templates/codex-agents/`](../templates/codex-agents/) — 6 scoped workers (`gpt-5.6-terra`) + 1 скаут (`gpt-5.6-luna`). Текущий чат на `gpt-5.6-sol` остаётся координатором. Схема проверена по реальному файлу VoltAgent и репозиторию `openai/codex`.
 
 ## Что Codex реально умеет по оркестрации
 
@@ -32,7 +32,7 @@
 - `spawn_agents_on_csv` (экспериментальный): строка CSV → один воркер-субагент на строку → батч → результат обратно в CSV.
 - Детерминированные пайплайны: Codex как MCP-сервер + OpenAI Agents SDK.
 
-**Важно понимать про «главного оркестратора».** Это не магия само-разбиения. «Оркестратор» = твоя главная сессия Codex на `gpt-5.5`, которой ты даёшь многошаговую задачу; она планирует и **явно** спавнит воркеров. Поведение «5.5 сам решил разбить на агентов и раздал им модели» — этого нет.
+**Важно понимать про «главного оркестратора».** Это не магия само-разбиения. «Оркестратор» = твоя главная сессия Codex на `gpt-5.6-sol`, которой ты даёшь многошаговую задачу; она планирует и **явно** спавнит воркеров. Поведение «Sol сам решил разбить на агентов и раздал им модели» — этого нет.
 
 ## Выбор моделей: ручной, авто-роутинга нет
 
@@ -42,7 +42,7 @@
 - **Авто-роутинга моделей по сложности/типу задачи НЕТ.** Не укажешь — берётся «recommended model».
 - Авто-выбор (`model_reasoning` / `model_execution` / `model_tool` по типу работы) — открытый [feature request #9205](https://github.com/openai/codex/issues/9205), не реализован.
 
-Доступные модели (на 2026-06): `gpt-5.5` (фронтир), `gpt-5.4` (флагман), `gpt-5.4-mini` (быстрый/дешёвый), `gpt-5.3-codex-spark` (preview, near-instant, ChatGPT Pro).
+Доступные модели (проверено 2026-07-09 через `codex debug models`): `gpt-5.6-sol` (frontier), `gpt-5.6-terra` (баланс capability/cost), `gpt-5.6-luna` (быстрый/дешёвый), `gpt-5.5` и `gpt-5.4` для pinned/legacy workflows, `gpt-5.3-codex-spark` (preview, near-instant, ChatGPT Pro).
 
 ## Готовые наборы агентов: что есть у сообщества и OpenAI
 
@@ -67,7 +67,7 @@
 ```toml
 name = "backend-developer"
 description = "Use when a task needs scoped backend implementation..."
-model = "gpt-5.4"
+model = "gpt-5.6-terra"
 model_reasoning_effort = "high"     # наблюдаемые значения: high, medium (есть low/minimal)
 sandbox_mode = "workspace-write"    # либо read-only, либо danger-full-access
 developer_instructions = """
@@ -78,23 +78,23 @@ Do not broaden ... unless explicitly requested by the parent agent.
 
 Поля `model` / `model_reasoning_effort` / `sandbox_mode` опциональны — если опустить, наследуются от родительской сессии. Фраза **«the parent agent»** в реальных файлах подтверждает модель «оркестратор → воркеры».
 
-## Мой набор под стек: текущий чат-координатор + 5.4 воркеры
+## Мой набор под стек: GPT-5.6 Sol координатор + Terra/Luna воркеры
 
-Файлы: [`../templates/codex-agents/`](../templates/codex-agents/). Маппинг моделей повторяет текущую рабочую схему: основной чат планирует и интегрирует, 5.4 — рабочая лошадка кодинга, mini — ретрив.
+Файлы: [`../templates/codex-agents/`](../templates/codex-agents/). Маппинг моделей повторяет текущую рабочую схему: основной чат планирует и интегрирует на `gpt-5.6-sol`, `gpt-5.6-terra` — рабочая лошадка кодинга, `gpt-5.6-luna` — ретрив и механика.
 
 | Агент | Модель | Effort | Sandbox | Роль |
 |---|---|---|---|---|
-| `code-scout` | gpt-5.4-mini | low | read-only | Найти/смаппить код (дёшево, первым) |
-| `backend-engineer` | gpt-5.4 | high | workspace-write | Python/FastAPI/SQLAlchemy async |
-| `frontend-engineer` | gpt-5.4 | high | workspace-write | React/TypeScript (Vite) |
-| `test-engineer` | gpt-5.4 | high | workspace-write | pytest / vitest |
-| `debugger` | gpt-5.4 | high | workspace-write | Сначала root-cause, потом фикс |
-| `infra-engineer` | gpt-5.4 | medium | workspace-write | Docker/compose/nginx/systemd/deploy |
-| `code-reviewer` | gpt-5.4 | high | read-only | Ревью диффа перед merge |
+| `code-scout` | gpt-5.6-luna | low | read-only | Найти/смаппить код (дёшево, первым) |
+| `backend-engineer` | gpt-5.6-terra | high | workspace-write | Python/FastAPI/SQLAlchemy async |
+| `frontend-engineer` | gpt-5.6-terra | high | workspace-write | React/TypeScript (Vite) |
+| `test-engineer` | gpt-5.6-terra | high | workspace-write | pytest / vitest |
+| `debugger` | gpt-5.6-terra | high | workspace-write | Сначала root-cause, потом фикс |
+| `infra-engineer` | gpt-5.6-terra | medium | workspace-write | Docker/compose/nginx/systemd/deploy |
+| `code-reviewer` | gpt-5.6-terra | high | read-only | Ревью диффа перед merge |
 
 Решения по дизайну:
-- **Ревью и тесты на 5.4**. Компенсация: `model_reasoning_effort = "high"` + `read-only` для ревьюера.
-- **`code-scout` на 5.4-mini** — для locate/map платить флагманом незачем (твоё же правило «haiku для ретрива»).
+- **Ревью и тесты на Terra**. Компенсация: `model_reasoning_effort = "high"` + `read-only` для ревьюера.
+- **`code-scout` на Luna** — для locate/map платить Sol незачем (Tmin для ретрива).
 - **`infra-engineer` на medium** — конфиги механистичнее, чем код.
 - Инструкции (`developer_instructions`) намеренно **короткие** — стартовые шаблоны, не простыни-эссе.
 

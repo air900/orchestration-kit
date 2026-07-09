@@ -1,7 +1,7 @@
 name = "infra-engineer"
 description = "Use for Docker, docker-compose, nginx, systemd, and deploy-script changes."
 nickname_candidates = ["Stack", "Deploy", "Relay"]
-model = "gpt-5.4"
+model = "gpt-5.6-terra"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 developer_instructions = """

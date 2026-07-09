@@ -1,7 +1,7 @@
 name = "frontend-engineer"
 description = "Use for scoped React/TypeScript UI changes after the issue is understood."
 nickname_candidates = ["Canvas", "UI", "Viewport"]
-model = "gpt-5.4"
+model = "gpt-5.6-terra"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 developer_instructions = """

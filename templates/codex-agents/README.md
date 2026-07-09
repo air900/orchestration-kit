@@ -9,13 +9,13 @@ Full rationale, model-selection reasoning, ready-pack comparison, and caveats:
 
 | File | Role | Model | Effort | Sandbox |
 |---|---|---|---|---|
-| `code-scout.toml` | Locate / map code | gpt-5.4-mini | low | read-only |
-| `backend-engineer.toml` | Python/FastAPI/SQLAlchemy | gpt-5.4 | high | workspace-write |
-| `frontend-engineer.toml` | React/TypeScript | gpt-5.4 | high | workspace-write |
-| `test-engineer.toml` | pytest / vitest suites | gpt-5.4 | high | workspace-write |
-| `debugger.toml` | Root-cause first | gpt-5.4 | high | workspace-write |
-| `infra-engineer.toml` | Docker/nginx/systemd/deploy | gpt-5.4 | medium | workspace-write |
-| `code-reviewer.toml` | Review a diff (read-only) | gpt-5.4 | high | read-only |
+| `code-scout.toml` | Locate / map code | gpt-5.6-luna | low | read-only |
+| `backend-engineer.toml` | Python/FastAPI/SQLAlchemy | gpt-5.6-terra | high | workspace-write |
+| `frontend-engineer.toml` | React/TypeScript | gpt-5.6-terra | high | workspace-write |
+| `test-engineer.toml` | pytest / vitest suites | gpt-5.6-terra | high | workspace-write |
+| `debugger.toml` | Root-cause first | gpt-5.6-terra | high | workspace-write |
+| `infra-engineer.toml` | Docker/nginx/systemd/deploy | gpt-5.6-terra | medium | workspace-write |
+| `code-reviewer.toml` | Review a diff (read-only) | gpt-5.6-terra | high | read-only |
 | `config.toml.example` | Sets Codex sub-agent concurrency | — | — | — |
 
 ## Install

@@ -1,7 +1,7 @@
 name = "test-engineer"
 description = "Use to create or extend test suites for a change (pytest backend, vitest frontend)."
 nickname_candidates = ["Probe", "Fixture", "Coverage"]
-model = "gpt-5.4"
+model = "gpt-5.6-terra"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 developer_instructions = """
