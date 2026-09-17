@@ -22,7 +22,7 @@ KIT_REFERENCES = {"code-quality-standards.md", "doc-drafts-format.md", "document
 KIT_FILES = [".claude/orchestration-config.json", ".claude/hooks/log-commands.sh", ".claude/scripts/deploy.sh",
              ".claude/scripts/orch.sh", ".claude/command-log.txt"]
 KIT_SECTION_H1 = "# Claude Automations"
-KIT_SUBSECTIONS = {"Development Methodology (D1)", "Skills", "Specialist Agents (on-demand)", "Agents", "Hooks", "Config",
+KIT_SUBSECTIONS = {"Development Methodology (D1)", "Development Methodology", "Skills", "Specialist Agents (on-demand)", "Agents", "Hooks", "Config",
                    "Template Catalog (on-demand specialists)", "Skill Discovery", "Maintenance"}
 HOOK_MARKERS = ("log-commands.sh", "wf-gate", "Destructive command detected")
 GLOBAL_KIT = [Path.home() / ".claude/skills/wf-gate", Path.home() / ".claude/skills/wf-gate-check",
@@ -114,9 +114,14 @@ def apply_project(project: Path, plan: dict) -> None:
         while new and new[-1].strip() == "": new.pop()
         claude_md.write_text("\n".join(new) + "\n")
     orch = project / "docs/orchestration"
-    if orch.exists() and not any(p.is_file() for p in orch.rglob("*")): shutil.rmtree(orch, ignore_errors=True)
+    orch_removed = False
+    if orch.exists() and not any(p.is_file() for p in orch.rglob("*")): shutil.rmtree(orch, ignore_errors=True); orch_removed = True
     if (project / ".git").exists():
-        subprocess.run(["git", "-C", str(project), "add", "-A", ".claude", "CLAUDE.md", "docs/orchestration"], check=False, capture_output=True)
+        # Stage only what this uninstall touched; never sweep untracked files under .claude.
+        paths = [r for r in plan["remove"]] + ([".claude/settings.json"] if plan["hooks"] else []) + (["CLAUDE.md"] if plan["section"] else []) + (["docs/orchestration"] if orch_removed else [])
+        paths = [q for q in paths if (project / q).exists() or tracked(project, q)]
+        if not paths: return  # nothing of ours to commit; never run `git add -A --` with an empty pathspec
+        subprocess.run(["git", "-C", str(project), "add", "-A", "--", *paths], check=False, capture_output=True)
         subprocess.run(["git", "-C", str(project), "commit", "-qm", "chore: uninstall orchestration-kit (skills, agents, commands, hooks, config, CLAUDE.md section)"], check=False, capture_output=True)
 
 
