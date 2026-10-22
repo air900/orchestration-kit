@@ -9,3 +9,7 @@ __pycache__/
 # agent-team retrospective packs (raw terminal histories)
 .team-retro/
 /.worktrees/
+
+# Raw-data store: every collector's raw API bytes, one per project
+.raw-data-analytics/*
+!.raw-data-analytics/README.md
